@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hilos-en-nogada-v1';
+const CACHE_NAME = 'hilos-en-nogada-v2';
 
 const APP_SHELL = [
   '/',
