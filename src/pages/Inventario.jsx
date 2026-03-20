@@ -1,0 +1,1230 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Layout from '../components/Layout';
+import Header from '../components/Header';
+import Loader from '../components/Loader';
+import { api } from '../config/api';
+import { useRealtime } from '../context/RealtimeContext';
+import usePermisos from '../hooks/usePermisos';
+import { PERMISOS } from '../utils/permisos';
+import {
+  Search,
+  Pencil,
+  Trash2,
+  X,
+  Plus,
+  ChevronUp,
+  ChevronDown,
+  AlertTriangle,
+  Image as ImageIcon,
+} from 'lucide-react';
+
+const PRODUCTOS_POR_PAGINA = 20;
+
+const initialForm = {
+  codigo: '',
+  categoria: '',
+  nombre: '',
+  costoArtesano: '',
+  precio: '',
+  stock: '',
+  imagenUrl: '',
+  imagenPublicId: '',
+};
+
+const sortOptions = [
+  { value: 'codigo', label: 'Código' },
+  { value: 'categoria', label: 'Categoría' },
+  { value: 'nombre', label: 'Nombre' },
+  { value: 'costoArtesano', label: 'Costo artesano' },
+  { value: 'precio', label: 'Precio venta' },
+  { value: 'stock', label: 'Stock' },
+];
+
+export default function Inventario() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { usuario, puede } = usePermisos();
+  const { lastEvent } = useRealtime();
+
+  const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [form, setForm] = useState(initialForm);
+  const [editandoId, setEditandoId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState('');
+  const [busquedaAplicada, setBusquedaAplicada] = useState('');
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [errorFormulario, setErrorFormulario] = useState('');
+  const [errorCarga, setErrorCarga] = useState('');
+  const [errorAccion, setErrorAccion] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('todas');
+  const [soloStockBajo, setSoloStockBajo] = useState(false);
+  const [sortConfig, setSortConfig] = useState({
+    key: 'codigo',
+    direction: 'asc',
+  });
+  const [productoAEliminar, setProductoAEliminar] = useState(null);
+  const [eliminandoProducto, setEliminandoProducto] = useState(false);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalProductos, setTotalProductos] = useState(0);
+  const [imagenArchivo, setImagenArchivo] = useState(null);
+  const [previewImagen, setPreviewImagen] = useState('');
+
+  const cargarCategorias = async () => {
+    try {
+      const { data } = await api.get('/productos/categorias');
+      setCategorias(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setCategorias([]);
+      throw error;
+    }
+  };
+
+  const cargarProductos = async ({
+    page = paginaActual,
+    q = busquedaAplicada,
+    categoria = categoriaFiltro,
+    stockBajo = soloStockBajo,
+    sortKey = sortConfig.key,
+    direction = sortConfig.direction,
+  } = {}) => {
+    const { data } = await api.get('/productos/inventario', {
+      params: {
+        page,
+        limit: PRODUCTOS_POR_PAGINA,
+        q,
+        categoria: categoria === 'todas' ? '' : categoria,
+        stockBajo,
+        sortKey,
+        direction,
+      },
+    });
+
+    setProductos(data.items || []);
+    setPaginaActual(data.page || 1);
+    setTotalPaginas(data.totalPages || 1);
+    setTotalProductos(data.total || 0);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const stockQuery = params.get('stock');
+    setSoloStockBajo(stockQuery === 'bajo');
+    setPaginaActual(1);
+  }, [location.search]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPaginaActual(1);
+      setBusquedaAplicada(busqueda.trim());
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [busqueda]);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [categoriaFiltro, soloStockBajo, sortConfig]);
+
+  useEffect(() => {
+    if (!puede(PERMISOS.GESTIONAR_INVENTARIO)) return;
+
+    const init = async () => {
+      try {
+        setLoading(true);
+        setErrorCarga('');
+        await Promise.all([
+          cargarProductos({
+            page: paginaActual,
+            q: busquedaAplicada,
+            categoria: categoriaFiltro,
+            stockBajo: soloStockBajo,
+            sortKey: sortConfig.key,
+            direction: sortConfig.direction,
+          }),
+          cargarCategorias(),
+        ]);
+      } catch (error) {
+        setErrorCarga(
+          error.response?.data?.mensaje || 'No se pudo cargar el inventario'
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+  }, [
+    usuario,
+    paginaActual,
+    busquedaAplicada,
+    categoriaFiltro,
+    soloStockBajo,
+    sortConfig,
+  ]);
+
+  useEffect(() => {
+    if (!puede(PERMISOS.GESTIONAR_INVENTARIO)) return;
+    if (lastEvent?.tipo !== 'productos') return;
+
+    const refrescar = async () => {
+      try {
+        setErrorCarga('');
+        await Promise.all([
+          cargarProductos({
+            page: paginaActual,
+            q: busquedaAplicada,
+            categoria: categoriaFiltro,
+            stockBajo: soloStockBajo,
+            sortKey: sortConfig.key,
+            direction: sortConfig.direction,
+          }),
+          cargarCategorias(),
+        ]);
+      } catch (error) {
+        setErrorCarga(
+          error.response?.data?.mensaje || 'No se pudo actualizar el inventario'
+        );
+      }
+    };
+
+    refrescar();
+  }, [
+    lastEvent,
+    usuario,
+    paginaActual,
+    busquedaAplicada,
+    categoriaFiltro,
+    soloStockBajo,
+    sortConfig,
+  ]);
+
+  useEffect(() => {
+    if (!soloStockBajo) return;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setSoloStockBajo(false);
+        navigate('/inventario', { replace: true });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [soloStockBajo, navigate]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && productoAEliminar && !eliminandoProducto) {
+        setProductoAEliminar(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [productoAEliminar, eliminandoProducto]);
+
+  useEffect(() => {
+    return () => {
+      if (previewImagen?.startsWith('blob:')) {
+        URL.revokeObjectURL(previewImagen);
+      }
+    };
+  }, [previewImagen]);
+
+  const categoriasDisponibles = useMemo(() => {
+    const base =
+      categorias.length > 0
+        ? categorias
+        : [...new Set(productos.map((p) => p.categoria).filter(Boolean))];
+
+    return [...base].sort((a, b) => a.localeCompare(b));
+  }, [categorias, productos]);
+
+  const paginasVisibles = useMemo(() => {
+    if (totalPaginas <= 5) {
+      return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+    }
+
+    let inicio = Math.max(1, paginaActual - 2);
+    let fin = Math.min(totalPaginas, inicio + 4);
+
+    if (fin - inicio < 4) {
+      inicio = Math.max(1, fin - 4);
+    }
+
+    return Array.from({ length: fin - inicio + 1 }, (_, i) => inicio + i);
+  }, [paginaActual, totalPaginas]);
+
+  if (!puede(PERMISOS.GESTIONAR_INVENTARIO)) {
+    return (
+      <Layout>
+        <Header title="Inventario" />
+        <div className="card p-5">No tienes permiso para gestionar inventario.</div>
+      </Layout>
+    );
+  }
+
+  const handleChange = (e) => {
+    const value =
+      e.target.name === 'codigo' ? e.target.value.toUpperCase() : e.target.value;
+
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: value,
+    }));
+
+    if (errorFormulario) setErrorFormulario('');
+  };
+
+  const handleImagenChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp'];
+    const maxBytes = 3 * 1024 * 1024;
+
+    if (!tiposPermitidos.includes(file.type)) {
+      setErrorFormulario('Solo se permiten imágenes JPG, PNG o WEBP');
+      return;
+    }
+
+    if (file.size > maxBytes) {
+      setErrorFormulario('La imagen no debe superar los 3 MB');
+      return;
+    }
+
+    if (previewImagen?.startsWith('blob:')) {
+      URL.revokeObjectURL(previewImagen);
+    }
+
+    setImagenArchivo(file);
+    setPreviewImagen(URL.createObjectURL(file));
+    if (errorFormulario) setErrorFormulario('');
+  };
+
+  const limpiarImagenSeleccionada = () => {
+    if (previewImagen?.startsWith('blob:')) {
+      URL.revokeObjectURL(previewImagen);
+    }
+
+    setImagenArchivo(null);
+    setPreviewImagen('');
+    setForm((prev) => ({
+      ...prev,
+      imagenUrl: '',
+      imagenPublicId: '',
+    }));
+  };
+
+  const resetForm = () => {
+    if (previewImagen?.startsWith('blob:')) {
+      URL.revokeObjectURL(previewImagen);
+    }
+
+    setForm(initialForm);
+    setEditandoId(null);
+    setErrorFormulario('');
+    setImagenArchivo(null);
+    setPreviewImagen('');
+  };
+
+  const cerrarFormulario = () => {
+    resetForm();
+    setMostrarFormulario(false);
+  };
+
+  const abrirNuevoProducto = () => {
+    resetForm();
+    setErrorAccion('');
+    setMostrarFormulario(true);
+  };
+
+  const subirImagenProducto = async () => {
+    if (!imagenArchivo) return null;
+
+    const formData = new FormData();
+    formData.append('imagen', imagenArchivo);
+
+    const { data } = await api.post('/upload/producto', formData);
+    return data;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorFormulario('');
+    setErrorAccion('');
+
+    try {
+      const imagenSubida = await subirImagenProducto();
+
+      const payload = {
+        codigo: String(form.codigo || '').trim().toUpperCase(),
+        categoria: String(form.categoria || '').trim(),
+        nombre: String(form.nombre || '').trim(),
+        costoArtesano: Number(form.costoArtesano),
+        precio: Number(form.precio),
+        stock: Number(form.stock),
+        imagenUrl: imagenSubida?.url ?? form.imagenUrl ?? '',
+        imagenPublicId: imagenSubida?.publicId ?? form.imagenPublicId ?? '',
+      };
+
+      if (editandoId) {
+        await api.put(`/productos/${editandoId}`, payload);
+      } else {
+        await api.post('/productos', payload);
+      }
+
+      resetForm();
+      setMostrarFormulario(false);
+
+      await Promise.all([
+        cargarProductos({
+          page: paginaActual,
+          q: busquedaAplicada,
+          categoria: categoriaFiltro,
+          stockBajo: soloStockBajo,
+          sortKey: sortConfig.key,
+          direction: sortConfig.direction,
+        }),
+        cargarCategorias(),
+      ]);
+    } catch (error) {
+      setErrorFormulario(
+        error.response?.data?.mensaje || 'No se pudo guardar el producto'
+      );
+    }
+  };
+
+  const editar = (producto) => {
+    if (previewImagen?.startsWith('blob:')) {
+      URL.revokeObjectURL(previewImagen);
+    }
+
+    setEditandoId(producto._id);
+    setForm({
+      codigo: producto.codigo || '',
+      categoria: producto.categoria || '',
+      nombre: producto.nombre || '',
+      costoArtesano: producto.costoArtesano ?? '',
+      precio: producto.precio ?? '',
+      stock: producto.stock ?? '',
+      imagenUrl: producto.imagenUrl || '',
+      imagenPublicId: producto.imagenPublicId || '',
+    });
+    setPreviewImagen(producto.imagenUrl || '');
+    setImagenArchivo(null);
+    setErrorFormulario('');
+    setErrorAccion('');
+    setMostrarFormulario(true);
+  };
+
+  const abrirModalEliminar = (producto) => {
+    setErrorAccion('');
+    setProductoAEliminar(producto);
+  };
+
+  const cerrarModalEliminar = () => {
+    if (eliminandoProducto) return;
+    setProductoAEliminar(null);
+  };
+
+  const confirmarEliminar = async () => {
+    if (!productoAEliminar?._id) return;
+
+    try {
+      setEliminandoProducto(true);
+      setErrorAccion('');
+      await api.delete(`/productos/${productoAEliminar._id}`);
+
+      const paginaObjetivo =
+        productos.length === 1 && paginaActual > 1 ? paginaActual - 1 : paginaActual;
+
+      setProductoAEliminar(null);
+
+      await Promise.all([
+        cargarProductos({
+          page: paginaObjetivo,
+          q: busquedaAplicada,
+          categoria: categoriaFiltro,
+          stockBajo: soloStockBajo,
+          sortKey: sortConfig.key,
+          direction: sortConfig.direction,
+        }),
+        cargarCategorias(),
+      ]);
+    } catch (error) {
+      setErrorAccion(
+        error.response?.data?.mensaje || 'No se pudo eliminar el producto'
+      );
+    } finally {
+      setEliminandoProducto(false);
+    }
+  };
+
+  const limpiarFiltroStockBajo = () => {
+    setSoloStockBajo(false);
+    navigate('/inventario', { replace: true });
+  };
+
+  const requestSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc',
+        };
+      }
+
+      return {
+        key,
+        direction: 'asc',
+      };
+    });
+  };
+
+  const renderSortIcon = (key) => {
+    if (sortConfig.key !== key) {
+      return <ChevronDown size={14} className="text-gray-300" />;
+    }
+
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp size={14} className="text-indigo-600" />
+    ) : (
+      <ChevronDown size={14} className="text-indigo-600" />
+    );
+  };
+
+  const getCategoriaStyle = (categoria) => {
+    const nombre = (categoria || '').toLowerCase();
+    if (nombre.includes('lana')) return 'bg-pink-100 text-pink-700';
+    if (nombre.includes('hilo')) return 'bg-indigo-100 text-indigo-700';
+    if (nombre.includes('accesorio')) return 'bg-emerald-100 text-emerald-700';
+    return 'bg-slate-100 text-slate-700';
+  };
+
+  const getStockStyle = (stock) => {
+    const valor = Number(stock);
+
+    if (valor <= 1) {
+      return 'bg-red-100 text-red-700';
+    }
+
+    if (valor <= 3) {
+      return 'bg-amber-100 text-amber-700';
+    }
+
+    return 'bg-emerald-100 text-emerald-700';
+  };
+
+  const getStockLabel = (stock) => {
+    const valor = Number(stock);
+
+    if (valor <= 1) return 'Crítico';
+    if (valor <= 3) return 'Bajo';
+    return 'Disponible';
+  };
+
+  const renderImagenProducto = (producto, className = 'h-14 w-14') => {
+    if (producto?.imagenUrl) {
+      return (
+        <img
+          src={producto.imagenUrl}
+          alt={producto.nombre}
+          className={`${className} rounded-2xl border border-gray-200 bg-white object-cover`}
+        />
+      );
+    }
+
+    return (
+      <div
+        className={`${className} flex items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-gray-400`}
+      >
+        <ImageIcon size={18} />
+      </div>
+    );
+  };
+
+  const SortableHeader = ({ label, sortKey, align = 'left' }) => (
+    <th className={`py-3 pr-4 ${align === 'right' ? 'text-right' : ''}`}>
+      <button
+        type="button"
+        onClick={() => requestSort(sortKey)}
+        className={`inline-flex items-center gap-1 font-medium transition hover:text-gray-800 ${
+          align === 'right' ? 'ml-auto' : ''
+        }`}
+      >
+        <span>{label}</span>
+        {renderSortIcon(sortKey)}
+      </button>
+    </th>
+  );
+
+  return (
+    <Layout>
+      <Header title="Inventario" />
+
+      <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 lg:p-7">
+        <div className="mb-6 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
+              Lista de productos
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Código, categoría, nombre, costo artesano, precio venta y stock
+            </p>
+          </div>
+
+          <div className="flex w-full flex-col gap-3 xl:w-auto">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="relative w-full lg:w-[320px]">
+                <Search
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+                <input
+                  className="h-11 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  placeholder="Buscar por código, categoría o nombre"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                />
+              </div>
+
+              <div className="relative w-full lg:w-[240px]">
+                <select
+                  className="h-11 w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 pr-10 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  value={categoriaFiltro}
+                  onChange={(e) => setCategoriaFiltro(e.target.value)}
+                >
+                  <option value="todas">Todas las categorías</option>
+                  {categoriasDisponibles.map((categoria) => (
+                    <option key={categoria} value={categoria}>
+                      {categoria}
+                    </option>
+                  ))}
+                </select>
+
+                <ChevronDown
+                  size={18}
+                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+              </div>
+
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 hover:shadow-md active:scale-[0.99]"
+                onClick={abrirNuevoProducto}
+              >
+                <Plus size={17} />
+                Agregar producto
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] lg:grid-cols-[220px_auto]">
+              <div className="relative">
+                <select
+                  className="h-11 w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 pr-10 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  value={sortConfig.key}
+                  onChange={(e) =>
+                    setSortConfig((prev) => ({
+                      ...prev,
+                      key: e.target.value,
+                    }))
+                  }
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      Ordenar por: {option.label}
+                    </option>
+                  ))}
+                </select>
+
+                <ChevronDown
+                  size={18}
+                  className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSortConfig((prev) => ({
+                    ...prev,
+                    direction: prev.direction === 'asc' ? 'desc' : 'asc',
+                  }))
+                }
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                {sortConfig.direction === 'asc' ? (
+                  <>
+                    <ChevronUp size={16} />
+                    Ascendente
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown size={16} />
+                    Descendente
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {soloStockBajo ? (
+          <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-amber-800">
+                Filtro activo: stock bajo
+              </p>
+              <p className="mt-1 text-xs text-amber-700">
+                Mostrando solo productos con stock de 3 o menos. Presiona Esc para
+                quitar el filtro.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={limpiarFiltroStockBajo}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-amber-200 bg-white px-4 text-sm font-medium text-amber-700 transition hover:bg-amber-100"
+            >
+              Quitar filtro
+            </button>
+          </div>
+        ) : null}
+
+        {errorCarga ? (
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorCarga}
+          </div>
+        ) : null}
+
+        {errorAccion ? (
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorAccion}
+          </div>
+        ) : null}
+
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-gray-500">
+            {totalProductos > 0 ? (
+              <>
+                Mostrando{' '}
+                <span className="font-semibold text-gray-700">
+                  {(paginaActual - 1) * PRODUCTOS_POR_PAGINA + 1}
+                </span>
+                {' - '}
+                <span className="font-semibold text-gray-700">
+                  {Math.min(paginaActual * PRODUCTOS_POR_PAGINA, totalProductos)}
+                </span>{' '}
+                de <span className="font-semibold text-gray-700">{totalProductos}</span>{' '}
+                productos
+              </>
+            ) : (
+              'Sin resultados'
+            )}
+          </div>
+
+          {totalPaginas > 1 ? (
+            <div className="text-sm text-gray-500">
+              Página <span className="font-semibold text-gray-700">{paginaActual}</span> de{' '}
+              <span className="font-semibold text-gray-700">{totalPaginas}</span>
+            </div>
+          ) : null}
+        </div>
+
+        {loading ? (
+          <Loader />
+        ) : totalProductos === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 py-16 text-center">
+            <p className="text-lg font-medium text-gray-700">
+              No se encontraron productos
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Agrega un producto nuevo o cambia la búsqueda
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-4 lg:hidden">
+              {productos.map((producto) => {
+                const stock = Number(producto.stock);
+
+                return (
+                  <div
+                    key={producto._id}
+                    className={`rounded-3xl border p-4 shadow-sm ${
+                      stock <= 1
+                        ? 'border-red-200 bg-red-50/70'
+                        : stock <= 3
+                        ? 'border-amber-200 bg-amber-50/70'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      {renderImagenProducto(producto)}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs uppercase tracking-wide text-gray-400">
+                              {producto.codigo}
+                            </p>
+                            <h4 className="mt-1 text-base font-bold text-gray-900">
+                              {producto.nombre}
+                            </h4>
+                          </div>
+
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStockStyle(
+                              producto.stock
+                            )}`}
+                          >
+                            {getStockLabel(producto.stock)}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getCategoriaStyle(
+                              producto.categoria
+                            )}`}
+                          >
+                            {producto.categoria || 'General'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl bg-gray-50 px-3 py-3">
+                        <p className="text-[11px] text-gray-500">Costo artesano</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-800">
+                          ${Number(producto.costoArtesano || 0).toFixed(2)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl bg-gray-50 px-3 py-3">
+                        <p className="text-[11px] text-gray-500">Precio venta</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-800">
+                          ${Number(producto.precio || 0).toFixed(2)}
+                        </p>
+                      </div>
+
+                      <div className="col-span-2 rounded-2xl bg-gray-50 px-3 py-3">
+                        <p className="text-[11px] text-gray-500">Stock disponible</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-800">
+                          {producto.stock}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                        onClick={() => editar(producto)}
+                      >
+                        <Pencil size={15} />
+                        Editar
+                      </button>
+
+                      <button
+                        type="button"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-medium text-white transition hover:bg-red-700"
+                        onClick={() => abrirModalEliminar(producto)}
+                      >
+                        <Trash2 size={15} />
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden max-h-[70vh] overflow-auto rounded-2xl border border-gray-200 lg:block">
+              <table className="min-w-[1120px] w-full text-left">
+                <thead className="sticky top-0 z-10 bg-white shadow-sm">
+                  <tr className="border-b border-gray-200 text-sm text-gray-500">
+                    <th className="py-3 pr-4">Imagen</th>
+                    <SortableHeader label="Código" sortKey="codigo" />
+                    <SortableHeader label="Categoría" sortKey="categoria" />
+                    <SortableHeader label="Nombre" sortKey="nombre" />
+                    <SortableHeader label="Costo artesano" sortKey="costoArtesano" />
+                    <SortableHeader label="Precio venta" sortKey="precio" />
+                    <SortableHeader label="Stock" sortKey="stock" />
+                    <th className="py-3 pr-4">Estado</th>
+                    <th className="py-3 pr-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {productos.map((producto) => {
+                    const stock = Number(producto.stock);
+
+                    return (
+                      <tr
+                        key={producto._id}
+                        className={`border-b border-gray-100 transition hover:bg-gray-50 ${
+                          stock <= 1 ? 'bg-red-50/70' : stock <= 3 ? 'bg-amber-50/60' : ''
+                        }`}
+                      >
+                        <td className="py-4 pr-4">
+                          {renderImagenProducto(producto, 'h-12 w-12')}
+                        </td>
+
+                        <td className="py-4 pr-4 font-medium text-gray-800">
+                          {producto.codigo}
+                        </td>
+
+                        <td className="py-4 pr-4">
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getCategoriaStyle(
+                              producto.categoria
+                            )}`}
+                          >
+                            {producto.categoria || 'General'}
+                          </span>
+                        </td>
+
+                        <td className="py-4 pr-4 font-semibold text-gray-800">
+                          {producto.nombre}
+                        </td>
+
+                        <td className="py-4 pr-4 text-gray-700">
+                          ${Number(producto.costoArtesano || 0).toFixed(2)}
+                        </td>
+
+                        <td className="py-4 pr-4 font-medium text-gray-800">
+                          ${Number(producto.precio || 0).toFixed(2)}
+                        </td>
+
+                        <td className="py-4 pr-4 font-medium">{producto.stock}</td>
+
+                        <td className="py-4 pr-4">
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStockStyle(
+                              producto.stock
+                            )}`}
+                          >
+                            {getStockLabel(producto.stock)}
+                          </span>
+                        </td>
+
+                        <td className="py-4 pr-4">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+                              onClick={() => editar(producto)}
+                            >
+                              <Pencil size={15} />
+                              Editar
+                            </button>
+
+                            <button
+                              type="button"
+                              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-red-600 px-3 text-sm font-medium text-white shadow-sm transition hover:bg-red-700"
+                              onClick={() => abrirModalEliminar(producto)}
+                            >
+                              <Trash2 size={15} />
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {totalPaginas > 1 ? (
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                  disabled={paginaActual === 1}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Anterior
+                </button>
+
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {paginasVisibles.map((pagina) => (
+                    <button
+                      key={pagina}
+                      type="button"
+                      onClick={() => setPaginaActual(pagina)}
+                      className={`inline-flex h-11 min-w-[44px] items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
+                        pagina === paginaActual
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pagina}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))
+                  }
+                  disabled={paginaActual === totalPaginas}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Siguiente
+                </button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
+
+      {mostrarFormulario ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarFormulario} />
+
+          <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-8">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
+                  {editandoId ? 'Editar producto' : 'Nuevo producto'}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Captura la información del producto para inventario
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
+                onClick={cerrarFormulario}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {errorFormulario ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {errorFormulario}
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Código
+                  </label>
+                  <input
+                    className="input"
+                    name="codigo"
+                    placeholder="Escribe el código"
+                    value={form.codigo}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Categoría
+                  </label>
+                  <input
+                    className="input"
+                    name="categoria"
+                    placeholder="Escribe la categoría"
+                    value={form.categoria}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Nombre
+                  </label>
+                  <input
+                    className="input"
+                    name="nombre"
+                    placeholder="Escribe el nombre del producto"
+                    value={form.nombre}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Costo artesano
+                  </label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    name="costoArtesano"
+                    placeholder="0.00"
+                    value={form.costoArtesano}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Precio venta
+                  </label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    name="precio"
+                    placeholder="0.00"
+                    value={form.precio}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Stock
+                  </label>
+                  <input
+                    className="input"
+                    type="number"
+                    name="stock"
+                    placeholder="0"
+                    value={form.stock}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Imagen del producto
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleImagenChange}
+                    className="input"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Formatos permitidos: JPG, PNG o WEBP. Máximo 3 MB.
+                  </p>
+                </div>
+
+                <div className="flex items-end">
+                  {(previewImagen || form.imagenUrl) ? (
+                    <button
+                      type="button"
+                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                      onClick={limpiarImagenSeleccionada}
+                    >
+                      Quitar imagen
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {(previewImagen || form.imagenUrl) ? (
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="mb-3 text-sm font-medium text-gray-700">Vista previa</p>
+                  <img
+                    src={previewImagen || form.imagenUrl}
+                    alt="Vista previa del producto"
+                    className="h-28 w-28 rounded-2xl border border-gray-200 bg-white object-cover"
+                  />
+                </div>
+              ) : null}
+
+              <div className="flex flex-col gap-3 pt-2 md:flex-row">
+                <button className="btn-primary" type="submit">
+                  {editandoId ? 'Actualizar producto' : 'Guardar producto'}
+                </button>
+
+                <button className="btn-secondary" type="button" onClick={resetForm}>
+                  Limpiar
+                </button>
+
+                <button
+                  className="btn-secondary"
+                  type="button"
+                  onClick={cerrarFormulario}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {productoAEliminar ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarModalEliminar} />
+
+          <div className="relative w-full max-w-md rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                <AlertTriangle size={26} />
+              </div>
+
+              <div className="min-w-0">
+                <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                  Confirmar eliminación
+                </h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  Esta acción eliminará el producto del inventario.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-4">
+              <p className="text-sm text-red-700">
+                ¿Seguro que quieres eliminar <strong>{productoAEliminar.nombre}</strong>?
+              </p>
+              <p className="mt-2 text-xs text-red-600">
+                Código: {productoAEliminar.codigo || 'Sin código'} · Categoría:{' '}
+                {productoAEliminar.categoria || 'General'}
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={cerrarModalEliminar}
+                disabled={eliminandoProducto}
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmarEliminar}
+                disabled={eliminandoProducto}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 size={16} />
+                {eliminandoProducto ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </Layout>
+  );
+}
