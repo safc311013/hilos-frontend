@@ -21,6 +21,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
+const formatearMoneda = (valor) => {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+  }).format(Number(valor || 0));
+};
+
 export default function Reportes() {
   const { puede } = usePermisos();
   const hoy = new Date().toISOString().slice(0, 10);
@@ -602,42 +609,60 @@ export default function Reportes() {
       </div>
 
       {ventaSeleccionada ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-3 sm:p-4">
-          <div className="flex min-h-full items-center justify-center">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 backdrop-blur-sm">
+          <div className="flex min-h-full items-end justify-center sm:items-center">
             <div
               className="absolute inset-0"
               onClick={() => setVentaSeleccionada(null)}
             />
 
-            <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white p-4 shadow-2xl sm:p-5 md:p-6">
-              <div className="mb-4 flex shrink-0 items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs text-gray-500">Detalle de venta</p>
-                  <h3 className="text-xl font-bold text-gray-900 md:text-2xl">
-                    {ventaSeleccionada.folio}
-                  </h3>
-                  <p className="mt-1 text-xs text-gray-500 md:text-sm">
-                    {formatearFechaHora(ventaSeleccionada.createdAt)}
-                  </p>
-                </div>
+            <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-2xl sm:h-[94vh] sm:max-w-6xl sm:rounded-[32px] sm:border sm:border-white/20">
+              <div className="sticky top-0 z-20 border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-400">
+                      Detalle de venta
+                    </p>
+                    <h3 className="mt-2 text-xl font-bold text-gray-900 sm:text-2xl">
+                      {ventaSeleccionada.folio}
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-500">
+                      {formatearFechaHora(ventaSeleccionada.createdAt)}
+                    </p>
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={() => setVentaSeleccionada(null)}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-700 transition hover:bg-gray-200"
-                >
-                  <X size={17} />
-                </button>
+                  <div className="flex w-full items-center gap-2 md:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setVentaSeleccionada(null)}
+                      className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 md:w-auto"
+                    >
+                      Cerrar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setVentaSeleccionada(null)}
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="mb-4 grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+              <div className="border-b border-gray-100 bg-gray-50/90 px-4 py-4 sm:px-5 md:px-6">
                 {(() => {
                   const metodo = getMetodoPagoInfo(ventaSeleccionada.metodoPago);
                   const MetodoIcon = metodo.icon;
+                  const piezas = (ventaSeleccionada.productos || []).reduce(
+                    (acc, item) => acc + Number(item.cantidad || 0),
+                    0
+                  );
 
                   return (
-                    <>
-                      <div className="rounded-2xl bg-gray-50 p-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Método de pago</p>
                         <div className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-800">
                           <MetodoIcon size={16} />
@@ -645,122 +670,235 @@ export default function Reportes() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl bg-gray-50 p-3">
+                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Usuario</p>
                         <p className="mt-2 text-sm font-semibold text-gray-800">
                           {ventaSeleccionada.usuario?.nombre || '—'}
                         </p>
                       </div>
 
-                      <div className="rounded-2xl bg-gray-50 p-3">
-                        <p className="text-xs text-gray-500">Subtotal</p>
+                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                        <p className="text-xs text-gray-500">Productos</p>
                         <p className="mt-2 text-sm font-semibold text-gray-800">
-                          ${Number(ventaSeleccionada.subtotal || 0).toFixed(2)}
+                          {(ventaSeleccionada.productos || []).length}
                         </p>
                       </div>
 
-                      <div className="rounded-2xl bg-indigo-50 p-3">
-                        <p className="text-xs text-indigo-700">Total final</p>
-                        <p className="mt-2 text-lg font-bold text-indigo-700">
-                          ${Number(ventaSeleccionada.total || 0).toFixed(2)}
+                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                        <p className="text-xs text-gray-500">Piezas</p>
+                        <p className="mt-2 text-sm font-semibold text-gray-800">
+                          {piezas}
                         </p>
                       </div>
-                    </>
+
+                      <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 shadow-sm">
+                        <p className="text-xs text-indigo-700">Total final</p>
+                        <p className="mt-2 text-lg font-bold text-indigo-700">
+                          {formatearMoneda(ventaSeleccionada.total || 0)}
+                        </p>
+                      </div>
+                    </div>
                   );
                 })()}
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-gray-200">
-                <div className="sticky top-0 z-10 flex shrink-0 items-center gap-3 bg-slate-950 px-4 py-3 text-white">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10">
-                    <Package size={16} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold md:text-base">Productos de la venta</h4>
-                    <p className="text-xs text-slate-300 md:text-sm">
-                      {(ventaSeleccionada.productos || []).length} registro(s)
-                    </p>
-                  </div>
-                </div>
-
-                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
-                  {(ventaSeleccionada.productos || []).map((item, index) => (
-                    <div
-                      key={`${item.producto}-${index}`}
-                      className="rounded-2xl border border-gray-200 bg-gray-50 p-3"
-                    >
-                      <div className="flex flex-col gap-3">
+              <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[320px_1fr] lg:overflow-hidden xl:grid-cols-[360px_1fr]">
+                <aside className="border-b border-gray-100 bg-white p-4 sm:p-5 lg:border-b-0 lg:border-r lg:overflow-y-auto">
+                  <div className="space-y-4">
+                    <div className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 text-white shadow-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white">
+                          <BadgeDollarSign size={18} />
+                        </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">
-                            {item.nombreProducto}
+                          <p className="text-sm font-semibold text-white">
+                            Resumen de importes
                           </p>
-                          <p className="mt-1 text-xs text-gray-500">
-                            Código: {item.codigoProducto || '—'}
+                          <p className="text-xs text-slate-300">
+                            Totales calculados de la venta
                           </p>
                         </div>
+                      </div>
 
-                        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-                          <div className="rounded-xl bg-white px-3 py-2">
-                            <p className="text-[11px] text-gray-500">Cantidad</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-800">
-                              {item.cantidad}
-                            </p>
-                          </div>
+                      <div className="mt-4 space-y-3">
+                        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                          <span className="text-sm text-slate-300">Subtotal</span>
+                          <span className="text-base font-semibold text-white">
+                            {formatearMoneda(ventaSeleccionada.subtotal || 0)}
+                          </span>
+                        </div>
 
-                          <div className="rounded-xl bg-white px-3 py-2">
-                            <p className="text-[11px] text-gray-500">P. unitario</p>
-                            <p className="mt-1 text-sm font-semibold text-gray-800">
-                              ${Number(item.precioUnitario || 0).toFixed(2)}
-                            </p>
-                          </div>
+                        <div className="flex items-center justify-between rounded-2xl border border-amber-300/15 bg-amber-400/10 px-4 py-3">
+                          <span className="text-sm text-amber-100">Descuento total</span>
+                          <span className="text-base font-semibold text-amber-200">
+                            {formatearMoneda(ventaSeleccionada.descuentoTotal || 0)}
+                          </span>
+                        </div>
 
-                          <div className="rounded-xl bg-amber-50 px-3 py-2">
-                            <p className="text-[11px] text-amber-700">Desc. %</p>
-                            <p className="mt-1 text-sm font-semibold text-amber-700">
-                              {Number(item.descuentoPorcentaje || 0).toFixed(0)}%
-                            </p>
-                          </div>
-
-                          <div className="rounded-xl bg-slate-900 px-3 py-2 text-white">
-                            <p className="text-[11px] text-slate-300">Total</p>
-                            <p className="mt-1 text-sm font-semibold">
-                              ${obtenerSubtotalItem(item).toFixed(2)}
-                            </p>
-                          </div>
+                        <div className="rounded-2xl bg-white px-4 py-4 text-slate-900 shadow-sm">
+                          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+                            Total cobrado
+                          </p>
+                          <p className="mt-2 text-2xl font-extrabold">
+                            {formatearMoneda(ventaSeleccionada.total || 0)}
+                          </p>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
 
-              <div className="mt-4 grid shrink-0 grid-cols-1 gap-3 md:grid-cols-3">
-                <div className="rounded-2xl bg-gray-50 p-3">
-                  <p className="text-xs text-gray-500">Descuento total</p>
-                  <p className="mt-2 text-sm font-semibold text-amber-700">
-                    ${Number(ventaSeleccionada.descuentoTotal || 0).toFixed(2)}
-                  </p>
-                </div>
+                    <div className="rounded-3xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
+                          <ReceiptText size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">
+                            Información general
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Datos rápidos de la operación
+                          </p>
+                        </div>
+                      </div>
 
-                <div className="rounded-2xl bg-gray-50 p-3">
-                  <p className="text-xs text-gray-500">Piezas vendidas</p>
-                  <p className="mt-2 text-sm font-semibold text-gray-800">
-                    {(ventaSeleccionada.productos || []).reduce(
-                      (acc, item) => acc + Number(item.cantidad || 0),
-                      0
-                    )}
-                  </p>
-                </div>
+                      <div className="mt-4 space-y-3">
+                        <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+                          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Folio
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
+                            {ventaSeleccionada.folio}
+                          </p>
+                        </div>
 
-                <div className="rounded-2xl bg-indigo-600 p-3 text-white">
-                  <div className="flex items-center gap-2 text-indigo-100">
-                    <BadgeDollarSign size={15} />
-                    <span className="text-xs">Total cobrado</span>
+                        <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+                          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Fecha y hora
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
+                            {formatearFechaHora(ventaSeleccionada.createdAt)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+                          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Usuario
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
+                            {ventaSeleccionada.usuario?.nombre || '—'}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+                          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Método de pago
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
+                            {getMetodoPagoInfo(ventaSeleccionada.metodoPago).label}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+                          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Piezas vendidas
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
+                            {(ventaSeleccionada.productos || []).reduce(
+                              (acc, item) => acc + Number(item.cantidad || 0),
+                              0
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-2 text-xl font-bold">
-                    ${Number(ventaSeleccionada.total || 0).toFixed(2)}
-                  </p>
-                </div>
+                </aside>
+
+                <section className="flex min-h-0 flex-col bg-gray-50/60 lg:overflow-hidden">
+                  <div className="border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
+                        <Package size={18} />
+                      </div>
+                      <div>
+                        <h4 className="text-base font-semibold text-gray-900">
+                          Productos de la venta
+                        </h4>
+                        <p className="text-sm text-gray-500">
+                          {(ventaSeleccionada.productos || []).length} registro(s)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-visible p-4 sm:p-5 md:p-6 lg:overflow-y-auto">
+                    <div className="space-y-4">
+                      {(ventaSeleccionada.productos || []).map((item, index) => (
+                        <div
+                          key={`${item.producto}-${index}`}
+                          className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
+                        >
+                          <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                              <div>
+                                <p className="text-base font-semibold text-gray-900">
+                                  {item.nombreProducto}
+                                </p>
+                                <p className="mt-1 text-sm text-gray-500">
+                                  Código: {item.codigoProducto || '—'}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl bg-slate-900 px-4 py-3 text-right">
+                                <p className="text-xs text-slate-300">Total</p>
+                                <p className="mt-1 text-sm font-bold text-white">
+                                  {formatearMoneda(obtenerSubtotalItem(item))}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                                <p className="text-[11px] text-gray-500">Cantidad</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-800">
+                                  {item.cantidad}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                                <p className="text-[11px] text-gray-500">P. unitario</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-800">
+                                  {formatearMoneda(item.precioUnitario || 0)}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                                <p className="text-[11px] text-gray-500">Subtotal bruto</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-800">
+                                  {formatearMoneda(item.subtotalBruto || 0)}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl bg-amber-50 px-4 py-3">
+                                <p className="text-[11px] text-amber-700">Desc. %</p>
+                                <p className="mt-1 text-sm font-semibold text-amber-700">
+                                  {Number(item.descuentoPorcentaje || 0).toFixed(2)}%
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl bg-emerald-50 px-4 py-3">
+                                <p className="text-[11px] text-emerald-700">Subtotal final</p>
+                                <p className="mt-1 text-sm font-semibold text-emerald-700">
+                                  {formatearMoneda(obtenerSubtotalItem(item))}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
           </div>
