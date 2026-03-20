@@ -763,15 +763,15 @@ export default function Ventas() {
       </div>
 
       {ventaSeleccionada ? (
-        <div className="fixed inset-0 z-50 bg-black/45 backdrop-blur-sm">
-          <div className="flex min-h-full items-center justify-center p-2 sm:p-4 md:p-6">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 backdrop-blur-sm">
+          <div className="flex min-h-full items-end justify-center sm:items-center">
             <div
               className="absolute inset-0"
               onClick={() => setVentaSeleccionada(null)}
             />
 
-            <div className="relative flex h-[94vh] w-full max-w-7xl flex-col overflow-hidden rounded-[28px] border border-white/20 bg-white shadow-2xl sm:rounded-[32px]">
-              <div className="border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
+            <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-2xl sm:h-[94vh] sm:max-w-7xl sm:rounded-[32px] sm:border sm:border-white/20">
+              <div className="sticky top-0 z-20 border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-400">
@@ -795,11 +795,11 @@ export default function Ventas() {
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
                     <button
                       type="button"
                       onClick={() => setTicketSeleccionado(ventaSeleccionada)}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                      className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 md:flex-none"
                     >
                       <Receipt size={16} />
                       Ver ticket
@@ -816,14 +816,14 @@ export default function Ventas() {
                 </div>
               </div>
 
-              <div className="border-b border-gray-100 bg-gray-50/80 px-4 py-4 sm:px-5 md:px-6">
+              <div className="border-b border-gray-100 bg-gray-50/90 px-4 py-4 sm:px-5 md:px-6">
                 {(() => {
                   const metodo = getMetodoPagoInfo(ventaSeleccionada.metodoPago);
                   const MetodoIcon = metodo.icon;
 
                   return (
-                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Método de pago</p>
                         <div className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-800">
                           <MetodoIcon size={16} />
@@ -831,21 +831,21 @@ export default function Ventas() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Usuario</p>
                         <p className="mt-2 text-sm font-semibold text-gray-800">
                           {ventaSeleccionada.usuario?.nombre || '—'}
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Productos</p>
                         <p className="mt-2 text-sm font-semibold text-gray-800">
                           {(ventaSeleccionada.productos || []).length}
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Piezas</p>
                         <p className="mt-2 text-sm font-semibold text-gray-800">
                           {(ventaSeleccionada.productos || []).reduce(
@@ -855,10 +855,10 @@ export default function Ventas() {
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3">
+                      <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 shadow-sm">
                         <p className="text-xs text-indigo-700">Total final</p>
                         <p className="mt-2 text-lg font-bold text-indigo-700">
-                          ${Number(ventaSeleccionada.total || 0).toFixed(2)}
+                          {formatearMoneda(ventaSeleccionada.total || 0)}
                         </p>
                       </div>
                     </div>
@@ -866,52 +866,54 @@ export default function Ventas() {
                 })()}
               </div>
 
-              <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr]">
+              <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[320px_1fr] lg:overflow-hidden xl:grid-cols-[360px_1fr]">
                 <aside className="border-b border-gray-100 bg-white p-4 sm:p-5 lg:border-b-0 lg:border-r lg:overflow-y-auto">
                   <div className="space-y-4">
-                    <div className="rounded-3xl border border-gray-200 bg-gray-50 p-4">
+                    <div className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 text-white shadow-lg">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white">
                           <BadgeDollarSign size={18} />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-sm font-semibold text-white">
                             Resumen de importes
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-slate-300">
                             Totales calculados de la venta
                           </p>
                         </div>
                       </div>
 
                       <div className="mt-4 space-y-3">
-                        <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
-                          <span className="text-sm text-gray-500">Subtotal</span>
-                          <span className="text-sm font-semibold text-gray-900">
-                            ${Number(ventaSeleccionada.subtotal || 0).toFixed(2)}
+                        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                          <span className="text-sm text-slate-300">Subtotal</span>
+                          <span className="text-base font-semibold text-white">
+                            {formatearMoneda(ventaSeleccionada.subtotal || 0)}
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
-                          <span className="text-sm text-gray-500">Descuento total</span>
-                          <span className="text-sm font-semibold text-amber-700">
-                            ${Number(ventaSeleccionada.descuentoTotal || 0).toFixed(2)}
+                        <div className="flex items-center justify-between rounded-2xl border border-amber-300/15 bg-amber-400/10 px-4 py-3">
+                          <span className="text-sm text-amber-100">Descuento total</span>
+                          <span className="text-base font-semibold text-amber-200">
+                            {formatearMoneda(ventaSeleccionada.descuentoTotal || 0)}
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between rounded-2xl bg-slate-900 px-4 py-3">
-                          <span className="text-sm text-slate-300">Total cobrado</span>
-                          <span className="text-base font-bold text-white">
-                            ${Number(ventaSeleccionada.total || 0).toFixed(2)}
-                          </span>
+                        <div className="rounded-2xl bg-white px-4 py-4 text-slate-900 shadow-sm">
+                          <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+                            Total cobrado
+                          </p>
+                          <p className="mt-2 text-2xl font-extrabold">
+                            {formatearMoneda(ventaSeleccionada.total || 0)}
+                          </p>
                         </div>
                       </div>
                     </div>
 
                     {ventaSeleccionada.origenCotizacion ? (
-                      <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-4">
+                      <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
                             <FileText size={18} />
                           </div>
                           <div>
@@ -925,38 +927,48 @@ export default function Ventas() {
                         </div>
 
                         <div className="mt-4 space-y-3">
-                          <div className="rounded-2xl bg-white/80 px-4 py-3">
-                            <p className="text-xs text-emerald-700">Cliente</p>
+                          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                              Cliente
+                            </p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">
                               {ventaSeleccionada.cotizacion?.cliente || 'Sin especificar'}
                             </p>
                           </div>
 
-                          <div className="rounded-2xl bg-white/80 px-4 py-3">
-                            <p className="text-xs text-emerald-700">Fecha cotización</p>
+                          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                              Fecha cotización
+                            </p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">
                               {ventaSeleccionada.cotizacion?.fechaCotizacion || 'Sin especificar'}
                             </p>
                           </div>
 
-                          <div className="rounded-2xl bg-white/80 px-4 py-3">
-                            <p className="text-xs text-emerald-700">Vigencia</p>
+                          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                              Vigencia
+                            </p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">
                               {ventaSeleccionada.cotizacion?.vigencia || 'Sin especificar'}
                             </p>
                           </div>
 
-                          <div className="rounded-2xl bg-white/80 px-4 py-3">
-                            <p className="text-xs text-emerald-700">Total cotización</p>
+                          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                              Total cotización
+                            </p>
                             <p className="mt-1 text-sm font-semibold text-gray-900">
-                              ${Number(ventaSeleccionada.cotizacion?.totalCotizacion || 0).toFixed(2)}
+                              {formatearMoneda(ventaSeleccionada.cotizacion?.totalCotizacion || 0)}
                             </p>
                           </div>
 
                           {ventaSeleccionada.cotizacion?.notas ? (
-                            <div className="rounded-2xl bg-white/80 px-4 py-3">
-                              <p className="text-xs text-emerald-700">Notas</p>
-                              <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
+                            <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                              <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                                Notas
+                              </p>
+                              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-800">
                                 {ventaSeleccionada.cotizacion.notas}
                               </p>
                             </div>
@@ -967,7 +979,7 @@ export default function Ventas() {
                   </div>
                 </aside>
 
-                <section className="flex min-h-0 flex-col bg-gray-50/60">
+                <section className="flex min-h-0 flex-col bg-gray-50/60 lg:overflow-hidden">
                   <div className="border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
@@ -984,7 +996,7 @@ export default function Ventas() {
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6">
+                  <div className="flex-1 overflow-visible p-4 sm:p-5 md:p-6 lg:overflow-y-auto">
                     <div className="space-y-4">
                       {(ventaSeleccionada.productos || []).map((item, index) => (
                         <div
