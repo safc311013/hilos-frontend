@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
@@ -12,14 +12,48 @@ const FORMATOS = {
   CONSIGNACION: 'consignaciones',
 };
 
+const PREFIJOS_FOLIO = {
+  [FORMATOS.VENTA]: 'CM',
+  [FORMATOS.CONSIGNACION]: 'CG',
+};
+
 const obtenerFechaHoyISO = () => {
   const hoy = new Date();
   const offset = hoy.getTimezoneOffset();
   return new Date(hoy.getTime() - offset * 60000).toISOString().slice(0, 10);
 };
 
+const normalizarFechaInput = (valor) => {
+  if (!valor) return obtenerFechaHoyISO();
+
+  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}/.test(valor)) {
+    return valor.slice(0, 10);
+  }
+
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return obtenerFechaHoyISO();
+
+  const offset = fecha.getTimezoneOffset();
+  return new Date(fecha.getTime() - offset * 60000).toISOString().slice(0, 10);
+};
+
 const escapeRegExp = (texto = '') => {
   return texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+const obtenerTipoCotizacion = (formato) =>
+  formato === FORMATOS.VENTA ? 'COMPRA' : 'CONSIGNACION';
+
+const generarBaseFolio = (formato, fecha) => {
+  const prefijo = PREFIJOS_FOLIO[formato] || 'CT';
+  const fechaBase = fecha || obtenerFechaHoyISO();
+  return `${prefijo}-${fechaBase}`;
+};
+
+const obtenerItemsDeCotizacion = (cotizacion) => {
+  if (Array.isArray(cotizacion?.items)) return cotizacion.items;
+  if (Array.isArray(cotizacion?.productos)) return cotizacion.productos;
+  return [];
 };
 
 const initialItemForm = {
@@ -73,6 +107,14 @@ export default function Cotizaciones() {
   const [indiceSugerenciaActiva, setIndiceSugerenciaActiva] = useState(-1);
   const [modalFormulario, setModalFormulario] = useState(false);
 
+  const [historialCotizaciones, setHistorialCotizaciones] = useState([]);
+  const [busquedaHistorial, setBusquedaHistorial] = useState('');
+  const [filtroHistorial, setFiltroHistorial] = useState('TODAS');
+  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState('');
+  const [mensajeEstado, setMensajeEstado] = useState(null);
+
   const esFormatoVenta = formatoActivo === FORMATOS.VENTA;
 
   const items = useMemo(() => {
@@ -93,6 +135,20 @@ export default function Cotizaciones() {
     );
   }, [datosCotizacionPorFormato, formatoActivo]);
 
+  const mostrarMensaje = useCallback((tipo, texto) => {
+    setMensajeEstado({ tipo, texto });
+  }, []);
+
+  useEffect(() => {
+    if (!mensajeEstado) return;
+
+    const timeout = setTimeout(() => {
+      setMensajeEstado(null);
+    }, 4000);
+
+    return () => clearTimeout(timeout);
+  }, [mensajeEstado]);
+
   useEffect(() => {
     const cargarProductos = async () => {
       try {
@@ -101,11 +157,48 @@ export default function Cotizaciones() {
       } catch (error) {
         console.error('Error al cargar productos:', error);
         setProductos([]);
+        mostrarMensaje('error', 'No se pudieron cargar los productos.');
       }
     };
 
     cargarProductos();
-  }, []);
+  }, [mostrarMensaje]);
+
+  const cargarHistorial = useCallback(async () => {
+    try {
+      setCargandoHistorial(true);
+
+      const params = {};
+
+      if (String(busquedaHistorial || '').trim()) {
+        params.q = String(busquedaHistorial || '').trim();
+      }
+
+      if (filtroHistorial !== 'TODAS') {
+        params.formato = filtroHistorial;
+      }
+
+      const { data } = await api.get('/cotizaciones', { params });
+      setHistorialCotizaciones(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error al cargar historial de cotizaciones:', error);
+      setHistorialCotizaciones([]);
+      mostrarMensaje(
+        'error',
+        error?.response?.data?.mensaje || 'No se pudo cargar el historial.'
+      );
+    } finally {
+      setCargandoHistorial(false);
+    }
+  }, [busquedaHistorial, filtroHistorial, mostrarMensaje]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      cargarHistorial();
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [cargarHistorial]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -158,9 +251,10 @@ export default function Cotizaciones() {
   const formatearFecha = (fecha) => {
     if (!fecha) return 'Sin especificar';
 
-    const [year, month, day] = fecha.split('-');
-    if (!year || !month || !day) return fecha;
+    const fechaNormalizada = normalizarFechaInput(fecha);
+    const [year, month, day] = fechaNormalizada.split('-');
 
+    if (!year || !month || !day) return String(fecha);
     return `${day}/${month}/${year}`;
   };
 
@@ -593,6 +687,152 @@ export default function Cotizaciones() {
     }, 0);
   }, [items, esFormatoVenta]);
 
+  const folioPreview = useMemo(() => {
+    return generarBaseFolio(formatoActivo, datosCotizacion.fechaCotizacion);
+  }, [formatoActivo, datosCotizacion.fechaCotizacion]);
+
+  const construirPayloadCotizacion = () => {
+    return {
+      formato: formatoActivo,
+      tipo: obtenerTipoCotizacion(formatoActivo),
+      cliente: String(datosCotizacion.nombreCliente || '').trim(),
+      telefono: '',
+      fechaCotizacion: datosCotizacion.fechaCotizacion || obtenerFechaHoyISO(),
+      vigencia: String(datosCotizacion.vigencia || '').trim(),
+      notas: String(notas || '').trim(),
+      items: items.map((item) => ({
+        productoId: item.productoId || '',
+        nombreProducto: item.nombreProducto || '',
+        codigo: item.codigo || '',
+        categoria: item.categoria || '',
+        imagenUrl: item.imagenUrl || '',
+        stock: Number(item.stock || 0),
+        cantidad: Number(item.cantidad || 0),
+        precioUnitario: Number(item.precioUnitario || 0),
+        descuento: esFormatoVenta ? Number(item.descuento || 0) : 0,
+        incrementoPorcentaje: esFormatoVenta
+          ? 0
+          : Number(item.incrementoPorcentaje || 0),
+        comisionClientePorcentaje: esFormatoVenta
+          ? 0
+          : Number(item.comisionClientePorcentaje || 0),
+      })),
+    };
+  };
+
+  const guardarCotizacionEnHistorial = async () => {
+    if (!items.length) {
+      mostrarMensaje('error', 'Agrega al menos un producto a la cotización.');
+      return;
+    }
+
+    if (!String(datosCotizacion.nombreCliente || '').trim()) {
+      mostrarMensaje('error', 'El nombre del cliente es obligatorio para guardar.');
+      return;
+    }
+
+    try {
+      setGuardandoCotizacion(true);
+
+      const payload = construirPayloadCotizacion();
+      const { data } = await api.post('/cotizaciones', payload);
+
+      await cargarHistorial();
+      mostrarMensaje(
+        'success',
+        `Cotización ${data?.folio || ''} guardada correctamente.`
+      );
+    } catch (error) {
+      console.error('Error al guardar cotización:', error);
+      mostrarMensaje(
+        'error',
+        error?.response?.data?.error ||
+          error?.response?.data?.mensaje ||
+          'No se pudo guardar la cotización.'
+      );
+    } finally {
+      setGuardandoCotizacion(false);
+    }
+  };
+
+  const eliminarCotizacionHistorial = async (cotizacion) => {
+    const id = cotizacion?._id;
+    if (!id) return;
+
+    const confirmado = window.confirm(
+      `¿Eliminar la cotización ${cotizacion.folio || ''}?`
+    );
+
+    if (!confirmado) return;
+
+    try {
+      setEliminandoId(id);
+      await api.delete(`/cotizaciones/${id}`);
+      await cargarHistorial();
+      mostrarMensaje('success', 'Cotización eliminada correctamente.');
+    } catch (error) {
+      console.error('Error al eliminar cotización:', error);
+      mostrarMensaje(
+        'error',
+        error?.response?.data?.mensaje || 'No se pudo eliminar la cotización.'
+      );
+    } finally {
+      setEliminandoId('');
+    }
+  };
+
+  const cargarCotizacionDesdeHistorial = (cotizacion) => {
+    if (!cotizacion) return;
+
+    const formato = cotizacion.formato || FORMATOS.VENTA;
+    const itemsHistorial = obtenerItemsDeCotizacion(cotizacion);
+
+    setFormatoActivo(formato);
+
+    setItemsPorFormato((prev) => ({
+      ...prev,
+      [formato]: itemsHistorial.map((item) => ({
+        productoId:
+          item.productoId?._id ||
+          item.productoId ||
+          item.producto ||
+          '',
+        nombreProducto: item.nombreProducto || '',
+        cantidad: item.cantidad ?? '',
+        precioUnitario: item.precioUnitario ?? '',
+        descuento: item.descuento ?? '',
+        stock: item.stock ?? '',
+        incrementoPorcentaje: item.incrementoPorcentaje ?? '',
+        comisionClientePorcentaje: item.comisionClientePorcentaje ?? '',
+        imagenUrl: item.imagenUrl || '',
+        codigo: item.codigo || '',
+        categoria: item.categoria || '',
+      })),
+    }));
+
+    setNotasPorFormato((prev) => ({
+      ...prev,
+      [formato]: cotizacion.notas || '',
+    }));
+
+    setDatosCotizacionPorFormato((prev) => ({
+      ...prev,
+      [formato]: {
+        ...prev[formato],
+        nombreCliente: cotizacion.cliente || '',
+        fechaCotizacion: normalizarFechaInput(cotizacion.fechaCotizacion),
+        vigencia: cotizacion.vigencia || '',
+      },
+    }));
+
+    resetItemForm();
+    setModalFormulario(false);
+    mostrarMensaje(
+      'success',
+      `Cotización ${cotizacion.folio || ''} cargada en el formulario.`
+    );
+  };
+
   const cargarImagenComoDataURL = async (ruta) => {
     const response = await fetch(ruta);
     const blob = await response.blob();
@@ -624,6 +864,8 @@ export default function Cotizaciones() {
     const cotizacionVenta = {
       origen: 'cotizacion',
       formato: FORMATOS.VENTA,
+      tipo: 'COMPRA',
+      folio: folioPreview,
       cliente: datosCotizacion.nombreCliente || '',
       fechaCotizacion: datosCotizacion.fechaCotizacion || '',
       vigencia: datosCotizacion.vigencia || '',
@@ -670,10 +912,11 @@ export default function Cotizaciones() {
     const pageHeight = doc.internal.pageSize.getHeight();
     const fechaGeneracion = new Date().toLocaleString('es-MX');
     const tituloFormato = esFormatoVenta
-      ? 'Cotización de venta'
+      ? 'Cotización de compra'
       : 'Cotización de consignaciones';
     const notasActuales = (notasPorFormato[formatoActivo] || '').trim();
     const datosActuales = datosCotizacionPorFormato[formatoActivo] || {};
+    const folioPDF = generarBaseFolio(formatoActivo, datosActuales.fechaCotizacion);
 
     let logoDataUrl = null;
     let piePaginaDataUrl = null;
@@ -681,14 +924,14 @@ export default function Cotizaciones() {
 
     try {
       logoDataUrl = await cargarImagenComoDataURL('/logo.png');
-    } catch (e) {
+    } catch {
       logoDataUrl = null;
     }
 
     try {
       piePaginaDataUrl = await cargarImagenComoDataURL('/PiePagina.png');
       piePaginaDimensiones = await obtenerDimensionesImagen(piePaginaDataUrl);
-    } catch (e) {
+    } catch {
       piePaginaDataUrl = null;
     }
 
@@ -698,7 +941,7 @@ export default function Cotizaciones() {
 
         try {
           return await cargarImagenComoDataURL(item.imagenUrl);
-        } catch (error) {
+        } catch {
           return null;
         }
       })
@@ -827,7 +1070,7 @@ export default function Cotizaciones() {
     const datosY = 56;
     const datosGap = 6;
     const datosBoxH = 22;
-    const datosBoxW = (pageWidth - 28 - datosGap * 2) / 3;
+    const datosBoxW = (pageWidth - 28 - datosGap * 3) / 4;
 
     const dibujarTarjetaDato = (x, y, titulo, valor, color = [248, 250, 252]) => {
       doc.setFillColor(color[0], color[1], color[2]);
@@ -839,27 +1082,31 @@ export default function Cotizaciones() {
       doc.setTextColor(17, 24, 39);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
-      doc.text(String(valor), x + 4, y + 16);
+
+      const texto = String(valor || 'Sin especificar');
+      const textoRecortado =
+        texto.length > 25 ? `${texto.slice(0, 22)}...` : texto;
+
+      doc.text(textoRecortado, x + 4, y + 16);
     };
 
+    dibujarTarjetaDato(14, datosY, 'Folio', folioPDF, [224, 242, 254]);
     dibujarTarjetaDato(
-      14,
+      14 + (datosBoxW + datosGap) * 1,
       datosY,
       'Cliente',
       datosActuales.nombreCliente || 'Sin especificar',
       [239, 246, 255]
     );
-
     dibujarTarjetaDato(
-      14 + datosBoxW + datosGap,
+      14 + (datosBoxW + datosGap) * 2,
       datosY,
       'Fecha',
       formatearFecha(datosActuales.fechaCotizacion),
       [245, 243, 255]
     );
-
     dibujarTarjetaDato(
-      14 + (datosBoxW + datosGap) * 2,
+      14 + (datosBoxW + datosGap) * 3,
       datosY,
       'Vigencia',
       datosActuales.vigencia || 'Sin especificar',
@@ -941,7 +1188,10 @@ export default function Cotizaciones() {
 
         if (imagenDataUrl) {
           const padding = 2;
-          const size = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2);
+          const size = Math.min(
+            data.cell.width - padding * 2,
+            data.cell.height - padding * 2
+          );
           const x = data.cell.x + (data.cell.width - size) / 2;
           const y = data.cell.y + (data.cell.height - size) / 2;
 
@@ -1028,19 +1278,16 @@ export default function Cotizaciones() {
     }
 
     dibujarFooterEnTodasLasPaginas();
-
-    doc.save(
-      `cotizacion_${formatoActivo}_${new Date().toISOString().slice(0, 10)}.pdf`
-    );
+    doc.save(`${folioPDF}.pdf`);
   };
 
   const textoFormatoActual = esFormatoVenta
-    ? 'Formato de venta'
+    ? 'Formato de compra'
     : 'Formato de consignaciones';
 
   const textoCambioFormato = esFormatoVenta
     ? 'Cambiar a formato de consignaciones'
-    : 'Cambiar a formato de venta';
+    : 'Cambiar a formato de compra';
 
   const renderFormularioProducto = (autocompleteRef, esModal = false) => (
     <div>
@@ -1057,7 +1304,7 @@ export default function Cotizaciones() {
 
         <p className="mt-1 text-sm text-gray-500 sm:mt-2">
           {esFormatoVenta
-            ? 'Captura un producto para el formato de venta.'
+            ? 'Captura un producto para el formato de compra.'
             : 'Captura un producto para el formato de consignaciones.'}
         </p>
       </div>
@@ -1431,6 +1678,18 @@ export default function Cotizaciones() {
       <Header title="Cotizaciones" />
 
       <div className="space-y-5 sm:space-y-6">
+        {mensajeEstado ? (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
+              mensajeEstado.tipo === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border-rose-200 bg-rose-50 text-rose-700'
+            }`}
+          >
+            {mensajeEstado.texto}
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-gray-500">Productos en cotización</p>
@@ -1486,7 +1745,7 @@ export default function Cotizaciones() {
                       <p className="text-sm font-medium text-gray-500">Detalle actual</p>
                       <h3 className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
                         {esFormatoVenta
-                          ? 'Productos de la cotización de venta'
+                          ? 'Productos de la cotización de compra'
                           : 'Productos de la cotización de consignaciones'}
                       </h3>
                     </div>
@@ -1506,17 +1765,30 @@ export default function Cotizaciones() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div
+                    className={`grid grid-cols-1 gap-3 ${
+                      esFormatoVenta ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+                    }`}
+                  >
                     {esFormatoVenta ? (
                       <button
                         type="button"
                         onClick={enviarAPuntoDeVenta}
-                        className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60 sm:col-span-2 md:col-span-1"
+                        className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                         disabled={!items.length}
                       >
                         Enviar a punto de venta
                       </button>
                     ) : null}
+
+                    <button
+                      type="button"
+                      onClick={guardarCotizacionEnHistorial}
+                      className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
+                      disabled={!items.length || guardandoCotizacion}
+                    >
+                      {guardandoCotizacion ? 'Guardando...' : 'Guardar en historial'}
+                    </button>
 
                     <button
                       type="button"
@@ -1538,6 +1810,14 @@ export default function Cotizaciones() {
                     </h4>
                     <p className="mt-1 text-sm text-gray-500">
                       Estos datos se mostrarán arriba de la cotización en el PDF.
+                    </p>
+                  </div>
+
+                  <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
+                    <p className="text-xs font-semibold text-sky-700">Folio sugerido</p>
+                    <p className="mt-1 text-lg font-bold text-sky-900">{folioPreview}</p>
+                    <p className="mt-1 text-xs text-sky-700">
+                      CM = compra · CG = consignación
                     </p>
                   </div>
 
@@ -1992,6 +2272,180 @@ export default function Cotizaciones() {
                   </p>
                 </div>
               </div>
+            </div>
+
+            <div className="mt-6 overflow-hidden rounded-[30px] border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-100 px-5 py-5 sm:px-6">
+                <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                  Historial de cotizaciones
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Busca por folio, cliente, fecha, notas o productos.
+                </p>
+              </div>
+
+              <div className="border-b border-gray-100 bg-gray-50/60 px-4 py-5 sm:px-6">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Buscador
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                      placeholder="Buscar por folio, cliente, fecha o producto"
+                      value={busquedaHistorial}
+                      onChange={(e) => setBusquedaHistorial(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Filtro
+                    </label>
+                    <select
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                      value={filtroHistorial}
+                      onChange={(e) => setFiltroHistorial(e.target.value)}
+                    >
+                      <option value="TODAS">Todas</option>
+                      <option value={FORMATOS.VENTA}>Compra</option>
+                      <option value={FORMATOS.CONSIGNACION}>Consignación</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {cargandoHistorial ? (
+                <div className="px-6 py-14 text-center text-sm text-gray-500">
+                  Cargando historial...
+                </div>
+              ) : historialCotizaciones.length > 0 ? (
+                <div className="divide-y divide-gray-100">
+                  {historialCotizaciones.map((cotizacion) => {
+                    const itemsHistorial = obtenerItemsDeCotizacion(cotizacion);
+
+                    return (
+                      <div key={cotizacion._id || cotizacion.folio} className="p-4 sm:p-6">
+                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
+                                {cotizacion.folio}
+                              </span>
+
+                              <span
+                                className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
+                                  cotizacion.formato === FORMATOS.VENTA
+                                    ? 'bg-sky-50 text-sky-700 ring-sky-200'
+                                    : 'bg-amber-50 text-amber-700 ring-amber-200'
+                                }`}
+                              >
+                                {cotizacion.tipo}
+                              </span>
+                            </div>
+
+                            <h4 className="mt-3 text-lg font-bold text-gray-900">
+                              {cotizacion.cliente || 'Sin cliente'}
+                            </h4>
+
+                            <p className="mt-1 text-sm text-gray-500">
+                              Fecha: {formatearFecha(cotizacion.fechaCotizacion)} · Vigencia:{' '}
+                              {cotizacion.vigencia || 'Sin especificar'} · Productos:{' '}
+                              {itemsHistorial.length || 0}
+                            </p>
+
+                            {cotizacion.notas ? (
+                              <p className="mt-3 text-sm text-gray-600">{cotizacion.notas}</p>
+                            ) : null}
+
+                            {itemsHistorial.length ? (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {itemsHistorial.slice(0, 4).map((item, index) => (
+                                  <span
+                                    key={`${cotizacion._id || cotizacion.folio}-${item.productoId || item.nombreProducto}-${index}`}
+                                    className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
+                                  >
+                                    {item.nombreProducto}
+                                  </span>
+                                ))}
+
+                                {itemsHistorial.length > 4 ? (
+                                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
+                                    +{itemsHistorial.length - 4} más
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="w-full xl:w-auto">
+                            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-right">
+                              <p className="text-sm text-emerald-700">Total</p>
+                              <p className="mt-1 text-2xl font-bold text-emerald-700">
+                                ${Number(cotizacion.total || 0).toFixed(2)}
+                              </p>
+                            </div>
+
+                            {cotizacion.formato === FORMATOS.CONSIGNACION ? (
+                              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-right">
+                                  <p className="text-xs text-sky-700">Ganancia cliente</p>
+                                  <p className="mt-1 text-base font-bold text-sky-700">
+                                    ${Number(cotizacion.totalGananciaCliente || 0).toFixed(2)}
+                                  </p>
+                                </div>
+
+                                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-right">
+                                  <p className="text-xs text-rose-700">Ganancia Hilos</p>
+                                  <p className="mt-1 text-base font-bold text-rose-700">
+                                    ${Number(cotizacion.totalGananciaHilos || 0).toFixed(2)}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                            onClick={() => cargarCotizacionDesdeHistorial(cotizacion)}
+                          >
+                            Cargar cotización
+                          </button>
+
+                          <button
+                            type="button"
+                            className="rounded-2xl bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:opacity-60"
+                            onClick={() => eliminarCotizacionHistorial(cotizacion)}
+                            disabled={eliminandoId === cotizacion._id}
+                          >
+                            {eliminandoId === cotizacion._id
+                              ? 'Eliminando...'
+                              : 'Eliminar del historial'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="px-6 py-14 text-center">
+                  <div className="mx-auto max-w-md">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-100 text-2xl">
+                      📚
+                    </div>
+                    <h4 className="mt-4 text-lg font-bold text-gray-900">
+                      No hay cotizaciones en el historial
+                    </h4>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Guarda una cotización para empezar a verla aquí.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
