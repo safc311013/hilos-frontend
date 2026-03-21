@@ -106,6 +106,7 @@ export default function Cotizaciones() {
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [indiceSugerenciaActiva, setIndiceSugerenciaActiva] = useState(-1);
   const [modalFormulario, setModalFormulario] = useState(false);
+  const [modalHistorial, setModalHistorial] = useState(false);
 
   const [historialCotizaciones, setHistorialCotizaciones] = useState([]);
   const [busquedaHistorial, setBusquedaHistorial] = useState('');
@@ -193,12 +194,14 @@ export default function Cotizaciones() {
   }, [busquedaHistorial, filtroHistorial, mostrarMensaje]);
 
   useEffect(() => {
+    if (!modalHistorial) return;
+
     const timeout = setTimeout(() => {
       cargarHistorial();
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [cargarHistorial]);
+  }, [cargarHistorial, modalHistorial]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -225,19 +228,38 @@ export default function Cotizaciones() {
     };
   }, []);
 
+  const cerrarModalFormulario = useCallback(() => {
+    setModalFormulario(false);
+    setItemForm(initialItemForm);
+    setEditandoIndex(null);
+    setMostrarSugerencias(false);
+    setIndiceSugerenciaActiva(-1);
+  }, []);
+
+  const cerrarModalHistorial = useCallback(() => {
+    setModalHistorial(false);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && modalFormulario) {
+      if (e.key !== 'Escape') return;
+
+      if (modalHistorial) {
+        cerrarModalHistorial();
+        return;
+      }
+
+      if (modalFormulario) {
         cerrarModalFormulario();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [modalFormulario]);
+  }, [modalFormulario, modalHistorial, cerrarModalFormulario, cerrarModalHistorial]);
 
   useEffect(() => {
-    if (modalFormulario) {
+    if (modalFormulario || modalHistorial) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -246,7 +268,7 @@ export default function Cotizaciones() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [modalFormulario]);
+  }, [modalFormulario, modalHistorial]);
 
   const formatearFecha = (fecha) => {
     if (!fecha) return 'Sin especificar';
@@ -290,14 +312,13 @@ export default function Cotizaciones() {
     setIndiceSugerenciaActiva(-1);
   };
 
-  const cerrarModalFormulario = () => {
-    setModalFormulario(false);
-    resetItemForm();
-  };
-
   const abrirModalNuevoProducto = () => {
     resetItemForm();
     setModalFormulario(true);
+  };
+
+  const abrirModalHistorial = () => {
+    setModalHistorial(true);
   };
 
   const cambiarFormato = () => {
@@ -737,7 +758,10 @@ export default function Cotizaciones() {
       const payload = construirPayloadCotizacion();
       const { data } = await api.post('/cotizaciones', payload);
 
-      await cargarHistorial();
+      if (modalHistorial) {
+        await cargarHistorial();
+      }
+
       mostrarMensaje(
         'success',
         `Cotización ${data?.folio || ''} guardada correctamente.`
@@ -827,6 +851,7 @@ export default function Cotizaciones() {
 
     resetItemForm();
     setModalFormulario(false);
+    setModalHistorial(false);
     mostrarMensaje(
       'success',
       `Cotización ${cotizacion.folio || ''} cargada en el formulario.`
@@ -1767,7 +1792,7 @@ export default function Cotizaciones() {
 
                   <div
                     className={`grid grid-cols-1 gap-3 ${
-                      esFormatoVenta ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+                      esFormatoVenta ? 'sm:grid-cols-4' : 'sm:grid-cols-3'
                     }`}
                   >
                     {esFormatoVenta ? (
@@ -1788,6 +1813,14 @@ export default function Cotizaciones() {
                       disabled={!items.length || guardandoCotizacion}
                     >
                       {guardandoCotizacion ? 'Guardando...' : 'Guardar en historial'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={abrirModalHistorial}
+                      className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Consultar historial
                     </button>
 
                     <button
@@ -2273,49 +2306,73 @@ export default function Cotizaciones() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div className="mt-6 overflow-hidden rounded-[30px] border border-gray-200 bg-white shadow-sm">
-              <div className="border-b border-gray-100 px-5 py-5 sm:px-6">
-                <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                  Historial de cotizaciones
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Busca por folio, cliente, fecha, notas o productos.
-                </p>
+      {modalHistorial && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={cerrarModalHistorial}
+        >
+          <div
+            className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-gray-100 px-5 py-4 sm:px-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">
+                    Historial de cotizaciones
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Consulta, filtra, carga o elimina cotizaciones guardadas.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  onClick={cerrarModalHistorial}
+                >
+                  Cerrar
+                </button>
               </div>
+            </div>
 
-              <div className="border-b border-gray-100 bg-gray-50/60 px-4 py-5 sm:px-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div className="md:col-span-2">
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Buscador
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
-                      placeholder="Buscar por folio, cliente, fecha o producto"
-                      value={busquedaHistorial}
-                      onChange={(e) => setBusquedaHistorial(e.target.value)}
-                    />
-                  </div>
+            <div className="border-b border-gray-100 bg-gray-50/60 px-4 py-5 sm:px-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Buscador
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                    placeholder="Buscar por folio, cliente, fecha o producto"
+                    value={busquedaHistorial}
+                    onChange={(e) => setBusquedaHistorial(e.target.value)}
+                  />
+                </div>
 
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Filtro
-                    </label>
-                    <select
-                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
-                      value={filtroHistorial}
-                      onChange={(e) => setFiltroHistorial(e.target.value)}
-                    >
-                      <option value="TODAS">Todas</option>
-                      <option value={FORMATOS.VENTA}>Compra</option>
-                      <option value={FORMATOS.CONSIGNACION}>Consignación</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Filtro
+                  </label>
+                  <select
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                    value={filtroHistorial}
+                    onChange={(e) => setFiltroHistorial(e.target.value)}
+                  >
+                    <option value="TODAS">Todas</option>
+                    <option value={FORMATOS.VENTA}>Compra</option>
+                    <option value={FORMATOS.CONSIGNACION}>Consignación</option>
+                  </select>
                 </div>
               </div>
+            </div>
 
+            <div className="min-h-0 flex-1 overflow-y-auto">
               {cargandoHistorial ? (
                 <div className="px-6 py-14 text-center text-sm text-gray-500">
                   Cargando historial...
@@ -2449,7 +2506,7 @@ export default function Cotizaciones() {
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {modalFormulario && (
         <div
