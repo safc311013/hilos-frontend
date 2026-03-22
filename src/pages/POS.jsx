@@ -1112,39 +1112,45 @@ export default function POS() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const fechaActual = new Date();
 
+    const tituloPdf = nombreClienteCotizacion.trim()
+      ? `Cotización para ${nombreClienteCotizacion.trim()}`
+      : 'Cotización';
+
     doc.setFillColor(91, 33, 182);
-    doc.rect(0, 0, pageWidth, 34, 'F');
+    doc.rect(0, 0, pageWidth, 38, 'F');
 
     if (logoDataUrl) {
       doc.addImage(logoDataUrl, 'PNG', 14, 8, 28, 18);
     }
 
+    const lineasTitulo = doc.splitTextToSize(tituloPdf, pageWidth - 56 - 14);
+
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('Cotización', 48, 16);
+    doc.setFontSize(17);
+    doc.text(lineasTitulo, 48, 15);
+
+    const ySubtexto = 15 + lineasTitulo.length * 5;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text('Hilos en Nogada', 48, 23);
-    doc.text(`Generada: ${fechaActual.toLocaleString('es-MX')}`, 48, 29);
+    doc.text('Hilos en Nogada', 48, ySubtexto + 1);
+    doc.text(`Generada: ${fechaActual.toLocaleString('es-MX')}`, 48, ySubtexto + 7);
 
     doc.setTextColor(31, 41, 55);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text('Datos de la cotización', 14, 46);
+    doc.text('Datos de la cotización', 14, 50);
 
     const datos = [
       ['Folio', folioCotizacion],
       ['Cliente', nombreClienteCotizacion.trim() || 'Cotización POS'],
       ['Fecha', fechaCotizacion || obtenerFechaHoyISO()],
       ['Vigencia', vigenciaCotizacion.trim() || 'Sin especificar'],
-      ['Usuario', obtenerNombreUsuario(usuario)],
-      ['Origen', 'POS · Cotización'],
     ];
 
     autoTable(doc, {
-      startY: 50,
+      startY: 54,
       body: datos,
       theme: 'grid',
       margin: { left: 14, right: 14 },
@@ -1161,13 +1167,12 @@ export default function POS() {
 
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 8,
-      head: [['Cantidad', 'Código', 'Producto', 'Precio unitario', 'Stock', 'Subtotal']],
+      head: [['Cantidad', 'Código', 'Producto', 'Precio unitario', 'Subtotal']],
       body: resumenCarrito.detalle.map((item) => [
         Number(item.cantidadNumero || 0),
         item.codigo || '—',
         item.nombre || '—',
         formatearMoneda(item.precio || 0),
-        Number(item.stockDisponible || 0),
         formatearMoneda(item.subtotalBruto || 0),
       ]),
       theme: 'grid',
@@ -1191,16 +1196,8 @@ export default function POS() {
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
+    doc.setTextColor(31, 41, 55);
     doc.text(`Total cotización: ${formatearMoneda(resumenCarrito.total)}`, 14, yFinal);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(107, 114, 128);
-    doc.text(
-      'Cotización informativa basada en inventario actual. Solo se modificaron cantidades.',
-      14,
-      yFinal + 8
-    );
 
     doc.save(`${folioCotizacion}.pdf`);
   };
