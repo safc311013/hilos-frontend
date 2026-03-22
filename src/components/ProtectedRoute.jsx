@@ -2,9 +2,13 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Loader from './Loader';
 
+const normalizarRol = (rol = '') => String(rol || '').trim().toLowerCase();
+
 const getRutaPorRol = (rol) => {
-  if (rol === 'admin' || rol === 'supervisor') return '/';
-  if (rol === 'cajero') return '/pos';
+  const rolNormalizado = normalizarRol(rol);
+
+  if (rolNormalizado === 'admin' || rolNormalizado === 'supervisor') return '/';
+  if (rolNormalizado === 'cajero') return '/pos';
   return '/login';
 };
 
@@ -24,8 +28,11 @@ export default function ProtectedRoute({ children, roles = [] }) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (roles.length > 0 && !roles.includes(usuario.rol)) {
-    return <Navigate to={getRutaPorRol(usuario.rol)} replace />;
+  const rolUsuario = normalizarRol(usuario?.rol);
+  const rolesPermitidos = roles.map(normalizarRol);
+
+  if (rolesPermitidos.length > 0 && !rolesPermitidos.includes(rolUsuario)) {
+    return <Navigate to={getRutaPorRol(rolUsuario)} replace />;
   }
 
   return children;

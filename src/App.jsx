@@ -77,7 +77,7 @@ export default function App() {
             <Route
               path="/cotizaciones"
               element={
-                <ProtectedRoute roles={['admin', 'supervisor', 'cajero']}>
+                <ProtectedRoute roles={['admin', 'supervisor']}>
                   <Cotizaciones />
                 </ProtectedRoute>
               }

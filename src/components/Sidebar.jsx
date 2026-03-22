@@ -18,7 +18,7 @@ const links = [
   { to: '/ventas', label: 'Ventas', icon: ReceiptText, roles: ['admin', 'supervisor'] },
   { to: '/reportes', label: 'Reportes', icon: BarChart3, roles: ['admin', 'supervisor'] },
   { to: '/usuarios', label: 'Usuarios', icon: Users, roles: ['admin'] },
-  { to: '/cotizaciones', label: 'Cotizaciones', icon: FileText, roles: ['admin', 'supervisor', 'cajero'] },
+  { to: '/cotizaciones', label: 'Cotizaciones', icon: FileText, roles: ['admin', 'supervisor'] },
 ];
 
 export default function Sidebar({ open = false, onClose = () => {} }) {

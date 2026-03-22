@@ -3,6 +3,17 @@ import { api } from '../config/api';
 
 const AuthContext = createContext();
 
+const normalizarRol = (rol = '') => String(rol || '').trim().toLowerCase();
+
+const normalizarUsuario = (usuario) => {
+  if (!usuario || typeof usuario !== 'object') return null;
+
+  return {
+    ...usuario,
+    rol: normalizarRol(usuario.rol),
+  };
+};
+
 export const AuthProvider = ({ children }) => {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -13,11 +24,25 @@ export const AuthProvider = ({ children }) => {
 
     if (token && usuarioGuardado) {
       try {
-        setUsuario(JSON.parse(usuarioGuardado));
+        const usuarioParseado = JSON.parse(usuarioGuardado);
+        const usuarioNormalizado = normalizarUsuario(usuarioParseado);
+
+        if (!usuarioNormalizado) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('usuario');
+          setToken(null);
+          setUsuario(null);
+        } else {
+          setUsuario(usuarioNormalizado);
+        }
       } catch (error) {
+        localStorage.removeItem('token');
         localStorage.removeItem('usuario');
+        setToken(null);
         setUsuario(null);
       }
+    } else {
+      setUsuario(null);
     }
 
     setLoading(false);
@@ -26,11 +51,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
 
+    const usuarioNormalizado = normalizarUsuario(data.usuario);
+
     localStorage.setItem('token', data.token);
-    localStorage.setItem('usuario', JSON.stringify(data.usuario));
+    localStorage.setItem('usuario', JSON.stringify(usuarioNormalizado));
 
     setToken(data.token);
-    setUsuario(data.usuario);
+    setUsuario(usuarioNormalizado);
   };
 
   const logout = () => {
@@ -45,7 +72,7 @@ export const AuthProvider = ({ children }) => {
       usuario,
       token,
       loading,
-      autenticado: !!token,
+      autenticado: !!token && !!usuario,
       login,
       logout,
     }),
