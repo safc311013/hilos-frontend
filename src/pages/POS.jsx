@@ -8,6 +8,7 @@ import { useRealtime } from '../context/RealtimeContext';
 import usePermisos from '../hooks/usePermisos';
 import { PERMISOS } from '../utils/permisos';
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import {
   Search,
   ShoppingCart,
@@ -24,6 +25,17 @@ import {
 } from 'lucide-react';
 
 const PRODUCTOS_POR_PAGINA = 12;
+
+const MODOS_PANTALLA = {
+  VENTA: 'venta',
+  COTIZACION: 'cotizacion',
+};
+
+const obtenerFechaHoyISO = () => {
+  const hoy = new Date();
+  const offset = hoy.getTimezoneOffset();
+  return new Date(hoy.getTime() - offset * 60000).toISOString().slice(0, 10);
+};
 
 const formatearMoneda = (valor) => {
   return new Intl.NumberFormat('es-MX', {
@@ -135,6 +147,17 @@ const construirCarritoDesdeCotizacion = (cotizacionVenta) => {
   }));
 };
 
+const prepararCarritoParaCotizacionSimple = (items = []) => {
+  return items.map((item) => ({
+    ...item,
+    descuento: '',
+  }));
+};
+
+const generarFolioCotizacionSimple = (fecha = obtenerFechaHoyISO()) => {
+  return `CV-${fecha}`;
+};
+
 export default function POS() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -156,13 +179,35 @@ export default function POS() {
   const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
   const [errorCarga, setErrorCarga] = useState('');
   const [error, setError] = useState('');
+  const [mensajeExito, setMensajeExito] = useState('');
   const [ticketVenta, setTicketVenta] = useState(null);
   const [procesandoVenta, setProcesandoVenta] = useState(false);
+  const [guardandoCotizacionSimple, setGuardandoCotizacionSimple] = useState(false);
   const [cotizacionActiva, setCotizacionActiva] = useState(null);
+  const [modoPantalla, setModoPantalla] = useState(MODOS_PANTALLA.VENTA);
+
+  const [nombreClienteCotizacion, setNombreClienteCotizacion] = useState('');
+  const [fechaCotizacionSimple, setFechaCotizacionSimple] = useState(obtenerFechaHoyISO());
+  const [vigenciaCotizacionSimple, setVigenciaCotizacionSimple] = useState('');
+  const [folioCotizacionSimple, setFolioCotizacionSimple] = useState(
+    generarFolioCotizacionSimple(obtenerFechaHoyISO())
+  );
+
+  const esModoCotizacion = modoPantalla === MODOS_PANTALLA.COTIZACION;
 
   useEffect(() => {
     carritoRef.current = carrito;
   }, [carrito]);
+
+  useEffect(() => {
+    if (!mensajeExito) return;
+
+    const timeout = setTimeout(() => {
+      setMensajeExito('');
+    }, 4000);
+
+    return () => clearTimeout(timeout);
+  }, [mensajeExito]);
 
   useEffect(() => {
     if (ticketVenta) {
@@ -187,6 +232,10 @@ export default function POS() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [ticketVenta]);
+
+  useEffect(() => {
+    setFolioCotizacionSimple(generarFolioCotizacionSimple(fechaCotizacionSimple));
+  }, [fechaCotizacionSimple]);
 
   const enfocarBusqueda = () => {
     setTimeout(() => {
@@ -400,6 +449,8 @@ export default function POS() {
     setBusquedaAplicada('');
     setPaginaActual(1);
     setError('');
+    setMensajeExito('');
+    setModoPantalla(MODOS_PANTALLA.VENTA);
 
     try {
       sessionStorage.removeItem('cotizacionVentaParaPOS');
@@ -412,8 +463,30 @@ export default function POS() {
     }
   }, [location.state, navigate]);
 
+  const abrirModoCotizacion = () => {
+    const fechaHoy = obtenerFechaHoyISO();
+
+    setError('');
+    setMensajeExito('');
+    setCotizacionActiva(null);
+    setNombreClienteCotizacion('');
+    setFechaCotizacionSimple(fechaHoy);
+    setVigenciaCotizacionSimple('');
+    setFolioCotizacionSimple(generarFolioCotizacionSimple(fechaHoy));
+    setModoPantalla(MODOS_PANTALLA.COTIZACION);
+    setCarrito((prev) => prepararCarritoParaCotizacionSimple(prev));
+  };
+
+  const volverAModoVenta = () => {
+    setError('');
+    setMensajeExito('');
+    setModoPantalla(MODOS_PANTALLA.VENTA);
+    enfocarBusqueda();
+  };
+
   const agregarProducto = (producto) => {
     setError('');
+    setMensajeExito('');
 
     if (Number(producto.stock || producto.stockDisponible || 0) <= 0) {
       setError(`El producto ${producto.nombre} ya no tiene stock disponible.`);
@@ -468,6 +541,7 @@ export default function POS() {
 
     try {
       setError('');
+      setMensajeExito('');
 
       const textoNormalizado = termino.toUpperCase();
       const esCodigoCompleto = /^HEN[A-Z0-9]{4}$/i.test(textoNormalizado);
@@ -646,7 +720,7 @@ export default function POS() {
   const resumenCarrito = useMemo(() => {
     const detalle = carrito.map((item) => {
       const cantidad = Number(item.cantidad || 0);
-      const descuento = Number(item.descuento || 0);
+      const descuento = esModoCotizacion ? 0 : Number(item.descuento || 0);
       const subtotalBruto = item.precio * cantidad;
       const montoDescuento = subtotalBruto * (descuento / 100);
       const subtotalFinal = subtotalBruto - montoDescuento;
@@ -665,7 +739,7 @@ export default function POS() {
     const descuentoAcumulado = detalle.reduce((acc, item) => acc + item.montoDescuento, 0);
 
     return { detalle, total, descuentoAcumulado };
-  }, [carrito]);
+  }, [carrito, esModoCotizacion]);
 
   const construirHtmlTicket80mm = (ticket) => {
     const logoUrl = `${window.location.origin}/logo.png`;
@@ -980,8 +1054,212 @@ export default function POS() {
     doc.save(`ticket_${ticketVenta.numeroTicket}.pdf`);
   };
 
+  const exportarCotizacionPDF = async () => {
+    setError('');
+    setMensajeExito('');
+
+    if (resumenCarrito.detalle.length === 0) {
+      setError('Agrega al menos un producto para generar la cotización.');
+      return;
+    }
+
+    const itemsInvalidos = resumenCarrito.detalle.filter(
+      (item) => item.cantidadNumero <= 0
+    );
+
+    if (itemsInvalidos.length > 0) {
+      setError('Todos los productos de la cotización deben tener una cantidad mayor a 0.');
+      return;
+    }
+
+    let logoDataUrl = null;
+
+    try {
+      logoDataUrl = await cargarImagenComoDataURL('/logo.png');
+    } catch {
+      logoDataUrl = null;
+    }
+
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const fechaActual = new Date();
+
+    doc.setFillColor(91, 33, 182);
+    doc.rect(0, 0, pageWidth, 34, 'F');
+
+    if (logoDataUrl) {
+      doc.addImage(logoDataUrl, 'PNG', 14, 8, 28, 18);
+    }
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Cotización simple', 48, 16);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Hilos en Nogada', 48, 23);
+    doc.text(`Generada: ${fechaActual.toLocaleString('es-MX')}`, 48, 29);
+
+    doc.setTextColor(31, 41, 55);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Datos de la cotización', 14, 46);
+
+    const datos = [
+      ['Folio', folioCotizacionSimple],
+      ['Cliente', nombreClienteCotizacion.trim() || 'Cotización POS'],
+      ['Fecha', fechaCotizacionSimple || obtenerFechaHoyISO()],
+      ['Vigencia', vigenciaCotizacionSimple.trim() || 'Sin especificar'],
+      ['Usuario', obtenerNombreUsuario(usuario)],
+      ['Origen', 'POS · Cotización simple'],
+    ];
+
+    autoTable(doc, {
+      startY: 50,
+      body: datos,
+      theme: 'grid',
+      margin: { left: 14, right: 14 },
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+        textColor: [31, 41, 55],
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', fillColor: [245, 243, 255], cellWidth: 38 },
+        1: { cellWidth: 'auto' },
+      },
+    });
+
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 8,
+      head: [['Cantidad', 'Código', 'Producto', 'Precio unitario', 'Stock', 'Subtotal']],
+      body: resumenCarrito.detalle.map((item) => [
+        Number(item.cantidadNumero || 0),
+        item.codigo || '—',
+        item.nombre || '—',
+        formatearMoneda(item.precio || 0),
+        Number(item.stockDisponible || 0),
+        formatearMoneda(item.subtotalBruto || 0),
+      ]),
+      theme: 'grid',
+      margin: { left: 14, right: 14 },
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+        textColor: [31, 41, 55],
+      },
+      headStyles: {
+        fillColor: [91, 33, 182],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+      alternateRowStyles: {
+        fillColor: [249, 250, 251],
+      },
+    });
+
+    const yFinal = doc.lastAutoTable.finalY + 12;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`Total cotización: ${formatearMoneda(resumenCarrito.total)}`, 14, yFinal);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    doc.text(
+      'Cotización informativa basada en inventario actual. Solo se modificaron cantidades.',
+      14,
+      yFinal + 8
+    );
+
+    doc.save(`${folioCotizacionSimple}.pdf`);
+  };
+
+  const guardarCotizacionSimpleEnHistorial = async () => {
+    setError('');
+    setMensajeExito('');
+
+    if (!esModoCotizacion) return;
+
+    if (resumenCarrito.detalle.length === 0) {
+      setError('Agrega al menos un producto para guardar la cotización.');
+      return;
+    }
+
+    const itemsInvalidos = resumenCarrito.detalle.filter(
+      (item) => item.cantidadNumero <= 0
+    );
+
+    if (itemsInvalidos.length > 0) {
+      setError('Todos los productos de la cotización deben tener una cantidad mayor a 0.');
+      return;
+    }
+
+    try {
+      setGuardandoCotizacionSimple(true);
+
+      const payload = {
+        origen: 'pos_cotizacion_simple',
+        prefijoFolio: 'CV',
+        formato: 'ventas',
+        tipo: 'COMPRA',
+        cliente: nombreClienteCotizacion.trim() || 'Cotización POS',
+        telefono: '',
+        fechaCotizacion: fechaCotizacionSimple || obtenerFechaHoyISO(),
+        vigencia: vigenciaCotizacionSimple.trim(),
+        notas: 'Cotización simple generada desde POS con datos reales del inventario.',
+        items: resumenCarrito.detalle.map((item) => ({
+          productoId: item.producto,
+          nombreProducto: item.nombre || '',
+          codigo: item.codigo || '',
+          categoria: item.categoria || '',
+          imagenUrl: item.imagenUrl || '',
+          stock: Number(item.stockDisponible || 0),
+          cantidad: Number(item.cantidadNumero || 0),
+          precioUnitario: Number(item.precio || 0),
+          descuento: 0,
+        })),
+      };
+
+      const { data } = await api.post('/cotizaciones', payload);
+      const folioGenerado = data?.folio || folioCotizacionSimple;
+
+      setFolioCotizacionSimple(folioGenerado);
+      setMensajeExito(`Cotización ${folioGenerado} guardada en historial.`);
+    } catch (err) {
+      setError(
+        err?.response?.data?.error ||
+          err?.response?.data?.mensaje ||
+          'No se pudo guardar la cotización en historial.'
+      );
+    } finally {
+      setGuardandoCotizacionSimple(false);
+    }
+  };
+
+  const mandarCotizacionAVentas = () => {
+    setError('');
+    setMensajeExito('Cotización preparada para venta.');
+
+    setCotizacionActiva({
+      origen: 'pos_cotizacion_simple',
+      formato: 'ventas',
+      cliente: nombreClienteCotizacion.trim() || 'Cotización POS',
+      fechaCotizacion: fechaCotizacionSimple || obtenerFechaHoyISO(),
+      vigencia: vigenciaCotizacionSimple.trim(),
+      notas: 'Cotización simple generada desde POS',
+      total: Number(resumenCarrito.total || 0),
+    });
+
+    setModoPantalla(MODOS_PANTALLA.VENTA);
+    enfocarBusqueda();
+  };
+
   const finalizarVenta = async () => {
     setError('');
+    setMensajeExito('');
 
     if (carrito.length === 0) {
       setError('Agrega al menos un producto al carrito.');
@@ -1043,6 +1321,11 @@ export default function POS() {
       setBusqueda('');
       setBusquedaAplicada('');
       setPaginaActual(1);
+      setModoPantalla(MODOS_PANTALLA.VENTA);
+      setNombreClienteCotizacion('');
+      setFechaCotizacionSimple(obtenerFechaHoyISO());
+      setVigenciaCotizacionSimple('');
+      setFolioCotizacionSimple(generarFolioCotizacionSimple(obtenerFechaHoyISO()));
 
       try {
         sessionStorage.removeItem('cotizacionVentaParaPOS');
@@ -1086,9 +1369,26 @@ export default function POS() {
         <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
             <div>
-              <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">Caja de venta</h3>
+              <div className="flex flex-wrap items-center gap-3">
+                <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
+                  {esModoCotizacion ? 'Cotización simple' : 'Caja de venta'}
+                </h3>
+
+                <span
+                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                    esModoCotizacion
+                      ? 'bg-violet-100 text-violet-700'
+                      : 'bg-indigo-100 text-indigo-700'
+                  }`}
+                >
+                  {esModoCotizacion ? 'Modo cotización' : 'Modo ventas'}
+                </span>
+              </div>
+
               <p className="mt-1 text-sm text-gray-500">
-                Busca productos, aplica descuentos y registra ventas
+                {esModoCotizacion
+                  ? 'Cotización rápida con precios y stock reales del inventario. Solo se modifica la cantidad.'
+                  : 'Busca productos, aplica descuentos y registra ventas'}
               </p>
             </div>
 
@@ -1114,7 +1414,129 @@ export default function POS() {
             </div>
           </div>
 
-          {cotizacionActiva ? (
+          <div className="mt-5 flex flex-wrap gap-3">
+            {esModoCotizacion ? (
+              <>
+                <button
+                  type="button"
+                  onClick={volverAModoVenta}
+                  className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                >
+                  Volver a ventas
+                </button>
+
+                <button
+                  type="button"
+                  onClick={guardarCotizacionSimpleEnHistorial}
+                  disabled={guardandoCotizacionSimple}
+                  className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:opacity-60"
+                >
+                  {guardandoCotizacionSimple ? 'Guardando...' : 'Guardar en historial'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={exportarCotizacionPDF}
+                  className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                >
+                  Exportar cotización PDF
+                </button>
+
+                <button
+                  type="button"
+                  onClick={mandarCotizacionAVentas}
+                  className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95"
+                >
+                  Mandar cotización a ventas
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={abrirModoCotizacion}
+                className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800"
+              >
+                Realizar cotización
+              </button>
+            )}
+          </div>
+
+          {mensajeExito ? (
+            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+              {mensajeExito}
+            </div>
+          ) : null}
+
+          {esModoCotizacion ? (
+            <>
+              <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-4">
+                <div className="grid grid-cols-1 gap-2 text-sm text-violet-700 md:grid-cols-3">
+                  <p>
+                    <strong>Folio:</strong> {folioCotizacionSimple}
+                  </p>
+                  <p>
+                    <strong>Usuario:</strong> {obtenerNombreUsuario(usuario)}
+                  </p>
+                  <p>
+                    <strong>Regla:</strong> Solo se puede modificar la cantidad
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-3xl border border-gray-200 bg-gray-50/60 p-4 sm:p-5">
+                <div className="mb-4">
+                  <h4 className="text-base font-bold text-gray-900 sm:text-lg">
+                    Datos de la cotización
+                  </h4>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Estos datos se guardarán en historial y aparecerán en el PDF.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Cliente
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      placeholder="Nombre del cliente"
+                      value={nombreClienteCotizacion}
+                      onChange={(e) => setNombreClienteCotizacion(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Fecha
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      value={fechaCotizacionSimple}
+                      onChange={(e) => setFechaCotizacionSimple(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Vigencia
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      placeholder="Ej. 7 días"
+                      value={vigenciaCotizacionSimple}
+                      onChange={(e) => setVigenciaCotizacionSimple(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : null}
+
+          {cotizacionActiva && !esModoCotizacion ? (
             <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
               <p className="text-sm font-semibold text-emerald-800">
                 Cotización cargada en punto de venta
@@ -1135,7 +1557,9 @@ export default function POS() {
 
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <p className="text-sm text-gray-500">Productos en carrito</p>
+              <p className="text-sm text-gray-500">
+                {esModoCotizacion ? 'Productos en cotización' : 'Productos en carrito'}
+              </p>
               <p className="mt-1 text-2xl font-bold text-gray-800">{cantidadProductos}</p>
             </div>
 
@@ -1145,9 +1569,17 @@ export default function POS() {
             </div>
 
             <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <p className="text-sm text-gray-500">Descuento acumulado</p>
-              <p className="mt-1 text-2xl font-bold text-amber-700">
-                ${resumenCarrito.descuentoAcumulado.toFixed(2)}
+              <p className="text-sm text-gray-500">
+                {esModoCotizacion ? 'Total cotización' : 'Descuento acumulado'}
+              </p>
+              <p
+                className={`mt-1 text-2xl font-bold ${
+                  esModoCotizacion ? 'text-violet-700' : 'text-amber-700'
+                }`}
+              >
+                {esModoCotizacion
+                  ? formatearMoneda(resumenCarrito.total)
+                  : `$${resumenCarrito.descuentoAcumulado.toFixed(2)}`}
               </p>
             </div>
           </div>
@@ -1157,11 +1589,19 @@ export default function POS() {
           <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${
+                    esModoCotizacion
+                      ? 'bg-violet-50 text-violet-700'
+                      : 'bg-indigo-50 text-indigo-700'
+                  }`}
+                >
                   <ShoppingCart size={18} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800 sm:text-xl">Carrito</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 sm:text-xl">
+                    {esModoCotizacion ? 'Cotización simple' : 'Carrito'}
+                  </h3>
                   <p className="text-sm text-gray-500">
                     {resumenCarrito.detalle.length} producto(s)
                   </p>
@@ -1178,8 +1618,14 @@ export default function POS() {
             <div className="max-h-[360px] space-y-3 overflow-auto pr-1 sm:max-h-[430px]">
               {resumenCarrito.detalle.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-300 py-12 text-center">
-                  <p className="text-base font-medium text-gray-700">El carrito está vacío</p>
-                  <p className="mt-1 text-sm text-gray-500">Agrega productos para comenzar</p>
+                  <p className="text-base font-medium text-gray-700">
+                    {esModoCotizacion ? 'La cotización está vacía' : 'El carrito está vacío'}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {esModoCotizacion
+                      ? 'Agrega productos para comenzar la cotización'
+                      : 'Agrega productos para comenzar'}
+                  </p>
                 </div>
               ) : (
                 resumenCarrito.detalle.map((item) => (
@@ -1221,7 +1667,11 @@ export default function POS() {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div
+                      className={`mt-4 grid grid-cols-1 gap-3 ${
+                        esModoCotizacion ? 'sm:grid-cols-1' : 'sm:grid-cols-2'
+                      }`}
+                    >
                       <div>
                         <label className="mb-1 block text-sm font-medium text-gray-700">
                           Cantidad
@@ -1255,29 +1705,35 @@ export default function POS() {
                         </div>
                       </div>
 
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-gray-700">
-                          Descuento %
-                        </label>
-                        <div className="relative">
-                          <Percent
-                            size={16}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                          />
-                          <input
-                            className="input h-11 pr-9"
-                            type="number"
-                            min="0"
-                            max="100"
-                            placeholder="0"
-                            value={item.descuento}
-                            onChange={(e) => cambiarDescuento(item.producto, e.target.value)}
-                          />
+                      {!esModoCotizacion ? (
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-gray-700">
+                            Descuento %
+                          </label>
+                          <div className="relative">
+                            <Percent
+                              size={16}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                            />
+                            <input
+                              className="input h-11 pr-9"
+                              type="number"
+                              min="0"
+                              max="100"
+                              placeholder="0"
+                              value={item.descuento}
+                              onChange={(e) => cambiarDescuento(item.producto, e.target.value)}
+                            />
+                          </div>
                         </div>
-                      </div>
+                      ) : null}
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                    <div
+                      className={`mt-4 grid gap-2 text-sm ${
+                        esModoCotizacion ? 'grid-cols-3' : 'grid-cols-2'
+                      }`}
+                    >
                       <div className="rounded-xl bg-white px-3 py-3">
                         <p className="text-gray-500">Unitario</p>
                         <p className="mt-1 font-semibold text-gray-800">
@@ -1285,24 +1741,46 @@ export default function POS() {
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-white px-3 py-3">
-                        <p className="text-gray-500">Subtotal</p>
-                        <p className="mt-1 font-semibold text-gray-800">
-                          ${item.subtotalBruto.toFixed(2)}
-                        </p>
-                      </div>
+                      {esModoCotizacion ? (
+                        <div className="rounded-xl bg-white px-3 py-3">
+                          <p className="text-gray-500">Stock actual</p>
+                          <p className="mt-1 font-semibold text-gray-800">
+                            {item.stockDisponible}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl bg-white px-3 py-3">
+                          <p className="text-gray-500">Subtotal</p>
+                          <p className="mt-1 font-semibold text-gray-800">
+                            ${item.subtotalBruto.toFixed(2)}
+                          </p>
+                        </div>
+                      )}
 
-                      <div className="rounded-xl bg-white px-3 py-3">
-                        <p className="text-amber-700">Descuento</p>
-                        <p className="mt-1 font-semibold text-amber-700">
-                          - ${item.montoDescuento.toFixed(2)}
-                        </p>
-                      </div>
+                      {!esModoCotizacion ? (
+                        <div className="rounded-xl bg-white px-3 py-3">
+                          <p className="text-amber-700">Descuento</p>
+                          <p className="mt-1 font-semibold text-amber-700">
+                            - ${item.montoDescuento.toFixed(2)}
+                          </p>
+                        </div>
+                      ) : null}
 
-                      <div className="rounded-xl bg-slate-900 px-3 py-3 text-white">
-                        <p className="text-slate-300">Total</p>
+                      <div
+                        className={`rounded-xl px-3 py-3 ${
+                          esModoCotizacion
+                            ? 'bg-violet-700 text-white'
+                            : 'bg-slate-900 text-white'
+                        }`}
+                      >
+                        <p className={esModoCotizacion ? 'text-violet-200' : 'text-slate-300'}>
+                          {esModoCotizacion ? 'Subtotal cotización' : 'Total'}
+                        </p>
                         <p className="mt-1 font-semibold">
-                          ${item.subtotalFinal.toFixed(2)}
+                          $
+                          {(
+                            esModoCotizacion ? item.subtotalBruto : item.subtotalFinal
+                          ).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -1311,50 +1789,92 @@ export default function POS() {
               )}
             </div>
 
-            <div className="mt-5">
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Método de pago
-              </label>
-              <div className="relative">
-                <CreditCard
-                  size={16}
-                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <select
-                  className="input h-11 appearance-none"
-                  style={{ paddingLeft: '3rem', paddingRight: '2.75rem' }}
-                  value={metodoPago}
-                  onChange={(e) => setMetodoPago(e.target.value)}
-                >
-                  <option value="efectivo">Efectivo</option>
-                  <option value="tarjeta">Tarjeta</option>
-                  <option value="transferencia">Transferencia</option>
-                </select>
+            {!esModoCotizacion ? (
+              <>
+                <div className="mt-5">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Método de pago
+                  </label>
+                  <div className="relative">
+                    <CreditCard
+                      size={16}
+                      className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+                    <select
+                      className="input h-11 appearance-none"
+                      style={{ paddingLeft: '3rem', paddingRight: '2.75rem' }}
+                      value={metodoPago}
+                      onChange={(e) => setMetodoPago(e.target.value)}
+                    >
+                      <option value="efectivo">Efectivo</option>
+                      <option value="tarjeta">Tarjeta</option>
+                      <option value="transferencia">Transferencia</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+                  <p className="text-sm text-gray-500">Total de la venta</p>
+                  <h4 className="mt-2 break-words text-3xl font-bold text-gray-900 sm:text-4xl">
+                    ${resumenCarrito.total.toFixed(2)}
+                  </h4>
+
+                  <button
+                    className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={finalizarVenta}
+                    disabled={procesandoVenta}
+                  >
+                    {procesandoVenta ? 'Procesando venta...' : 'Finalizar venta'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="mt-6 rounded-2xl border border-violet-200 bg-violet-50 p-5">
+                <p className="text-sm text-violet-700">Total de la cotización</p>
+                <h4 className="mt-2 break-words text-3xl font-bold text-violet-900 sm:text-4xl">
+                  ${resumenCarrito.total.toFixed(2)}
+                </h4>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={guardarCotizacionSimpleEnHistorial}
+                    disabled={guardandoCotizacionSimple}
+                    className="rounded-2xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:opacity-60"
+                  >
+                    {guardandoCotizacionSimple ? 'Guardando...' : 'Guardar historial'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={exportarCotizacionPDF}
+                    className="rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                  >
+                    Exportar PDF
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={mandarCotizacionAVentas}
+                    className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95"
+                  >
+                    Mandar a ventas
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
-              <p className="text-sm text-gray-500">Total de la venta</p>
-              <h4 className="mt-2 break-words text-3xl font-bold text-gray-900 sm:text-4xl">
-                ${resumenCarrito.total.toFixed(2)}
-              </h4>
-
-              <button
-                className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={finalizarVenta}
-                disabled={procesandoVenta}
-              >
-                {procesandoVenta ? 'Procesando venta...' : 'Finalizar venta'}
-              </button>
-            </div>
+            )}
           </section>
 
           <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-lg font-bold text-gray-800 sm:text-xl">Catálogo</h3>
+                <h3 className="text-lg font-bold text-gray-800 sm:text-xl">
+                  {esModoCotizacion ? 'Catálogo para cotización' : 'Catálogo'}
+                </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Haz clic en un producto para agregarlo al carrito
+                  {esModoCotizacion
+                    ? 'Selecciona productos del inventario actual para agregarlos a la cotización'
+                    : 'Haz clic en un producto para agregarlo al carrito'}
                 </p>
               </div>
 
