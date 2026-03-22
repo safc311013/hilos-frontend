@@ -154,9 +154,7 @@ const prepararCarritoParaCotizacion = (items = []) => {
   }));
 };
 
-const generarFolioCotizacion = (fecha = obtenerFechaHoyISO()) => {
-  return `CV-${fecha}`;
-};
+const FOLIO_PROVISIONAL = 'Se asignará al guardar';
 
 export default function POS() {
   const location = useLocation();
@@ -189,9 +187,7 @@ export default function POS() {
   const [nombreClienteCotizacion, setNombreClienteCotizacion] = useState('');
   const [fechaCotizacion, setFechaCotizacion] = useState(obtenerFechaHoyISO());
   const [vigenciaCotizacion, setVigenciaCotizacion] = useState('');
-  const [folioCotizacion, setFolioCotizacion] = useState(
-    generarFolioCotizacion(obtenerFechaHoyISO())
-  );
+  const [folioCotizacion, setFolioCotizacion] = useState(FOLIO_PROVISIONAL);
 
   const esModoCotizacion = modoPantalla === MODOS_PANTALLA.COTIZACION;
 
@@ -233,9 +229,7 @@ export default function POS() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [ticketVenta]);
 
-  useEffect(() => {
-    setFolioCotizacion(generarFolioCotizacion(fechaCotizacion));
-  }, [fechaCotizacion]);
+  
 
   const enfocarBusqueda = () => {
     setTimeout(() => {
@@ -472,7 +466,7 @@ export default function POS() {
     setNombreClienteCotizacion('');
     setFechaCotizacion(fechaHoy);
     setVigenciaCotizacion('');
-    setFolioCotizacion(generarFolioCotizacion(fechaHoy));
+    setFolioCotizacion(FOLIO_PROVISIONAL);
     setModoPantalla(MODOS_PANTALLA.COTIZACION);
     setCarrito((prev) => prepararCarritoParaCotizacion(prev));
   };
@@ -490,7 +484,7 @@ export default function POS() {
     setNombreClienteCotizacion('');
     setFechaCotizacion(fechaHoy);
     setVigenciaCotizacion('');
-    setFolioCotizacion(generarFolioCotizacion(fechaHoy));
+    setFolioCotizacion(FOLIO_PROVISIONAL);
     setBusqueda('');
     setBusquedaAplicada('');
     setPaginaActual(1);
@@ -1350,7 +1344,7 @@ export default function POS() {
       setNombreClienteCotizacion('');
       setFechaCotizacion(obtenerFechaHoyISO());
       setVigenciaCotizacion('');
-      setFolioCotizacion(generarFolioCotizacion(obtenerFechaHoyISO()));
+      setFolioCotizacion(FOLIO_PROVISIONAL);
 
       try {
         sessionStorage.removeItem('cotizacionVentaParaPOS');

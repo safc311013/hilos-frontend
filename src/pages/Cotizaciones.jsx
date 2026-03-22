@@ -1,21 +1,29 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
 import { api } from '../config/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Image as ImageIcon } from 'lucide-react';
+import {
+  Image as ImageIcon,
+  Search,
+  History,
+  X,
+  Trash2,
+} from 'lucide-react';
 
 const FORMATOS = {
   VENTA: 'ventas',
   CONSIGNACION: 'consignaciones',
 };
 
-const PREFIJOS_FOLIO = {
-  [FORMATOS.VENTA]: 'CM',
-  [FORMATOS.CONSIGNACION]: 'CG',
+const TIPOS_POR_FORMATO = {
+  [FORMATOS.VENTA]: 'COMPRA',
+  [FORMATOS.CONSIGNACION]: 'CONSIGNACION',
 };
+
+const FOLIO_PROVISIONAL = 'Se asignará al guardar';
 
 const obtenerFechaHoyISO = () => {
   const hoy = new Date();
@@ -23,7 +31,7 @@ const obtenerFechaHoyISO = () => {
   return new Date(hoy.getTime() - offset * 60000).toISOString().slice(0, 10);
 };
 
-const normalizarFechaInput = (valor) => {
+const normalizarFechaParaInput = (valor) => {
   if (!valor) return obtenerFechaHoyISO();
 
   if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}/.test(valor)) {
@@ -41,19 +49,21 @@ const escapeRegExp = (texto = '') => {
   return texto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-const obtenerTipoCotizacion = (formato) =>
-  formato === FORMATOS.VENTA ? 'COMPRA' : 'CONSIGNACION';
+const formatearFecha = (fecha) => {
+  if (!fecha) return 'Sin especificar';
 
-const generarBaseFolio = (formato, fecha) => {
-  const prefijo = PREFIJOS_FOLIO[formato] || 'CT';
-  const fechaBase = fecha || obtenerFechaHoyISO();
-  return `${prefijo}-${fechaBase}`;
+  const fechaNormalizada = normalizarFechaParaInput(fecha);
+  const [year, month, day] = fechaNormalizada.split('-');
+
+  if (!year || !month || !day) return fechaNormalizada;
+  return `${day}/${month}/${year}`;
 };
 
-const obtenerItemsDeCotizacion = (cotizacion) => {
-  if (Array.isArray(cotizacion?.items)) return cotizacion.items;
-  if (Array.isArray(cotizacion?.productos)) return cotizacion.productos;
-  return [];
+const formatearMoneda = (valor) => {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+  }).format(Number(valor || 0));
 };
 
 const initialItemForm = {
@@ -86,6 +96,24 @@ const initialDatosCotizacionPorFormato = {
   },
 };
 
+const initialFoliosPorFormato = {
+  [FORMATOS.VENTA]: FOLIO_PROVISIONAL,
+  [FORMATOS.CONSIGNACION]: FOLIO_PROVISIONAL,
+};
+
+const initialIdsPorFormato = {
+  [FORMATOS.VENTA]: null,
+  [FORMATOS.CONSIGNACION]: null,
+};
+
+const initialFiltrosHistorial = {
+  q: '',
+  formato: '',
+  estatus: '',
+  desde: '',
+  hasta: '',
+};
+
 export default function Cotizaciones() {
   const navigate = useNavigate();
   const autocompleteDesktopRef = useRef(null);
@@ -100,21 +128,26 @@ export default function Cotizaciones() {
   const [datosCotizacionPorFormato, setDatosCotizacionPorFormato] = useState(
     initialDatosCotizacionPorFormato
   );
+  const [folioPorFormato, setFolioPorFormato] = useState(initialFoliosPorFormato);
+  const [cotizacionEditandoIdPorFormato, setCotizacionEditandoIdPorFormato] =
+    useState(initialIdsPorFormato);
+
   const [formatoActivo, setFormatoActivo] = useState(FORMATOS.VENTA);
   const [itemForm, setItemForm] = useState(initialItemForm);
   const [editandoIndex, setEditandoIndex] = useState(null);
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
   const [indiceSugerenciaActiva, setIndiceSugerenciaActiva] = useState(-1);
   const [modalFormulario, setModalFormulario] = useState(false);
-  const [modalHistorial, setModalHistorial] = useState(false);
 
+  const [historialModalAbierto, setHistorialModalAbierto] = useState(false);
   const [historialCotizaciones, setHistorialCotizaciones] = useState([]);
-  const [busquedaHistorial, setBusquedaHistorial] = useState('');
-  const [filtroHistorial, setFiltroHistorial] = useState('TODAS');
-  const [cargandoHistorial, setCargandoHistorial] = useState(false);
+  const [historialCargando, setHistorialCargando] = useState(false);
+  const [historialError, setHistorialError] = useState('');
+  const [filtrosHistorial, setFiltrosHistorial] = useState(initialFiltrosHistorial);
   const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
-  const [eliminandoId, setEliminandoId] = useState('');
-  const [mensajeEstado, setMensajeEstado] = useState(null);
+  const [eliminandoCotizacionId, setEliminandoCotizacionId] = useState(null);
+  const [cotizacionAEliminar, setCotizacionAEliminar] = useState(null);
+  const [mensajeExito, setMensajeExito] = useState('');
 
   const esFormatoVenta = formatoActivo === FORMATOS.VENTA;
 
@@ -136,19 +169,13 @@ export default function Cotizaciones() {
     );
   }, [datosCotizacionPorFormato, formatoActivo]);
 
-  const mostrarMensaje = useCallback((tipo, texto) => {
-    setMensajeEstado({ tipo, texto });
-  }, []);
+  const folioActual = useMemo(() => {
+    return folioPorFormato[formatoActivo] || FOLIO_PROVISIONAL;
+  }, [folioPorFormato, formatoActivo]);
 
-  useEffect(() => {
-    if (!mensajeEstado) return;
-
-    const timeout = setTimeout(() => {
-      setMensajeEstado(null);
-    }, 4000);
-
-    return () => clearTimeout(timeout);
-  }, [mensajeEstado]);
+  const cotizacionEditandoId = useMemo(() => {
+    return cotizacionEditandoIdPorFormato[formatoActivo] || null;
+  }, [cotizacionEditandoIdPorFormato, formatoActivo]);
 
   useEffect(() => {
     const cargarProductos = async () => {
@@ -158,50 +185,11 @@ export default function Cotizaciones() {
       } catch (error) {
         console.error('Error al cargar productos:', error);
         setProductos([]);
-        mostrarMensaje('error', 'No se pudieron cargar los productos.');
       }
     };
 
     cargarProductos();
-  }, [mostrarMensaje]);
-
-  const cargarHistorial = useCallback(async () => {
-    try {
-      setCargandoHistorial(true);
-
-      const params = {};
-
-      if (String(busquedaHistorial || '').trim()) {
-        params.q = String(busquedaHistorial || '').trim();
-      }
-
-      if (filtroHistorial !== 'TODAS') {
-        params.formato = filtroHistorial;
-      }
-
-      const { data } = await api.get('/cotizaciones', { params });
-      setHistorialCotizaciones(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error al cargar historial de cotizaciones:', error);
-      setHistorialCotizaciones([]);
-      mostrarMensaje(
-        'error',
-        error?.response?.data?.mensaje || 'No se pudo cargar el historial.'
-      );
-    } finally {
-      setCargandoHistorial(false);
-    }
-  }, [busquedaHistorial, filtroHistorial, mostrarMensaje]);
-
-  useEffect(() => {
-    if (!modalHistorial) return;
-
-    const timeout = setTimeout(() => {
-      cargarHistorial();
-    }, 300);
-
-    return () => clearTimeout(timeout);
-  }, [cargarHistorial, modalHistorial]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -228,38 +216,27 @@ export default function Cotizaciones() {
     };
   }, []);
 
-  const cerrarModalFormulario = useCallback(() => {
-    setModalFormulario(false);
-    setItemForm(initialItemForm);
-    setEditandoIndex(null);
-    setMostrarSugerencias(false);
-    setIndiceSugerenciaActiva(-1);
-  }, []);
-
-  const cerrarModalHistorial = useCallback(() => {
-    setModalHistorial(false);
-  }, []);
-
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key !== 'Escape') return;
-
-      if (modalHistorial) {
-        cerrarModalHistorial();
-        return;
+      if (e.key === 'Escape' && modalFormulario) {
+        cerrarModalFormulario();
       }
 
-      if (modalFormulario) {
-        cerrarModalFormulario();
+      if (e.key === 'Escape' && historialModalAbierto) {
+        setHistorialModalAbierto(false);
+      }
+
+      if (e.key === 'Escape' && cotizacionAEliminar && !eliminandoCotizacionId) {
+        setCotizacionAEliminar(null);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [modalFormulario, modalHistorial, cerrarModalFormulario, cerrarModalHistorial]);
+  }, [modalFormulario, historialModalAbierto, cotizacionAEliminar, eliminandoCotizacionId]);
 
   useEffect(() => {
-    if (modalFormulario || modalHistorial) {
+    if (modalFormulario || historialModalAbierto || cotizacionAEliminar) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -268,17 +245,61 @@ export default function Cotizaciones() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [modalFormulario, modalHistorial]);
+  }, [modalFormulario, historialModalAbierto, cotizacionAEliminar]);
 
-  const formatearFecha = (fecha) => {
-    if (!fecha) return 'Sin especificar';
+  useEffect(() => {
+    if (!mensajeExito) return;
 
-    const fechaNormalizada = normalizarFechaInput(fecha);
-    const [year, month, day] = fechaNormalizada.split('-');
+    const timeout = setTimeout(() => {
+      setMensajeExito('');
+    }, 4000);
 
-    if (!year || !month || !day) return String(fecha);
-    return `${day}/${month}/${year}`;
+    return () => clearTimeout(timeout);
+  }, [mensajeExito]);
+
+  const cargarHistorialCotizaciones = async () => {
+    try {
+      setHistorialCargando(true);
+      setHistorialError('');
+
+      const params = {};
+
+      if (filtrosHistorial.q.trim()) params.q = filtrosHistorial.q.trim();
+      if (filtrosHistorial.formato) params.formato = filtrosHistorial.formato;
+      if (filtrosHistorial.estatus) params.estatus = filtrosHistorial.estatus;
+      if (filtrosHistorial.desde) params.desde = filtrosHistorial.desde;
+      if (filtrosHistorial.hasta) params.hasta = filtrosHistorial.hasta;
+
+      const { data } = await api.get('/cotizaciones', { params });
+      setHistorialCotizaciones(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error al cargar historial:', error);
+      setHistorialCotizaciones([]);
+      setHistorialError(
+        error?.response?.data?.mensaje || 'No se pudo cargar el historial'
+      );
+    } finally {
+      setHistorialCargando(false);
+    }
   };
+
+  useEffect(() => {
+    if (!historialModalAbierto) return;
+
+    const timer = setTimeout(() => {
+      cargarHistorialCotizaciones();
+    }, 250);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    historialModalAbierto,
+    filtrosHistorial.q,
+    filtrosHistorial.formato,
+    filtrosHistorial.estatus,
+    filtrosHistorial.desde,
+    filtrosHistorial.hasta,
+  ]);
 
   const renderImagenProducto = (
     imagenUrl,
@@ -312,13 +333,32 @@ export default function Cotizaciones() {
     setIndiceSugerenciaActiva(-1);
   };
 
+  const cerrarModalFormulario = () => {
+    setModalFormulario(false);
+    resetItemForm();
+  };
+
   const abrirModalNuevoProducto = () => {
     resetItemForm();
     setModalFormulario(true);
   };
 
-  const abrirModalHistorial = () => {
-    setModalHistorial(true);
+  const abrirHistorialModal = () => {
+    setHistorialModalAbierto(true);
+  };
+
+  const actualizarFolioDelFormato = (formato, folio) => {
+    setFolioPorFormato((prev) => ({
+      ...prev,
+      [formato]: folio || FOLIO_PROVISIONAL,
+    }));
+  };
+
+  const actualizarIdCotizacionDelFormato = (formato, id) => {
+    setCotizacionEditandoIdPorFormato((prev) => ({
+      ...prev,
+      [formato]: id || null,
+    }));
   };
 
   const cambiarFormato = () => {
@@ -358,6 +398,33 @@ export default function Cotizaciones() {
       ...prev,
       [field]: value,
     }));
+  };
+
+  const limpiarCotizacionActual = () => {
+    setItemsPorFormato((prev) => ({
+      ...prev,
+      [formatoActivo]: [],
+    }));
+
+    setNotasPorFormato((prev) => ({
+      ...prev,
+      [formatoActivo]: '',
+    }));
+
+    setDatosCotizacionPorFormato((prev) => ({
+      ...prev,
+      [formatoActivo]: {
+        nombreCliente: '',
+        fechaCotizacion: obtenerFechaHoyISO(),
+        vigencia: '',
+      },
+    }));
+
+    actualizarFolioDelFormato(formatoActivo, FOLIO_PROVISIONAL);
+    actualizarIdCotizacionDelFormato(formatoActivo, null);
+    setMensajeExito('');
+    resetItemForm();
+    setModalFormulario(false);
   };
 
   const textoBusquedaProducto = useMemo(() => {
@@ -708,156 +775,6 @@ export default function Cotizaciones() {
     }, 0);
   }, [items, esFormatoVenta]);
 
-  const folioPreview = useMemo(() => {
-    return generarBaseFolio(formatoActivo, datosCotizacion.fechaCotizacion);
-  }, [formatoActivo, datosCotizacion.fechaCotizacion]);
-
-  const construirPayloadCotizacion = () => {
-    return {
-      formato: formatoActivo,
-      tipo: obtenerTipoCotizacion(formatoActivo),
-      cliente: String(datosCotizacion.nombreCliente || '').trim(),
-      telefono: '',
-      fechaCotizacion: datosCotizacion.fechaCotizacion || obtenerFechaHoyISO(),
-      vigencia: String(datosCotizacion.vigencia || '').trim(),
-      notas: String(notas || '').trim(),
-      items: items.map((item) => ({
-        productoId: item.productoId || '',
-        nombreProducto: item.nombreProducto || '',
-        codigo: item.codigo || '',
-        categoria: item.categoria || '',
-        imagenUrl: item.imagenUrl || '',
-        stock: Number(item.stock || 0),
-        cantidad: Number(item.cantidad || 0),
-        precioUnitario: Number(item.precioUnitario || 0),
-        descuento: esFormatoVenta ? Number(item.descuento || 0) : 0,
-        incrementoPorcentaje: esFormatoVenta
-          ? 0
-          : Number(item.incrementoPorcentaje || 0),
-        comisionClientePorcentaje: esFormatoVenta
-          ? 0
-          : Number(item.comisionClientePorcentaje || 0),
-      })),
-    };
-  };
-
-  const guardarCotizacionEnHistorial = async () => {
-    if (!items.length) {
-      mostrarMensaje('error', 'Agrega al menos un producto a la cotización.');
-      return;
-    }
-
-    if (!String(datosCotizacion.nombreCliente || '').trim()) {
-      mostrarMensaje('error', 'El nombre del cliente es obligatorio para guardar.');
-      return;
-    }
-
-    try {
-      setGuardandoCotizacion(true);
-
-      const payload = construirPayloadCotizacion();
-      const { data } = await api.post('/cotizaciones', payload);
-
-      if (modalHistorial) {
-        await cargarHistorial();
-      }
-
-      mostrarMensaje(
-        'success',
-        `Cotización ${data?.folio || ''} guardada correctamente.`
-      );
-    } catch (error) {
-      console.error('Error al guardar cotización:', error);
-      mostrarMensaje(
-        'error',
-        error?.response?.data?.error ||
-          error?.response?.data?.mensaje ||
-          'No se pudo guardar la cotización.'
-      );
-    } finally {
-      setGuardandoCotizacion(false);
-    }
-  };
-
-  const eliminarCotizacionHistorial = async (cotizacion) => {
-    const id = cotizacion?._id;
-    if (!id) return;
-
-    const confirmado = window.confirm(
-      `¿Eliminar la cotización ${cotizacion.folio || ''}?`
-    );
-
-    if (!confirmado) return;
-
-    try {
-      setEliminandoId(id);
-      await api.delete(`/cotizaciones/${id}`);
-      await cargarHistorial();
-      mostrarMensaje('success', 'Cotización eliminada correctamente.');
-    } catch (error) {
-      console.error('Error al eliminar cotización:', error);
-      mostrarMensaje(
-        'error',
-        error?.response?.data?.mensaje || 'No se pudo eliminar la cotización.'
-      );
-    } finally {
-      setEliminandoId('');
-    }
-  };
-
-  const cargarCotizacionDesdeHistorial = (cotizacion) => {
-    if (!cotizacion) return;
-
-    const formato = cotizacion.formato || FORMATOS.VENTA;
-    const itemsHistorial = obtenerItemsDeCotizacion(cotizacion);
-
-    setFormatoActivo(formato);
-
-    setItemsPorFormato((prev) => ({
-      ...prev,
-      [formato]: itemsHistorial.map((item) => ({
-        productoId:
-          item.productoId?._id ||
-          item.productoId ||
-          item.producto ||
-          '',
-        nombreProducto: item.nombreProducto || '',
-        cantidad: item.cantidad ?? '',
-        precioUnitario: item.precioUnitario ?? '',
-        descuento: item.descuento ?? '',
-        stock: item.stock ?? '',
-        incrementoPorcentaje: item.incrementoPorcentaje ?? '',
-        comisionClientePorcentaje: item.comisionClientePorcentaje ?? '',
-        imagenUrl: item.imagenUrl || '',
-        codigo: item.codigo || '',
-        categoria: item.categoria || '',
-      })),
-    }));
-
-    setNotasPorFormato((prev) => ({
-      ...prev,
-      [formato]: cotizacion.notas || '',
-    }));
-
-    setDatosCotizacionPorFormato((prev) => ({
-      ...prev,
-      [formato]: {
-        ...prev[formato],
-        nombreCliente: cotizacion.cliente || '',
-        fechaCotizacion: normalizarFechaInput(cotizacion.fechaCotizacion),
-        vigencia: cotizacion.vigencia || '',
-      },
-    }));
-
-    resetItemForm();
-    setModalFormulario(false);
-    setModalHistorial(false);
-    mostrarMensaje(
-      'success',
-      `Cotización ${cotizacion.folio || ''} cargada en el formulario.`
-    );
-  };
-
   const cargarImagenComoDataURL = async (ruta) => {
     const response = await fetch(ruta);
     const blob = await response.blob();
@@ -883,14 +800,92 @@ export default function Cotizaciones() {
     });
   };
 
+  const construirPayloadCotizacion = () => {
+    return {
+      formato: formatoActivo,
+      tipo: TIPOS_POR_FORMATO[formatoActivo],
+      cliente: datosCotizacion.nombreCliente?.trim() || 'Cliente general',
+      telefono: '',
+      fechaCotizacion: datosCotizacion.fechaCotizacion || obtenerFechaHoyISO(),
+      vigencia: datosCotizacion.vigencia?.trim() || '',
+      notas: notas?.trim() || '',
+      items: items.map((item) => ({
+        productoId: item.productoId,
+        nombreProducto: item.nombreProducto,
+        codigo: item.codigo || '',
+        categoria: item.categoria || '',
+        imagenUrl: item.imagenUrl || '',
+        stock: Number(item.stock || 0),
+        cantidad: Number(item.cantidad || 0),
+        precioUnitario: Number(item.precioUnitario || 0),
+        descuento: esFormatoVenta ? Number(item.descuento || 0) : 0,
+        incrementoPorcentaje: esFormatoVenta
+          ? 0
+          : Number(item.incrementoPorcentaje || 0),
+        comisionClientePorcentaje: esFormatoVenta
+          ? 0
+          : Number(item.comisionClientePorcentaje || 0),
+      })),
+    };
+  };
+
+  const guardarCotizacionSilenciosa = async () => {
+    const payload = construirPayloadCotizacion();
+
+    const { data } = cotizacionEditandoId
+      ? await api.put(`/cotizaciones/${cotizacionEditandoId}`, payload)
+      : await api.post('/cotizaciones', payload);
+
+    const formatoRespuesta = data?.formato || formatoActivo;
+
+    actualizarFolioDelFormato(
+      formatoRespuesta,
+      data?.folio || FOLIO_PROVISIONAL
+    );
+    actualizarIdCotizacionDelFormato(formatoRespuesta, data?._id || null);
+
+    return data;
+  };
+
+  const guardarCotizacionEnHistorial = async () => {
+    try {
+      if (!items.length) {
+        alert('Agrega al menos un producto antes de guardar la cotización.');
+        return;
+      }
+
+      setGuardandoCotizacion(true);
+
+      const data = await guardarCotizacionSilenciosa();
+
+      setMensajeExito(
+        cotizacionEditandoId
+          ? `Cotización ${data?.folio || ''} actualizada correctamente.`
+          : `Cotización ${data?.folio || ''} guardada correctamente.`
+      );
+
+      if (historialModalAbierto) {
+        cargarHistorialCotizaciones();
+      }
+    } catch (error) {
+      console.error('Error al guardar cotización:', error);
+      alert(
+        error?.response?.data?.error ||
+          error?.response?.data?.mensaje ||
+          'No se pudo guardar la cotización'
+      );
+    } finally {
+      setGuardandoCotizacion(false);
+    }
+  };
+
   const enviarAPuntoDeVenta = () => {
     if (!esFormatoVenta || !items.length) return;
 
     const cotizacionVenta = {
       origen: 'cotizacion',
       formato: FORMATOS.VENTA,
-      tipo: 'COMPRA',
-      folio: folioPreview,
+      folio: folioActual !== FOLIO_PROVISIONAL ? folioActual : '',
       cliente: datosCotizacion.nombreCliente || '',
       fechaCotizacion: datosCotizacion.fechaCotizacion || '',
       vigencia: datosCotizacion.vigencia || '',
@@ -932,387 +927,512 @@ export default function Cotizaciones() {
   const exportarPDF = async () => {
     if (!items.length) return;
 
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const fechaGeneracion = new Date().toLocaleString('es-MX');
-    const tituloFormato = esFormatoVenta
-      ? 'Cotización de compra'
-      : 'Cotización de consignaciones';
-    const notasActuales = (notasPorFormato[formatoActivo] || '').trim();
-    const datosActuales = datosCotizacionPorFormato[formatoActivo] || {};
-    const folioPDF = generarBaseFolio(formatoActivo, datosActuales.fechaCotizacion);
-
-    let logoDataUrl = null;
-    let piePaginaDataUrl = null;
-    let piePaginaDimensiones = { width: 1200, height: 153 };
+    let folioPDF = folioPorFormato[formatoActivo] || FOLIO_PROVISIONAL;
 
     try {
-      logoDataUrl = await cargarImagenComoDataURL('/logo.png');
-    } catch {
-      logoDataUrl = null;
-    }
-
-    try {
-      piePaginaDataUrl = await cargarImagenComoDataURL('/PiePagina.png');
-      piePaginaDimensiones = await obtenerDimensionesImagen(piePaginaDataUrl);
-    } catch {
-      piePaginaDataUrl = null;
-    }
-
-    const imagenesItems = await Promise.all(
-      items.map(async (item) => {
-        if (!item.imagenUrl) return null;
-
-        try {
-          return await cargarImagenComoDataURL(item.imagenUrl);
-        } catch {
-          return null;
-        }
-      })
-    );
-
-    const footerAspectRatio =
-      piePaginaDimensiones.width && piePaginaDimensiones.height
-        ? piePaginaDimensiones.width / piePaginaDimensiones.height
-        : 8;
-
-    const footerWidth = pageWidth;
-    const footerHeight = piePaginaDataUrl ? footerWidth / footerAspectRatio : 0;
-    const footerY = piePaginaDataUrl ? pageHeight - footerHeight : pageHeight - 12;
-    const limiteContenidoY = piePaginaDataUrl ? footerY - 6 : pageHeight - 20;
-
-    const dibujarFooterEnTodasLasPaginas = () => {
-      const totalPaginas = doc.internal.getNumberOfPages();
-
-      for (let pagina = 1; pagina <= totalPaginas; pagina += 1) {
-        doc.setPage(pagina);
-
-        if (piePaginaDataUrl) {
-          doc.addImage(
-            piePaginaDataUrl,
-            'PNG',
-            0,
-            footerY,
-            footerWidth,
-            footerHeight
-          );
-        } else {
-          doc.setDrawColor(226, 232, 240);
-          doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
-
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(9);
-          doc.setTextColor(100, 116, 139);
-          doc.text(`Hilos en Nogada · ${tituloFormato}`, 14, pageHeight - 6);
-          doc.text(
-            `Página ${pagina} de ${totalPaginas}`,
-            pageWidth - 40,
-            pageHeight - 6
-          );
-        }
+      if (folioPDF === FOLIO_PROVISIONAL) {
+        setGuardandoCotizacion(true);
+        const data = await guardarCotizacionSilenciosa();
+        folioPDF = data?.folio || FOLIO_PROVISIONAL;
+        setMensajeExito(`Cotización ${folioPDF} guardada y lista para exportar.`);
       }
-    };
 
-    const calcularAlturaNotasPDF = (textoNotas) => {
-      if (!textoNotas) return 0;
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const fechaGeneracion = new Date().toLocaleString('es-MX');
+      const tituloFormato = esFormatoVenta
+        ? 'Cotización de venta'
+        : 'Cotización de consignaciones';
+      const notasActuales = (notasPorFormato[formatoActivo] || '').trim();
+      const datosActuales = datosCotizacionPorFormato[formatoActivo] || {};
 
-      const margenX = 14;
-      const anchoTexto = pageWidth - margenX * 2;
-      const lineas = doc.splitTextToSize(textoNotas, anchoTexto);
+      let logoDataUrl = null;
+      let piePaginaDataUrl = null;
+      let piePaginaDimensiones = { width: 1200, height: 153 };
 
-      return 8 + 7 + lineas.length * 5 + 4;
-    };
+      try {
+        logoDataUrl = await cargarImagenComoDataURL('/logo.png');
+      } catch (e) {
+        logoDataUrl = null;
+      }
 
-    const dibujarNotasPDF = (textoNotas, yInicial) => {
-      if (!textoNotas) return yInicial;
+      try {
+        piePaginaDataUrl = await cargarImagenComoDataURL('/PiePagina.png');
+        piePaginaDimensiones = await obtenerDimensionesImagen(piePaginaDataUrl);
+      } catch (e) {
+        piePaginaDataUrl = null;
+      }
 
-      let y = yInicial;
-      const margenX = 14;
-      const anchoTexto = pageWidth - margenX * 2;
-      const lineas = doc.splitTextToSize(textoNotas, anchoTexto);
+      const imagenesItems = await Promise.all(
+        items.map(async (item) => {
+          if (!item.imagenUrl) return null;
 
-      doc.setDrawColor(226, 232, 240);
-      doc.line(margenX, y, pageWidth - margenX, y);
-      y += 8;
+          try {
+            return await cargarImagenComoDataURL(item.imagenUrl);
+          } catch (error) {
+            return null;
+          }
+        })
+      );
 
+      const footerAspectRatio =
+        piePaginaDimensiones.width && piePaginaDimensiones.height
+          ? piePaginaDimensiones.width / piePaginaDimensiones.height
+          : 8;
+
+      const footerWidth = pageWidth;
+      const footerHeight = piePaginaDataUrl ? footerWidth / footerAspectRatio : 0;
+      const footerY = piePaginaDataUrl ? pageHeight - footerHeight : pageHeight - 12;
+      const limiteContenidoY = piePaginaDataUrl ? footerY - 6 : pageHeight - 20;
+
+      const dibujarFooterEnTodasLasPaginas = () => {
+        const totalPaginas = doc.internal.getNumberOfPages();
+
+        for (let pagina = 1; pagina <= totalPaginas; pagina += 1) {
+          doc.setPage(pagina);
+
+          if (piePaginaDataUrl) {
+            doc.addImage(
+              piePaginaDataUrl,
+              'PNG',
+              0,
+              footerY,
+              footerWidth,
+              footerHeight
+            );
+          } else {
+            doc.setDrawColor(226, 232, 240);
+            doc.line(14, pageHeight - 12, pageWidth - 14, pageHeight - 12);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(100, 116, 139);
+            doc.text(`Hilos en Nogada · ${tituloFormato}`, 14, pageHeight - 6);
+            doc.text(
+              `Página ${pagina} de ${totalPaginas}`,
+              pageWidth - 40,
+              pageHeight - 6
+            );
+          }
+        }
+      };
+
+      const calcularAlturaNotasPDF = (textoNotas) => {
+        if (!textoNotas) return 0;
+
+        const margenX = 14;
+        const anchoTexto = pageWidth - margenX * 2;
+        const lineas = doc.splitTextToSize(textoNotas, anchoTexto);
+
+        return 8 + 7 + lineas.length * 5 + 4;
+      };
+
+      const dibujarNotasPDF = (textoNotas, yInicial) => {
+        if (!textoNotas) return yInicial;
+
+        let y = yInicial;
+        const margenX = 14;
+        const anchoTexto = pageWidth - margenX * 2;
+        const lineas = doc.splitTextToSize(textoNotas, anchoTexto);
+
+        doc.setDrawColor(226, 232, 240);
+        doc.line(margenX, y, pageWidth - margenX, y);
+        y += 8;
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(31, 41, 55);
+        doc.text('Notas', margenX, y);
+
+        y += 7;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(75, 85, 99);
+
+        lineas.forEach((linea) => {
+          if (y + 6 > limiteContenidoY) {
+            doc.addPage();
+            y = 20;
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(31, 41, 55);
+            doc.text('Notas', margenX, y);
+            y += 7;
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(75, 85, 99);
+          }
+
+          doc.text(linea, margenX, y);
+          y += 5;
+        });
+
+        return y;
+      };
+
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, pageWidth, 36, 'F');
+
+      if (logoDataUrl) {
+        doc.addImage(logoDataUrl, 'PNG', 14, 9, 34, 18);
+      }
+
+      doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor(31, 41, 55);
-      doc.text('Notas', margenX, y);
-
-      y += 7;
+      doc.setFontSize(18);
+      doc.text('Hilos en Nogada', 54, 16);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.setTextColor(75, 85, 99);
+      doc.text(tituloFormato, 54, 23);
+      doc.text(`Generado: ${fechaGeneracion}`, 54, 29);
 
-      lineas.forEach((linea) => {
-        if (y + 6 > limiteContenidoY) {
-          doc.addPage();
-          y = 20;
+      doc.setTextColor(31, 41, 55);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(15);
+      doc.text('Datos de la cotización', 14, 48);
 
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(12);
-          doc.setTextColor(31, 41, 55);
-          doc.text('Notas', margenX, y);
-          y += 7;
+      const datosY = 56;
+      const datosGap = 6;
+      const datosBoxH = 22;
+      const datosBoxW = (pageWidth - 28 - datosGap * 3) / 4;
 
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          doc.setTextColor(75, 85, 99);
-        }
+      const dibujarTarjetaDato = (x, y, titulo, valor, color = [248, 250, 252]) => {
+        doc.setFillColor(color[0], color[1], color[2]);
+        doc.roundedRect(x, y, datosBoxW, datosBoxH, 3, 3, 'F');
+        doc.setTextColor(100, 116, 139);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(titulo, x + 4, y + 7);
+        doc.setTextColor(17, 24, 39);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        const texto = String(valor || 'Sin especificar');
+        const lineas = doc.splitTextToSize(texto, datosBoxW - 8);
+        doc.text(lineas[0] || texto, x + 4, y + 16);
+      };
 
-        doc.text(linea, margenX, y);
-        y += 5;
+      dibujarTarjetaDato(
+        14,
+        datosY,
+        'Cliente',
+        datosActuales.nombreCliente || 'Sin especificar',
+        [239, 246, 255]
+      );
+
+      dibujarTarjetaDato(
+        14 + datosBoxW + datosGap,
+        datosY,
+        'Fecha',
+        formatearFecha(datosActuales.fechaCotizacion),
+        [245, 243, 255]
+      );
+
+      dibujarTarjetaDato(
+        14 + (datosBoxW + datosGap) * 2,
+        datosY,
+        'Vigencia',
+        datosActuales.vigencia || 'Sin especificar',
+        [254, 249, 195]
+      );
+
+      dibujarTarjetaDato(
+        14 + (datosBoxW + datosGap) * 3,
+        datosY,
+        'Folio',
+        folioPDF,
+        [237, 233, 254]
+      );
+
+      const head = esFormatoVenta
+        ? [['Imagen de referencia', 'Cantidad', 'Producto', 'Precio', 'Desc. %', 'Total']]
+        : [[
+            'Imagen de referencia',
+            'Cantidad',
+            'Producto',
+            'Precio',
+            'Ganancia tienda',
+            'Comisión %',
+          ]];
+
+      const body = esFormatoVenta
+        ? items.map((item) => {
+            const { totalLinea } = calcularLineaVenta(item);
+
+            return [
+              '',
+              Number(item.cantidad || 0),
+              item.nombreProducto || '—',
+              `$${Number(item.precioUnitario || 0).toFixed(2)}`,
+              `${Number(item.descuento || 0).toFixed(2)}%`,
+              `$${totalLinea.toFixed(2)}`,
+            ];
+          })
+        : items.map((item) => {
+            const { precioRedondeado, valorComisionCliente } =
+              calcularLineaConsignacion(item);
+
+            return [
+              '',
+              Number(item.cantidad || 0),
+              item.nombreProducto || '—',
+              `$${precioRedondeado.toFixed(2)}`,
+              `$${valorComisionCliente.toFixed(2)}`,
+              `${Number(item.comisionClientePorcentaje || 0).toFixed(2)}%`,
+            ];
+          });
+
+      autoTable(doc, {
+        startY: 92,
+        head,
+        body,
+        theme: 'grid',
+        margin: {
+          left: 14,
+          right: 14,
+          bottom: piePaginaDataUrl ? footerHeight + 8 : 14,
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+          textColor: [31, 41, 55],
+          lineColor: [226, 232, 240],
+          lineWidth: 0.2,
+          minCellHeight: 18,
+          valign: 'middle',
+        },
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        columnStyles: {
+          0: { cellWidth: 28, halign: 'center' },
+        },
+        didDrawCell: (data) => {
+          if (data.section !== 'body' || data.column.index !== 0) return;
+
+          const imagenDataUrl = imagenesItems[data.row.index];
+
+          if (imagenDataUrl) {
+            const padding = 2;
+            const size = Math.min(data.cell.width - padding * 2, data.cell.height - padding * 2);
+            const x = data.cell.x + (data.cell.width - size) / 2;
+            const y = data.cell.y + (data.cell.height - size) / 2;
+
+            try {
+              doc.addImage(imagenDataUrl, 'JPEG', x, y, size, size);
+            } catch {
+              try {
+                doc.addImage(imagenDataUrl, 'PNG', x, y, size, size);
+              } catch {
+                doc.setDrawColor(203, 213, 225);
+                doc.roundedRect(
+                  data.cell.x + 5,
+                  data.cell.y + 4,
+                  data.cell.width - 10,
+                  data.cell.height - 8,
+                  2,
+                  2
+                );
+              }
+            }
+          } else {
+            doc.setDrawColor(203, 213, 225);
+            doc.setFillColor(248, 250, 252);
+            doc.roundedRect(
+              data.cell.x + 5,
+              data.cell.y + 4,
+              data.cell.width - 10,
+              data.cell.height - 8,
+              2,
+              2,
+              'FD'
+            );
+            doc.setFontSize(7);
+            doc.setTextColor(148, 163, 184);
+            doc.text(
+              'Sin imagen',
+              data.cell.x + data.cell.width / 2,
+              data.cell.y + data.cell.height / 2 + 1,
+              { align: 'center' }
+            );
+            doc.setTextColor(31, 41, 55);
+          }
+        },
       });
 
-      return y;
-    };
+      let finalY = doc.lastAutoTable?.finalY || 120;
+      let yBloqueFinal = finalY + 10;
 
-    doc.setFillColor(15, 23, 42);
-    doc.rect(0, 0, pageWidth, 36, 'F');
+      if (notasActuales) {
+        const alturaNotas = calcularAlturaNotasPDF(notasActuales);
 
-    if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', 14, 9, 34, 18);
-    }
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('Hilos en Nogada', 54, 16);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(tituloFormato, 54, 23);
-    doc.text(`Generado: ${fechaGeneracion}`, 54, 29);
-
-    doc.setTextColor(31, 41, 55);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(15);
-    doc.text('Datos de la cotización', 14, 48);
-
-    const datosY = 56;
-    const datosGap = 6;
-    const datosBoxH = 22;
-    const datosBoxW = (pageWidth - 28 - datosGap * 3) / 4;
-
-    const dibujarTarjetaDato = (x, y, titulo, valor, color = [248, 250, 252]) => {
-      doc.setFillColor(color[0], color[1], color[2]);
-      doc.roundedRect(x, y, datosBoxW, datosBoxH, 3, 3, 'F');
-      doc.setTextColor(100, 116, 139);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text(titulo, x + 4, y + 7);
-      doc.setTextColor(17, 24, 39);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-
-      const texto = String(valor || 'Sin especificar');
-      const textoRecortado =
-        texto.length > 25 ? `${texto.slice(0, 22)}...` : texto;
-
-      doc.text(textoRecortado, x + 4, y + 16);
-    };
-
-    dibujarTarjetaDato(14, datosY, 'Folio', folioPDF, [224, 242, 254]);
-    dibujarTarjetaDato(
-      14 + (datosBoxW + datosGap) * 1,
-      datosY,
-      'Cliente',
-      datosActuales.nombreCliente || 'Sin especificar',
-      [239, 246, 255]
-    );
-    dibujarTarjetaDato(
-      14 + (datosBoxW + datosGap) * 2,
-      datosY,
-      'Fecha',
-      formatearFecha(datosActuales.fechaCotizacion),
-      [245, 243, 255]
-    );
-    dibujarTarjetaDato(
-      14 + (datosBoxW + datosGap) * 3,
-      datosY,
-      'Vigencia',
-      datosActuales.vigencia || 'Sin especificar',
-      [254, 249, 195]
-    );
-
-    const head = esFormatoVenta
-      ? [['Imagen de referencia', 'Cantidad', 'Producto', 'Precio', 'Desc. %', 'Total']]
-      : [[
-          'Imagen de referencia',
-          'Cantidad',
-          'Producto',
-          'Precio',
-          'Ganancia tienda',
-          'Comisión %',
-        ]];
-
-    const body = esFormatoVenta
-      ? items.map((item) => {
-          const { totalLinea } = calcularLineaVenta(item);
-
-          return [
-            '',
-            Number(item.cantidad || 0),
-            item.nombreProducto || '—',
-            `$${Number(item.precioUnitario || 0).toFixed(2)}`,
-            `${Number(item.descuento || 0).toFixed(2)}%`,
-            `$${totalLinea.toFixed(2)}`,
-          ];
-        })
-      : items.map((item) => {
-          const { precioRedondeado, valorComisionCliente } =
-            calcularLineaConsignacion(item);
-
-          return [
-            '',
-            Number(item.cantidad || 0),
-            item.nombreProducto || '—',
-            `$${precioRedondeado.toFixed(2)}`,
-            `$${valorComisionCliente.toFixed(2)}`,
-            `${Number(item.comisionClientePorcentaje || 0).toFixed(2)}%`,
-          ];
-        });
-
-    autoTable(doc, {
-      startY: 88,
-      head,
-      body,
-      theme: 'grid',
-      margin: {
-        left: 14,
-        right: 14,
-        bottom: piePaginaDataUrl ? footerHeight + 8 : 14,
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 3,
-        textColor: [31, 41, 55],
-        lineColor: [226, 232, 240],
-        lineWidth: 0.2,
-        minCellHeight: 18,
-        valign: 'middle',
-      },
-      headStyles: {
-        fillColor: [30, 41, 59],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-      },
-      alternateRowStyles: {
-        fillColor: [248, 250, 252],
-      },
-      columnStyles: {
-        0: { cellWidth: 28, halign: 'center' },
-      },
-      didDrawCell: (data) => {
-        if (data.section !== 'body' || data.column.index !== 0) return;
-
-        const imagenDataUrl = imagenesItems[data.row.index];
-
-        if (imagenDataUrl) {
-          const padding = 2;
-          const size = Math.min(
-            data.cell.width - padding * 2,
-            data.cell.height - padding * 2
-          );
-          const x = data.cell.x + (data.cell.width - size) / 2;
-          const y = data.cell.y + (data.cell.height - size) / 2;
-
-          try {
-            doc.addImage(imagenDataUrl, 'JPEG', x, y, size, size);
-          } catch {
-            try {
-              doc.addImage(imagenDataUrl, 'PNG', x, y, size, size);
-            } catch {
-              doc.setDrawColor(203, 213, 225);
-              doc.roundedRect(
-                data.cell.x + 5,
-                data.cell.y + 4,
-                data.cell.width - 10,
-                data.cell.height - 8,
-                2,
-                2
-              );
-            }
-          }
-        } else {
-          doc.setDrawColor(203, 213, 225);
-          doc.setFillColor(248, 250, 252);
-          doc.roundedRect(
-            data.cell.x + 5,
-            data.cell.y + 4,
-            data.cell.width - 10,
-            data.cell.height - 8,
-            2,
-            2,
-            'FD'
-          );
-          doc.setFontSize(7);
-          doc.setTextColor(148, 163, 184);
-          doc.text(
-            'Sin imagen',
-            data.cell.x + data.cell.width / 2,
-            data.cell.y + data.cell.height / 2 + 1,
-            { align: 'center' }
-          );
-          doc.setTextColor(31, 41, 55);
+        if (yBloqueFinal + alturaNotas > limiteContenidoY) {
+          doc.addPage();
+          yBloqueFinal = 20;
         }
+
+        yBloqueFinal = dibujarNotasPDF(notasActuales, yBloqueFinal);
+      }
+
+      yBloqueFinal += 8;
+
+      if (esFormatoVenta) {
+        const alturaTotales = 18;
+
+        if (yBloqueFinal + alturaTotales > limiteContenidoY) {
+          doc.addPage();
+          yBloqueFinal = 20;
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(75, 85, 99);
+
+        const totalDescuento = items.reduce((acc, item) => {
+          const { descuentoMonto } = calcularLineaVenta(item);
+          return acc + descuentoMonto;
+        }, 0);
+
+        doc.setFontSize(11);
+        doc.text(`Descuento total: $${totalDescuento.toFixed(2)}`, 14, yBloqueFinal);
+
+        doc.setFontSize(13);
+        doc.setTextColor(17, 24, 39);
+        doc.text(`Total general: $${total.toFixed(2)}`, 14, yBloqueFinal + 8);
+      }
+
+      dibujarFooterEnTodasLasPaginas();
+
+      const nombreArchivo =
+        folioPDF && folioPDF !== FOLIO_PROVISIONAL
+          ? `${folioPDF}.pdf`
+          : `cotizacion_${formatoActivo}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      doc.save(nombreArchivo);
+    } catch (error) {
+      console.error('Error al exportar PDF:', error);
+      alert(
+        error?.response?.data?.error ||
+          error?.response?.data?.mensaje ||
+          'No se pudo exportar el PDF'
+      );
+    } finally {
+      setGuardandoCotizacion(false);
+    }
+  };
+
+  const cargarCotizacionDesdeHistorial = (cotizacion) => {
+    if (!cotizacion) return;
+
+    const formato = cotizacion.formato || FORMATOS.VENTA;
+    const productosHistorial = Array.isArray(cotizacion.productos)
+      ? cotizacion.productos
+      : [];
+
+    const itemsMapeados = productosHistorial.map((item) => ({
+      productoId: item.productoId || item.producto || '',
+      nombreProducto: item.nombreProducto || '',
+      cantidad: Number(item.cantidad || 0),
+      precioUnitario: Number(item.precioUnitario || 0),
+      descuento: Number(item.descuento || 0),
+      stock: Number(item.stock || 0),
+      incrementoPorcentaje: Number(item.incrementoPorcentaje || 0),
+      comisionClientePorcentaje: Number(item.comisionClientePorcentaje || 0),
+      codigo: item.codigo || '',
+      categoria: item.categoria || '',
+      imagenUrl: item.imagenUrl || '',
+    }));
+
+    setItemsPorFormato((prev) => ({
+      ...prev,
+      [formato]: itemsMapeados,
+    }));
+
+    setNotasPorFormato((prev) => ({
+      ...prev,
+      [formato]: cotizacion.notas || '',
+    }));
+
+    setDatosCotizacionPorFormato((prev) => ({
+      ...prev,
+      [formato]: {
+        nombreCliente: cotizacion.cliente || '',
+        fechaCotizacion: normalizarFechaParaInput(cotizacion.fechaCotizacion),
+        vigencia: cotizacion.vigencia || '',
       },
-    });
+    }));
 
-    let finalY = doc.lastAutoTable?.finalY || 120;
-    let yBloqueFinal = finalY + 10;
+    actualizarFolioDelFormato(formato, cotizacion.folio || FOLIO_PROVISIONAL);
+    actualizarIdCotizacionDelFormato(formato, cotizacion._id || null);
 
-    if (notasActuales) {
-      const alturaNotas = calcularAlturaNotasPDF(notasActuales);
+    setFormatoActivo(formato);
+    setHistorialModalAbierto(false);
+    resetItemForm();
+    setMensajeExito(`Cotización ${cotizacion.folio || ''} cargada correctamente.`);
+  };
 
-      if (yBloqueFinal + alturaNotas > limiteContenidoY) {
-        doc.addPage();
-        yBloqueFinal = 20;
+  const abrirModalEliminarCotizacion = (cotizacion) => {
+    setCotizacionAEliminar(cotizacion);
+  };
+
+  const cerrarModalEliminarCotizacion = () => {
+    if (eliminandoCotizacionId) return;
+    setCotizacionAEliminar(null);
+  };
+
+  const confirmarEliminarCotizacion = async () => {
+    if (!cotizacionAEliminar?._id) return;
+
+    try {
+      setEliminandoCotizacionId(cotizacionAEliminar._id);
+      await api.delete(`/cotizaciones/${cotizacionAEliminar._id}`);
+
+      setHistorialCotizaciones((prev) =>
+        prev.filter((item) => item._id !== cotizacionAEliminar._id)
+      );
+
+      if (
+        cotizacionEditandoIdPorFormato[cotizacionAEliminar.formato] &&
+        cotizacionEditandoIdPorFormato[cotizacionAEliminar.formato] ===
+          cotizacionAEliminar._id
+      ) {
+        actualizarIdCotizacionDelFormato(cotizacionAEliminar.formato, null);
+        actualizarFolioDelFormato(cotizacionAEliminar.formato, FOLIO_PROVISIONAL);
       }
 
-      yBloqueFinal = dibujarNotasPDF(notasActuales, yBloqueFinal);
+      setMensajeExito(
+        `Cotización ${cotizacionAEliminar.folio || ''} eliminada correctamente.`
+      );
+      setCotizacionAEliminar(null);
+    } catch (error) {
+      console.error('Error al eliminar cotización:', error);
+      alert(
+        error?.response?.data?.mensaje || 'No se pudo eliminar la cotización'
+      );
+    } finally {
+      setEliminandoCotizacionId(null);
     }
-
-    yBloqueFinal += 8;
-
-    if (esFormatoVenta) {
-      const alturaTotales = 18;
-
-      if (yBloqueFinal + alturaTotales > limiteContenidoY) {
-        doc.addPage();
-        yBloqueFinal = 20;
-      }
-
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(75, 85, 99);
-
-      const totalDescuento = items.reduce((acc, item) => {
-        const { descuentoMonto } = calcularLineaVenta(item);
-        return acc + descuentoMonto;
-      }, 0);
-
-      doc.setFontSize(11);
-      doc.text(`Descuento total: $${totalDescuento.toFixed(2)}`, 14, yBloqueFinal);
-
-      doc.setFontSize(13);
-      doc.setTextColor(17, 24, 39);
-      doc.text(`Total general: $${total.toFixed(2)}`, 14, yBloqueFinal + 8);
-    }
-
-    dibujarFooterEnTodasLasPaginas();
-    doc.save(`${folioPDF}.pdf`);
   };
 
   const textoFormatoActual = esFormatoVenta
-    ? 'Formato de compra'
+    ? 'Formato de venta'
     : 'Formato de consignaciones';
 
   const textoCambioFormato = esFormatoVenta
     ? 'Cambiar a formato de consignaciones'
-    : 'Cambiar a formato de compra';
+    : 'Cambiar a formato de venta';
+
+  const etiquetaGuardar = cotizacionEditandoId
+    ? 'Actualizar cotización'
+    : 'Guardar en historial';
 
   const renderFormularioProducto = (autocompleteRef, esModal = false) => (
     <div>
@@ -1329,7 +1449,7 @@ export default function Cotizaciones() {
 
         <p className="mt-1 text-sm text-gray-500 sm:mt-2">
           {esFormatoVenta
-            ? 'Captura un producto para el formato de compra.'
+            ? 'Captura un producto para el formato de venta.'
             : 'Captura un producto para el formato de consignaciones.'}
         </p>
       </div>
@@ -1703,15 +1823,9 @@ export default function Cotizaciones() {
       <Header title="Cotizaciones" />
 
       <div className="space-y-5 sm:space-y-6">
-        {mensajeEstado ? (
-          <div
-            className={`rounded-2xl border px-4 py-3 text-sm font-medium ${
-              mensajeEstado.tipo === 'success'
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                : 'border-rose-200 bg-rose-50 text-rose-700'
-            }`}
-          >
-            {mensajeEstado.texto}
+        {mensajeExito ? (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+            {mensajeExito}
           </div>
         ) : null}
 
@@ -1770,9 +1884,25 @@ export default function Cotizaciones() {
                       <p className="text-sm font-medium text-gray-500">Detalle actual</p>
                       <h3 className="mt-1 text-xl font-bold text-gray-900 sm:text-2xl">
                         {esFormatoVenta
-                          ? 'Productos de la cotización de compra'
+                          ? 'Productos de la cotización de venta'
                           : 'Productos de la cotización de consignaciones'}
                       </h3>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="inline-flex rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700 ring-1 ring-violet-200">
+                          Folio: {folioActual}
+                        </span>
+
+                        {cotizacionEditandoId ? (
+                          <span className="inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+                            Editando cotización guardada
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
+                            Nueva cotización
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -1790,11 +1920,32 @@ export default function Cotizaciones() {
                     </div>
                   </div>
 
-                  <div
-                    className={`grid grid-cols-1 gap-3 ${
-                      esFormatoVenta ? 'sm:grid-cols-4' : 'sm:grid-cols-3'
-                    }`}
-                  >
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    <button
+                      type="button"
+                      onClick={guardarCotizacionEnHistorial}
+                      className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:opacity-60"
+                      disabled={!items.length || guardandoCotizacion}
+                    >
+                      {guardandoCotizacion ? 'Guardando...' : etiquetaGuardar}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={abrirHistorialModal}
+                      className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800"
+                    >
+                      Consultar historial
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={limpiarCotizacionActual}
+                      className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Nueva cotización
+                    </button>
+
                     {esFormatoVenta ? (
                       <button
                         type="button"
@@ -1808,28 +1959,11 @@ export default function Cotizaciones() {
 
                     <button
                       type="button"
-                      onClick={guardarCotizacionEnHistorial}
-                      className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
-                      disabled={!items.length || guardandoCotizacion}
-                    >
-                      {guardandoCotizacion ? 'Guardando...' : 'Guardar en historial'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={abrirModalHistorial}
-                      className="rounded-2xl border border-violet-700 bg-violet-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-800 hover:shadow-md"
-                    >
-                      Consultar historial
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={exportarPDF}
                       className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
                       disabled={!items.length}
                     >
-                      Exportar PDF
+                      {guardandoCotizacion ? 'Preparando...' : 'Exportar PDF'}
                     </button>
                   </div>
                 </div>
@@ -1846,15 +1980,7 @@ export default function Cotizaciones() {
                     </p>
                   </div>
 
-                  <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
-                    <p className="text-xs font-semibold text-sky-700">Folio sugerido</p>
-                    <p className="mt-1 text-lg font-bold text-sky-900">{folioPreview}</p>
-                    <p className="mt-1 text-xs text-sky-700">
-                      CM = compra · CG = consignación
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                     <div>
                       <label className="mb-2 block text-sm font-medium text-gray-700">
                         Nombre del cliente
@@ -1897,6 +2023,15 @@ export default function Cotizaciones() {
                           actualizarDatoCotizacion('vigencia', e.target.value)
                         }
                       />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-gray-700">
+                        Folio
+                      </label>
+                      <div className="w-full rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-900">
+                        {folioActual}
+                      </div>
                     </div>
                   </div>
 
@@ -2310,204 +2445,6 @@ export default function Cotizaciones() {
         </div>
       </div>
 
-      {modalHistorial && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={cerrarModalHistorial}
-        >
-          <div
-            className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="border-b border-gray-100 px-5 py-4 sm:px-6">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                    Historial de cotizaciones
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Consulta, filtra, carga o elimina cotizaciones guardadas.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-                  onClick={cerrarModalHistorial}
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-
-            <div className="border-b border-gray-100 bg-gray-50/60 px-4 py-5 sm:px-6">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Buscador
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
-                    placeholder="Buscar por folio, cliente, fecha o producto"
-                    value={busquedaHistorial}
-                    onChange={(e) => setBusquedaHistorial(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Filtro
-                  </label>
-                  <select
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
-                    value={filtroHistorial}
-                    onChange={(e) => setFiltroHistorial(e.target.value)}
-                  >
-                    <option value="TODAS">Todas</option>
-                    <option value={FORMATOS.VENTA}>Compra</option>
-                    <option value={FORMATOS.CONSIGNACION}>Consignación</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              {cargandoHistorial ? (
-                <div className="px-6 py-14 text-center text-sm text-gray-500">
-                  Cargando historial...
-                </div>
-              ) : historialCotizaciones.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {historialCotizaciones.map((cotizacion) => {
-                    const itemsHistorial = obtenerItemsDeCotizacion(cotizacion);
-
-                    return (
-                      <div key={cotizacion._id || cotizacion.folio} className="p-4 sm:p-6">
-                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
-                                {cotizacion.folio}
-                              </span>
-
-                              <span
-                                className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ${
-                                  cotizacion.formato === FORMATOS.VENTA
-                                    ? 'bg-sky-50 text-sky-700 ring-sky-200'
-                                    : 'bg-amber-50 text-amber-700 ring-amber-200'
-                                }`}
-                              >
-                                {cotizacion.tipo}
-                              </span>
-                            </div>
-
-                            <h4 className="mt-3 text-lg font-bold text-gray-900">
-                              {cotizacion.cliente || 'Sin cliente'}
-                            </h4>
-
-                            <p className="mt-1 text-sm text-gray-500">
-                              Fecha: {formatearFecha(cotizacion.fechaCotizacion)} · Vigencia:{' '}
-                              {cotizacion.vigencia || 'Sin especificar'} · Productos:{' '}
-                              {itemsHistorial.length || 0}
-                            </p>
-
-                            {cotizacion.notas ? (
-                              <p className="mt-3 text-sm text-gray-600">{cotizacion.notas}</p>
-                            ) : null}
-
-                            {itemsHistorial.length ? (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {itemsHistorial.slice(0, 4).map((item, index) => (
-                                  <span
-                                    key={`${cotizacion._id || cotizacion.folio}-${item.productoId || item.nombreProducto}-${index}`}
-                                    className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700"
-                                  >
-                                    {item.nombreProducto}
-                                  </span>
-                                ))}
-
-                                {itemsHistorial.length > 4 ? (
-                                  <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-700">
-                                    +{itemsHistorial.length - 4} más
-                                  </span>
-                                ) : null}
-                              </div>
-                            ) : null}
-                          </div>
-
-                          <div className="w-full xl:w-auto">
-                            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-right">
-                              <p className="text-sm text-emerald-700">Total</p>
-                              <p className="mt-1 text-2xl font-bold text-emerald-700">
-                                ${Number(cotizacion.total || 0).toFixed(2)}
-                              </p>
-                            </div>
-
-                            {cotizacion.formato === FORMATOS.CONSIGNACION ? (
-                              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-right">
-                                  <p className="text-xs text-sky-700">Ganancia cliente</p>
-                                  <p className="mt-1 text-base font-bold text-sky-700">
-                                    ${Number(cotizacion.totalGananciaCliente || 0).toFixed(2)}
-                                  </p>
-                                </div>
-
-                                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-right">
-                                  <p className="text-xs text-rose-700">Ganancia Hilos</p>
-                                  <p className="mt-1 text-base font-bold text-rose-700">
-                                    ${Number(cotizacion.totalGananciaHilos || 0).toFixed(2)}
-                                  </p>
-                                </div>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                            onClick={() => cargarCotizacionDesdeHistorial(cotizacion)}
-                          >
-                            Cargar cotización
-                          </button>
-
-                          <button
-                            type="button"
-                            className="rounded-2xl bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:opacity-60"
-                            onClick={() => eliminarCotizacionHistorial(cotizacion)}
-                            disabled={eliminandoId === cotizacion._id}
-                          >
-                            {eliminandoId === cotizacion._id
-                              ? 'Eliminando...'
-                              : 'Eliminar del historial'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="px-6 py-14 text-center">
-                  <div className="mx-auto max-w-md">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-100 text-2xl">
-                      📚
-                    </div>
-                    <h4 className="mt-4 text-lg font-bold text-gray-900">
-                      No hay cotizaciones en el historial
-                    </h4>
-                    <p className="mt-2 text-sm text-gray-500">
-                      Guarda una cotización para empezar a verla aquí.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {modalFormulario && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 lg:hidden"
@@ -2523,6 +2460,388 @@ export default function Cotizaciones() {
 
             <div className="overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
               {renderFormularioProducto(autocompleteModalRef, true)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {historialModalAbierto && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/50 p-3 backdrop-blur-sm sm:p-6"
+          onClick={() => setHistorialModalAbierto(false)}
+        >
+          <div
+            className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                  <History size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
+                    Historial de cotizaciones
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Busca, filtra y carga cotizaciones guardadas
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setHistorialModalAbierto(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="border-b border-gray-100 bg-gray-50/70 px-4 py-4 sm:px-6">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Buscar
+                  </label>
+                  <div className="relative">
+                    <Search
+                      size={16}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+                    <input
+                      type="text"
+                      className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      placeholder="Folio, cliente, producto..."
+                      value={filtrosHistorial.q}
+                      onChange={(e) =>
+                        setFiltrosHistorial((prev) => ({
+                          ...prev,
+                          q: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Formato
+                  </label>
+                  <select
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                    value={filtrosHistorial.formato}
+                    onChange={(e) =>
+                      setFiltrosHistorial((prev) => ({
+                        ...prev,
+                        formato: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Todos</option>
+                    <option value={FORMATOS.VENTA}>Venta</option>
+                    <option value={FORMATOS.CONSIGNACION}>Consignación</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Estatus
+                  </label>
+                  <select
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                    value={filtrosHistorial.estatus}
+                    onChange={(e) =>
+                      setFiltrosHistorial((prev) => ({
+                        ...prev,
+                        estatus: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Todos</option>
+                    <option value="pendiente">Pendiente</option>
+                    <option value="aprobada">Aprobada</option>
+                    <option value="rechazada">Rechazada</option>
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={() => setFiltrosHistorial(initialFiltrosHistorial)}
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  >
+                    Limpiar filtros
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Desde
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                    value={filtrosHistorial.desde}
+                    onChange={(e) =>
+                      setFiltrosHistorial((prev) => ({
+                        ...prev,
+                        desde: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                    Hasta
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                    value={filtrosHistorial.hasta}
+                    onChange={(e) =>
+                      setFiltrosHistorial((prev) => ({
+                        ...prev,
+                        hasta: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+              {historialError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {historialError}
+                </div>
+              ) : null}
+
+              {historialCargando ? (
+                <div className="flex min-h-[240px] items-center justify-center">
+                  <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm font-medium text-gray-600 shadow-sm">
+                    Cargando historial...
+                  </div>
+                </div>
+              ) : historialCotizaciones.length === 0 ? (
+                <div className="flex min-h-[240px] items-center justify-center">
+                  <div className="max-w-md rounded-3xl border border-dashed border-gray-300 px-6 py-10 text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-2xl">
+                      🗂️
+                    </div>
+                    <h4 className="mt-4 text-lg font-bold text-gray-900">
+                      No se encontraron cotizaciones
+                    </h4>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Ajusta los filtros o guarda una nueva cotización para verla aquí.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {historialCotizaciones.map((cotizacion) => {
+                    const esVenta = cotizacion.formato === FORMATOS.VENTA;
+                    const totalProductosHistorial = Array.isArray(cotizacion.productos)
+                      ? cotizacion.productos.length
+                      : 0;
+
+                    return (
+                      <div
+                        key={cotizacion._id}
+                        className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
+                      >
+                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="inline-flex rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700 ring-1 ring-violet-200">
+                                {cotizacion.folio || 'Sin folio'}
+                              </span>
+
+                              <span
+                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                  esVenta
+                                    ? 'bg-sky-50 text-sky-700 ring-1 ring-sky-200'
+                                    : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'
+                                }`}
+                              >
+                                {esVenta ? 'Venta' : 'Consignación'}
+                              </span>
+
+                              <span
+                                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                                  cotizacion.estatus === 'aprobada'
+                                    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                                    : cotizacion.estatus === 'rechazada'
+                                    ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200'
+                                    : 'bg-gray-100 text-gray-700 ring-1 ring-gray-200'
+                                }`}
+                              >
+                                {cotizacion.estatus || 'pendiente'}
+                              </span>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                                <p className="text-xs text-gray-500">Cliente</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-900">
+                                  {cotizacion.cliente || 'Sin especificar'}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                                <p className="text-xs text-gray-500">Fecha</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-900">
+                                  {formatearFecha(cotizacion.fechaCotizacion)}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                                <p className="text-xs text-gray-500">Vigencia</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-900">
+                                  {cotizacion.vigencia || 'Sin especificar'}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                                <p className="text-xs text-gray-500">Productos</p>
+                                <p className="mt-1 text-sm font-semibold text-gray-900">
+                                  {totalProductosHistorial}
+                                </p>
+                              </div>
+
+                              <div className="rounded-2xl bg-emerald-50 px-4 py-3">
+                                <p className="text-xs text-emerald-700">Total</p>
+                                <p className="mt-1 text-sm font-semibold text-emerald-700">
+                                  {formatearMoneda(cotizacion.total || 0)}
+                                </p>
+                              </div>
+                            </div>
+
+                            {cotizacion.notas ? (
+                              <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                <p className="text-xs font-medium text-gray-500">Notas</p>
+                                <p className="mt-1 text-sm text-gray-700">{cotizacion.notas}</p>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="flex shrink-0 flex-col gap-2 xl:w-[180px]">
+                            <button
+                              type="button"
+                              onClick={() => cargarCotizacionDesdeHistorial(cotizacion)}
+                              className="rounded-2xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800"
+                            >
+                              Cargar
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => abrirModalEliminarCotizacion(cotizacion)}
+                              disabled={eliminandoCotizacionId === cotizacion._id}
+                              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:opacity-60"
+                            >
+                              <Trash2 size={16} />
+                              {eliminandoCotizacionId === cotizacion._id
+                                ? 'Eliminando...'
+                                : 'Eliminar'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cotizacionAEliminar && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/50 p-3 backdrop-blur-sm sm:p-6"
+          onClick={cerrarModalEliminarCotizacion}
+        >
+          <div
+            className="mx-auto mt-10 max-w-lg overflow-hidden rounded-[28px] bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b border-gray-100 px-5 py-5 sm:px-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+                  <Trash2 size={22} />
+                </div>
+
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
+                    Eliminar cotización
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Esta acción no se puede deshacer.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-5 sm:px-6">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Folio</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">
+                      {cotizacionAEliminar.folio || 'Sin folio'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Cliente</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">
+                      {cotizacionAEliminar.cliente || 'Sin especificar'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Fecha</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">
+                      {formatearFecha(cotizacionAEliminar.fechaCotizacion)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Total</p>
+                    <p className="mt-1 text-sm font-semibold text-emerald-700">
+                      {formatearMoneda(cotizacionAEliminar.total || 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="mt-4 text-sm text-gray-600">
+                ¿Seguro que quieres eliminar esta cotización del historial?
+              </p>
+
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={cerrarModalEliminarCotizacion}
+                  disabled={Boolean(eliminandoCotizacionId)}
+                  className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmarEliminarCotizacion}
+                  disabled={Boolean(eliminandoCotizacionId)}
+                  className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60"
+                >
+                  {eliminandoCotizacionId ? 'Eliminando...' : 'Sí, eliminar'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
