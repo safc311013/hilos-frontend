@@ -1818,9 +1818,9 @@ export default function Cotizaciones() {
                     <button
                       type="button"
                       onClick={abrirModalHistorial}
-                      className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white px-5 py-3 text-sm font-semibold text-sky-700 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md"
+                      className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white px-5 py-3 text-sm font-semibold text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-md"
                     >
-                      Consultar historial
+                        Consultar historial
                     </button>
 
                     <button
