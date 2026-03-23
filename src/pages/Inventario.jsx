@@ -1229,22 +1229,22 @@ export default function Inventario() {
           onChange={handlePdfChange}
         />
 
-        <div className="mb-6 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
+        <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-[260px_minmax(0,1fr)] xl:items-start xl:gap-6">
+          <div className="min-w-0">
             <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
               Lista de productos
             </h3>
             <p className="mt-1 text-sm text-gray-500">
               Código, categoría, nombre, costo artesano, precio venta y stock
             </p>
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-3 max-w-[220px] text-xs leading-5 text-gray-400">
               Puedes importar un PDF y exportar el inventario a Excel sin imágenes.
             </p>
           </div>
 
-          <div className="flex w-full flex-col gap-3 xl:w-auto">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <div className="relative w-full lg:w-[320px]">
+          <div className="min-w-0 space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-full sm:w-[260px] lg:w-[280px]">
                 <Search
                   size={18}
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
@@ -1257,7 +1257,7 @@ export default function Inventario() {
                 />
               </div>
 
-              <div className="relative w-full lg:w-[240px]">
+              <div className="relative w-full sm:w-[240px] lg:w-[250px]">
                 <select
                   className="h-11 w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 pr-10 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                   value={categoriaFiltro}
@@ -1279,7 +1279,7 @@ export default function Inventario() {
 
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 shadow-sm transition hover:bg-red-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={abrirSelectorPdf}
                 disabled={importandoPdf || exportandoExcel}
               >
@@ -1296,19 +1296,10 @@ export default function Inventario() {
                 <FileSpreadsheet size={17} />
                 {exportandoExcel ? 'Exportando Excel...' : 'Exportar Excel'}
               </button>
-
-              <button
-                type="button"
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 hover:shadow-md active:scale-[0.99]"
-                onClick={abrirNuevoProducto}
-              >
-                <Plus size={17} />
-                Agregar producto
-              </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] lg:grid-cols-[220px_auto]">
-              <div className="relative">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative w-full sm:w-[250px] lg:w-[260px]">
                 <select
                   className="h-11 w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 pr-10 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
                   value={sortConfig.key}
@@ -1340,7 +1331,7 @@ export default function Inventario() {
                     direction: prev.direction === 'asc' ? 'desc' : 'asc',
                   }))
                 }
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="inline-flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
               >
                 {sortConfig.direction === 'asc' ? (
                   <>
@@ -1354,6 +1345,17 @@ export default function Inventario() {
                   </>
                 )}
               </button>
+
+              <div className="w-full md:ml-auto md:w-auto">
+                <button
+                  type="button"
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 hover:shadow-md active:scale-[0.99] md:w-auto"
+                  onClick={abrirNuevoProducto}
+                >
+                  <Plus size={17} />
+                  Agregar producto
+                </button>
+              </div>
             </div>
           </div>
         </div>
