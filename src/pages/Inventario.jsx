@@ -9,6 +9,7 @@ import usePermisos from '../hooks/usePermisos';
 import { PERMISOS } from '../utils/permisos';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import pdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
+import ExcelJS from 'exceljs';
 import {
   Search,
   Pencil,
@@ -20,6 +21,7 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   FileUp,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -381,6 +383,7 @@ export default function Inventario() {
   const [imagenArchivo, setImagenArchivo] = useState(null);
   const [previewImagen, setPreviewImagen] = useState('');
   const [importandoPdf, setImportandoPdf] = useState(false);
+  const [exportandoExcel, setExportandoExcel] = useState(false);
 
   const pdfInputRef = useRef(null);
 
@@ -974,6 +977,230 @@ export default function Inventario() {
     }
   };
 
+  const obtenerTodosLosProductosParaExportar = async () => {
+    const primerRespuesta = await api.get('/productos/inventario', {
+      params: {
+        page: 1,
+        limit: 500,
+        q: busquedaAplicada,
+        categoria: categoriaFiltro === 'todas' ? '' : categoriaFiltro,
+        stockBajo: soloStockBajo,
+        sortKey: sortConfig.key,
+        direction: sortConfig.direction,
+      },
+    });
+
+    const primerData = primerRespuesta.data || {};
+    let items = Array.isArray(primerData.items) ? [...primerData.items] : [];
+    const totalPages = Number(primerData.totalPages || 1);
+
+    if (totalPages <= 1) {
+      return items;
+    }
+
+    for (let page = 2; page <= totalPages; page += 1) {
+      const { data } = await api.get('/productos/inventario', {
+        params: {
+          page,
+          limit: 500,
+          q: busquedaAplicada,
+          categoria: categoriaFiltro === 'todas' ? '' : categoriaFiltro,
+          stockBajo: soloStockBajo,
+          sortKey: sortConfig.key,
+          direction: sortConfig.direction,
+        },
+      });
+
+      if (Array.isArray(data?.items)) {
+        items = items.concat(data.items);
+      }
+    }
+
+    return items;
+  };
+
+  const exportarInventarioExcel = async () => {
+    try {
+      setExportandoExcel(true);
+      setErrorAccion('');
+      setMensajeAccion('');
+
+      const items = await obtenerTodosLosProductosParaExportar();
+
+      if (!items.length) {
+        setErrorAccion('No hay productos para exportar');
+        return;
+      }
+
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Hilos en Nogada';
+      workbook.created = new Date();
+      workbook.modified = new Date();
+
+      const worksheet = workbook.addWorksheet('Inventario', {
+        views: [{ state: 'frozen', ySplit: 1 }],
+      });
+
+      worksheet.columns = [
+        { header: 'Código', key: 'codigo', width: 16 },
+        { header: 'Categoría', key: 'categoria', width: 22 },
+        { header: 'Nombre', key: 'nombre', width: 38 },
+        { header: 'Costo artesano', key: 'costoArtesano', width: 18 },
+        { header: 'Precio venta', key: 'precio', width: 18 },
+        { header: 'Stock', key: 'stock', width: 12 },
+        { header: 'Estado', key: 'estado', width: 14 },
+      ];
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.height = 22;
+
+      headerRow.eachCell((cell) => {
+        cell.font = {
+          bold: true,
+          color: { argb: 'FFFFFFFF' },
+        };
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: 'center',
+        };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF111827' },
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        };
+      });
+
+      worksheet.autoFilter = {
+        from: 'A1',
+        to: 'G1',
+      };
+
+      items.forEach((producto) => {
+        const stock = Number(producto.stock || 0);
+        const estado = getStockLabel(stock);
+
+        const row = worksheet.addRow({
+          codigo: producto.codigo || '',
+          categoria: producto.categoria || '',
+          nombre: producto.nombre || '',
+          costoArtesano: Number(producto.costoArtesano || 0),
+          precio: Number(producto.precio || 0),
+          stock,
+          estado,
+        });
+
+        row.height = 20;
+
+        let fillColor = 'FFFFFFFF';
+        let fontColor = 'FF111827';
+
+        if (stock <= 1) {
+          fillColor = 'FFFEE2E2';
+          fontColor = 'FF991B1B';
+        } else if (stock <= 3) {
+          fillColor = 'FFFEF3C7';
+          fontColor = 'FF92400E';
+        } else {
+          fillColor = 'FFDCFCE7';
+          fontColor = 'FF166534';
+        }
+
+        row.eachCell((cell, colNumber) => {
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal:
+              colNumber === 4 || colNumber === 5 || colNumber === 6
+                ? 'right'
+                : colNumber === 7
+                ? 'center'
+                : 'left',
+          };
+
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+            left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+            bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+            right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          };
+
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: fillColor },
+          };
+
+          cell.font = {
+            color: { argb: fontColor },
+          };
+        });
+
+        row.getCell(4).numFmt = '$#,##0.00';
+        row.getCell(5).numFmt = '$#,##0.00';
+      });
+
+      const totalRow = worksheet.addRow({
+        codigo: '',
+        categoria: '',
+        nombre: `Total de productos: ${items.length}`,
+        costoArtesano: '',
+        precio: '',
+        stock: items.reduce((acc, item) => acc + Number(item.stock || 0), 0),
+        estado: '',
+      });
+
+      totalRow.height = 22;
+
+      totalRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FF111827' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF3F4F6' },
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+        };
+        cell.alignment = { vertical: 'middle' };
+      });
+
+      const fecha = new Date();
+      const yyyy = fecha.getFullYear();
+      const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+      const dd = String(fecha.getDate()).padStart(2, '0');
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `inventario_${yyyy}-${mm}-${dd}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setMensajeAccion(`Se exportaron ${items.length} producto(s) a Excel`);
+    } catch (error) {
+      setErrorAccion(
+        error.response?.data?.mensaje || 'No se pudo exportar el inventario'
+      );
+    } finally {
+      setExportandoExcel(false);
+    }
+  };
+
   const SortableHeader = ({ label, sortKey, align = 'left' }) => (
     <th className={`py-3 pr-4 ${align === 'right' ? 'text-right' : ''}`}>
       <button
@@ -1011,7 +1238,7 @@ export default function Inventario() {
               Código, categoría, nombre, costo artesano, precio venta y stock
             </p>
             <p className="mt-1 text-xs text-gray-400">
-              También puedes importar un PDF con esas mismas columnas.
+              Puedes importar un PDF y exportar el inventario a Excel sin imágenes.
             </p>
           </div>
 
@@ -1054,10 +1281,20 @@ export default function Inventario() {
                 type="button"
                 className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={abrirSelectorPdf}
-                disabled={importandoPdf}
+                disabled={importandoPdf || exportandoExcel}
               >
                 <FileUp size={17} />
                 {importandoPdf ? 'Importando PDF...' : 'Importar PDF'}
+              </button>
+
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={exportarInventarioExcel}
+                disabled={exportandoExcel || loading || importandoPdf}
+              >
+                <FileSpreadsheet size={17} />
+                {exportandoExcel ? 'Exportando Excel...' : 'Exportar Excel'}
               </button>
 
               <button
