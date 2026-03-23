@@ -7,7 +7,8 @@ import { api } from '../config/api';
 import { useRealtime } from '../context/RealtimeContext';
 import usePermisos from '../hooks/usePermisos';
 import { PERMISOS } from '../utils/permisos';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import {
   Search,
   Pencil,
@@ -21,7 +22,7 @@ import {
   FileUp,
 } from 'lucide-react';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 const PRODUCTOS_POR_PAGINA = 20;
 const PDF_MAX_BYTES = 10 * 1024 * 1024;
@@ -52,6 +53,12 @@ const normalizarTexto = (value = '') =>
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+
+const normalizarEspacios = (value = '') =>
+  String(value).replace(/\s+/g, ' ').trim();
+
+const escapeRegExp = (value = '') =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const normalizarNumero = (value) => {
   const raw = String(value ?? '').trim().replace(/\s/g, '');
@@ -108,11 +115,7 @@ const agruparItemsPorLinea = (items = []) => {
       return {
         y,
         items: itemsOrdenados,
-        text: itemsOrdenados
-          .map((item) => item.str)
-          .join(' ')
-          .replace(/\s+/g, ' ')
-          .trim(),
+        text: normalizarEspacios(itemsOrdenados.map((item) => item.str).join(' ')),
       };
     })
     .filter((linea) => linea.text);
@@ -135,20 +138,18 @@ const construirLayoutDesdeEncabezado = (lineaEncabezado) => {
   if (!lineaEncabezado?.items?.length) return null;
 
   const columnas = [
-    { key: 'imagen', x: obtenerXColumna(lineaEncabezado.items, ['imagen']) },
     { key: 'codigo', x: obtenerXColumna(lineaEncabezado.items, ['codigo']) },
-    {
-      key: 'categoria',
-      x: obtenerXColumna(lineaEncabezado.items, ['categoria']),
-    },
+    { key: 'categoria', x: obtenerXColumna(lineaEncabezado.items, ['categoria']) },
     { key: 'nombre', x: obtenerXColumna(lineaEncabezado.items, ['nombre']) },
     {
       key: 'costoArtesano',
-      x: obtenerXColumna(lineaEncabezado.items, ['costo']),
+      x: obtenerXColumna(lineaEncabezado.items, ['costo', 'artesano']),
     },
-    { key: 'precio', x: obtenerXColumna(lineaEncabezado.items, ['precio']) },
+    {
+      key: 'precio',
+      x: obtenerXColumna(lineaEncabezado.items, ['precio', 'venta']),
+    },
     { key: 'stock', x: obtenerXColumna(lineaEncabezado.items, ['stock']) },
-    { key: 'estado', x: obtenerXColumna(lineaEncabezado.items, ['estado']) },
   ];
 
   const requeridas = [
@@ -166,9 +167,7 @@ const construirLayoutDesdeEncabezado = (lineaEncabezado) => {
 
   if (faltantes) return null;
 
-  const visibles = columnas
-    .filter((col) => col.x != null)
-    .sort((a, b) => a.x - b.x);
+  const visibles = columnas.sort((a, b) => a.x - b.x);
 
   return visibles.map((columna, index) => {
     const prev = visibles[index - 1];
@@ -216,7 +215,100 @@ const normalizarProductoDesdeColumnas = (columnas) => {
   };
 };
 
-const extraerProductosDesdePdf = async (file) => {
+const parsearLineaPorLayout = (linea, layout) => {
+  if (!layout?.length || !linea?.items?.length) return null;
+  if (esEncabezadoInventario(linea.text)) return null;
+
+  const columnas = {};
+
+  linea.items.forEach((item) => {
+    const columna = layout.find(
+      (col) => item.x >= col.minX && item.x < col.maxX
+    );
+
+    if (!columna) return;
+
+    columnas[columna.key] = `${columnas[columna.key] || ''} ${item.str}`.trim();
+  });
+
+  return normalizarProductoDesdeColumnas(columnas);
+};
+
+const resolverCategoriaYNombre = (resto, categoriasConocidas = []) => {
+  const texto = normalizarEspacios(resto);
+  if (!texto) return null;
+
+  const categoriasOrdenadas = [...new Set(categoriasConocidas)]
+    .filter(Boolean)
+    .map((categoria) => String(categoria).trim())
+    .sort((a, b) => normalizarTexto(b).length - normalizarTexto(a).length);
+
+  const textoNormalizado = normalizarTexto(texto);
+
+  for (const categoria of categoriasOrdenadas) {
+    const categoriaNormalizada = normalizarTexto(categoria);
+
+    if (!textoNormalizado.startsWith(categoriaNormalizada)) continue;
+
+    let nombre = texto.slice(categoria.length).trim();
+
+    if (!nombre) {
+      const regex = new RegExp(`^${escapeRegExp(categoria)}\\s*`, 'i');
+      nombre = texto.replace(regex, '').trim();
+    }
+
+    if (!nombre && textoNormalizado !== categoriaNormalizada) continue;
+
+    return {
+      categoria,
+      nombre: nombre || '',
+    };
+  }
+
+  return null;
+};
+
+const parsearLineaPorTexto = (text, categoriasConocidas = []) => {
+  const linea = normalizarEspacios(text);
+  if (!linea || esEncabezadoInventario(linea)) return null;
+
+  const match = linea.match(
+    /^(\S+)\s+(.+?)\s+(-?\d+(?:[.,]\d+)?)\s+(-?\d+(?:[.,]\d+)?)\s+(-?\d+)\s*$/
+  );
+
+  if (!match) return null;
+
+  const [, codigoRaw, restoRaw, costoRaw, precioRaw, stockRaw] = match;
+  const categoriaYNombre = resolverCategoriaYNombre(restoRaw, categoriasConocidas);
+
+  if (!categoriaYNombre || !categoriaYNombre.nombre) return null;
+
+  const producto = {
+    codigo: String(codigoRaw || '').trim().toUpperCase(),
+    categoria: categoriaYNombre.categoria,
+    nombre: categoriaYNombre.nombre,
+    costoArtesano: normalizarNumero(costoRaw),
+    precio: normalizarNumero(precioRaw),
+    stock: Number.parseInt(stockRaw, 10),
+    imagenUrl: '',
+    imagenPublicId: '',
+  };
+
+  if (
+    !producto.codigo ||
+    !producto.categoria ||
+    !producto.nombre ||
+    Number.isNaN(producto.costoArtesano) ||
+    Number.isNaN(producto.precio) ||
+    Number.isNaN(producto.stock)
+  ) {
+    return null;
+  }
+
+  return producto;
+};
+
+const extraerProductosDesdePdf = async (file, categoriasConocidas = []) => {
   const buffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
 
@@ -235,34 +327,26 @@ const extraerProductosDesdePdf = async (file) => {
       }
     }
 
-    if (!layout) continue;
-
     lineas.forEach((linea) => {
-      if (esEncabezadoInventario(linea.text)) return;
+      let producto = null;
 
-      const columnas = {};
+      if (layout) {
+        producto = parsearLineaPorLayout(linea, layout);
+      }
 
-      linea.items.forEach((item) => {
-        const columna = layout.find(
-          (col) => item.x >= col.minX && item.x < col.maxX
-        );
-        if (!columna) return;
+      if (!producto) {
+        producto = parsearLineaPorTexto(linea.text, categoriasConocidas);
+      }
 
-        columnas[columna.key] = `${columnas[columna.key] || ''} ${item.str}`.trim();
-      });
-
-      const producto = normalizarProductoDesdeColumnas(columnas);
       if (producto) {
         productos.push(producto);
       }
     });
   }
 
-  const unicosPorCodigo = Array.from(
+  return Array.from(
     new Map(productos.map((producto) => [producto.codigo, producto])).values()
   );
-
-  return unicosPorCodigo;
 };
 
 export default function Inventario() {
@@ -458,22 +542,12 @@ export default function Inventario() {
     const handleKeyDown = (event) => {
       if (event.key !== 'Escape') return;
       if (!mostrarFormulario || importandoPdf) return;
-
-      if (previewImagen?.startsWith('blob:')) {
-        URL.revokeObjectURL(previewImagen);
-      }
-
-      setForm(initialForm);
-      setEditandoId(null);
-      setErrorFormulario('');
-      setImagenArchivo(null);
-      setPreviewImagen('');
-      setMostrarFormulario(false);
+      cerrarFormulario();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mostrarFormulario, importandoPdf, previewImagen]);
+  }, [mostrarFormulario, importandoPdf]);
 
   useEffect(() => {
     return () => {
@@ -831,11 +905,14 @@ export default function Inventario() {
 
       setImportandoPdf(true);
 
-      const productosExtraidos = await extraerProductosDesdePdf(file);
+      const productosExtraidos = await extraerProductosDesdePdf(
+        file,
+        categoriasDisponibles
+      );
 
       if (!productosExtraidos.length) {
         throw new Error(
-          'No se encontraron filas válidas en el PDF. Asegúrate de que tenga las columnas: Código, Categoría, Nombre, Costo artesano, Precio venta y Stock.'
+          'No se encontraron filas válidas en el PDF. Verifica que las columnas estén en este orden: Código, Categoría, Nombre, Costo artesano, Precio venta y Stock.'
         );
       }
 
@@ -844,7 +921,11 @@ export default function Inventario() {
 
       for (const producto of productosExtraidos) {
         try {
-          await api.post('/productos', producto);
+          await api.post('/productos', {
+            ...producto,
+            imagenUrl: '',
+            imagenPublicId: '',
+          });
           creados += 1;
         } catch (error) {
           errores.push(
@@ -876,8 +957,7 @@ export default function Inventario() {
           `Se importaron ${creados} producto(s). ${errores.length} registro(s) no se pudieron cargar`
         );
         setErrorAccion(
-          errores.slice(0, 3).join(' | ') +
-            (errores.length > 3 ? ' | ...' : '')
+          errores.slice(0, 3).join(' | ') + (errores.length > 3 ? ' | ...' : '')
         );
       } else {
         setErrorAccion(
