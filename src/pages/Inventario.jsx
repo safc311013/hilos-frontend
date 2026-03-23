@@ -24,7 +24,7 @@ import {
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
-const PRODUCTOS_POR_PAGINA = 20;
+const PRODUCTOS_POR_PAGINA = 40;
 const PDF_MAX_BYTES = 10 * 1024 * 1024;
 
 const initialForm = {
