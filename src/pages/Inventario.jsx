@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
@@ -7,6 +7,7 @@ import { api } from '../config/api';
 import { useRealtime } from '../context/RealtimeContext';
 import usePermisos from '../hooks/usePermisos';
 import { PERMISOS } from '../utils/permisos';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
 import {
   Search,
   Pencil,
@@ -17,9 +18,13 @@ import {
   ChevronDown,
   AlertTriangle,
   Image as ImageIcon,
+  FileUp,
 } from 'lucide-react';
 
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
 const PRODUCTOS_POR_PAGINA = 20;
+const PDF_MAX_BYTES = 10 * 1024 * 1024;
 
 const initialForm = {
   codigo: '',
@@ -41,6 +46,225 @@ const sortOptions = [
   { value: 'stock', label: 'Stock' },
 ];
 
+const normalizarTexto = (value = '') =>
+  String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const normalizarNumero = (value) => {
+  const raw = String(value ?? '').trim().replace(/\s/g, '');
+
+  if (!raw) return NaN;
+
+  if (raw.includes(',') && raw.includes('.')) {
+    if (raw.lastIndexOf(',') > raw.lastIndexOf('.')) {
+      return Number(raw.replace(/\./g, '').replace(',', '.'));
+    }
+    return Number(raw.replace(/,/g, ''));
+  }
+
+  if (raw.includes(',') && !raw.includes('.')) {
+    return Number(raw.replace(',', '.'));
+  }
+
+  return Number(raw);
+};
+
+const esEncabezadoInventario = (text = '') => {
+  const t = normalizarTexto(text);
+  return (
+    t.includes('codigo') &&
+    t.includes('categoria') &&
+    t.includes('nombre') &&
+    t.includes('costo') &&
+    t.includes('precio') &&
+    t.includes('stock')
+  );
+};
+
+const agruparItemsPorLinea = (items = []) => {
+  const lineas = new Map();
+
+  items.forEach((item) => {
+    const str = String(item?.str ?? '').trim();
+    if (!str) return;
+
+    const y = Math.round(item.transform?.[5] ?? 0);
+    const x = item.transform?.[4] ?? 0;
+
+    if (!lineas.has(y)) {
+      lineas.set(y, []);
+    }
+
+    lineas.get(y).push({ str, x });
+  });
+
+  return [...lineas.entries()]
+    .sort((a, b) => b[0] - a[0])
+    .map(([y, fila]) => {
+      const itemsOrdenados = [...fila].sort((a, b) => a.x - b.x);
+      return {
+        y,
+        items: itemsOrdenados,
+        text: itemsOrdenados
+          .map((item) => item.str)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim(),
+      };
+    })
+    .filter((linea) => linea.text);
+};
+
+const obtenerXColumna = (items, aliases) => {
+  const aliasNormalizados = aliases.map((a) => normalizarTexto(a));
+
+  const encontrado = items.find((item) => {
+    const texto = normalizarTexto(item.str);
+    return aliasNormalizados.some(
+      (alias) => texto === alias || texto.includes(alias)
+    );
+  });
+
+  return encontrado ? encontrado.x : null;
+};
+
+const construirLayoutDesdeEncabezado = (lineaEncabezado) => {
+  if (!lineaEncabezado?.items?.length) return null;
+
+  const columnas = [
+    { key: 'imagen', x: obtenerXColumna(lineaEncabezado.items, ['imagen']) },
+    { key: 'codigo', x: obtenerXColumna(lineaEncabezado.items, ['codigo']) },
+    {
+      key: 'categoria',
+      x: obtenerXColumna(lineaEncabezado.items, ['categoria']),
+    },
+    { key: 'nombre', x: obtenerXColumna(lineaEncabezado.items, ['nombre']) },
+    {
+      key: 'costoArtesano',
+      x: obtenerXColumna(lineaEncabezado.items, ['costo']),
+    },
+    { key: 'precio', x: obtenerXColumna(lineaEncabezado.items, ['precio']) },
+    { key: 'stock', x: obtenerXColumna(lineaEncabezado.items, ['stock']) },
+    { key: 'estado', x: obtenerXColumna(lineaEncabezado.items, ['estado']) },
+  ];
+
+  const requeridas = [
+    'codigo',
+    'categoria',
+    'nombre',
+    'costoArtesano',
+    'precio',
+    'stock',
+  ];
+
+  const faltantes = requeridas.some(
+    (key) => columnas.find((col) => col.key === key)?.x == null
+  );
+
+  if (faltantes) return null;
+
+  const visibles = columnas
+    .filter((col) => col.x != null)
+    .sort((a, b) => a.x - b.x);
+
+  return visibles.map((columna, index) => {
+    const prev = visibles[index - 1];
+    const next = visibles[index + 1];
+
+    return {
+      key: columna.key,
+      minX: prev ? (prev.x + columna.x) / 2 : -Infinity,
+      maxX: next ? (columna.x + next.x) / 2 : Infinity,
+    };
+  });
+};
+
+const normalizarProductoDesdeColumnas = (columnas) => {
+  const codigo = String(columnas.codigo || '').trim().toUpperCase();
+  const categoria = String(columnas.categoria || '').trim();
+  const nombre = String(columnas.nombre || '').trim();
+  const costoArtesano = normalizarNumero(columnas.costoArtesano);
+  const precio = normalizarNumero(columnas.precio);
+  const stock = Number.parseInt(
+    String(columnas.stock || '').replace(/[^\d-]/g, ''),
+    10
+  );
+
+  if (
+    !codigo ||
+    !categoria ||
+    !nombre ||
+    Number.isNaN(costoArtesano) ||
+    Number.isNaN(precio) ||
+    Number.isNaN(stock)
+  ) {
+    return null;
+  }
+
+  return {
+    codigo,
+    categoria,
+    nombre,
+    costoArtesano,
+    precio,
+    stock,
+    imagenUrl: '',
+    imagenPublicId: '',
+  };
+};
+
+const extraerProductosDesdePdf = async (file) => {
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+
+  let layout = null;
+  const productos = [];
+
+  for (let pagina = 1; pagina <= pdf.numPages; pagina += 1) {
+    const page = await pdf.getPage(pagina);
+    const textContent = await page.getTextContent();
+    const lineas = agruparItemsPorLinea(textContent.items || []);
+
+    if (!layout) {
+      const encabezado = lineas.find((linea) => esEncabezadoInventario(linea.text));
+      if (encabezado) {
+        layout = construirLayoutDesdeEncabezado(encabezado);
+      }
+    }
+
+    if (!layout) continue;
+
+    lineas.forEach((linea) => {
+      if (esEncabezadoInventario(linea.text)) return;
+
+      const columnas = {};
+
+      linea.items.forEach((item) => {
+        const columna = layout.find(
+          (col) => item.x >= col.minX && item.x < col.maxX
+        );
+        if (!columna) return;
+
+        columnas[columna.key] = `${columnas[columna.key] || ''} ${item.str}`.trim();
+      });
+
+      const producto = normalizarProductoDesdeColumnas(columnas);
+      if (producto) {
+        productos.push(producto);
+      }
+    });
+  }
+
+  const unicosPorCodigo = Array.from(
+    new Map(productos.map((producto) => [producto.codigo, producto])).values()
+  );
+
+  return unicosPorCodigo;
+};
+
 export default function Inventario() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,6 +282,7 @@ export default function Inventario() {
   const [errorFormulario, setErrorFormulario] = useState('');
   const [errorCarga, setErrorCarga] = useState('');
   const [errorAccion, setErrorAccion] = useState('');
+  const [mensajeAccion, setMensajeAccion] = useState('');
   const [categoriaFiltro, setCategoriaFiltro] = useState('todas');
   const [soloStockBajo, setSoloStockBajo] = useState(false);
   const [sortConfig, setSortConfig] = useState({
@@ -71,6 +296,9 @@ export default function Inventario() {
   const [totalProductos, setTotalProductos] = useState(0);
   const [imagenArchivo, setImagenArchivo] = useState(null);
   const [previewImagen, setPreviewImagen] = useState('');
+  const [importandoPdf, setImportandoPdf] = useState(false);
+
+  const pdfInputRef = useRef(null);
 
   const cargarCategorias = async () => {
     try {
@@ -227,6 +455,27 @@ export default function Inventario() {
   }, [productoAEliminar, eliminandoProducto]);
 
   useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      if (!mostrarFormulario || importandoPdf) return;
+
+      if (previewImagen?.startsWith('blob:')) {
+        URL.revokeObjectURL(previewImagen);
+      }
+
+      setForm(initialForm);
+      setEditandoId(null);
+      setErrorFormulario('');
+      setImagenArchivo(null);
+      setPreviewImagen('');
+      setMostrarFormulario(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mostrarFormulario, importandoPdf, previewImagen]);
+
+  useEffect(() => {
     return () => {
       if (previewImagen?.startsWith('blob:')) {
         URL.revokeObjectURL(previewImagen);
@@ -339,6 +588,7 @@ export default function Inventario() {
   const abrirNuevoProducto = () => {
     resetForm();
     setErrorAccion('');
+    setMensajeAccion('');
     setMostrarFormulario(true);
   };
 
@@ -356,6 +606,7 @@ export default function Inventario() {
     e.preventDefault();
     setErrorFormulario('');
     setErrorAccion('');
+    setMensajeAccion('');
 
     try {
       const imagenSubida = await subirImagenProducto();
@@ -373,8 +624,10 @@ export default function Inventario() {
 
       if (editandoId) {
         await api.put(`/productos/${editandoId}`, payload);
+        setMensajeAccion('Producto actualizado correctamente');
       } else {
         await api.post('/productos', payload);
+        setMensajeAccion('Producto creado correctamente');
       }
 
       resetForm();
@@ -418,11 +671,13 @@ export default function Inventario() {
     setImagenArchivo(null);
     setErrorFormulario('');
     setErrorAccion('');
+    setMensajeAccion('');
     setMostrarFormulario(true);
   };
 
   const abrirModalEliminar = (producto) => {
     setErrorAccion('');
+    setMensajeAccion('');
     setProductoAEliminar(producto);
   };
 
@@ -437,12 +692,14 @@ export default function Inventario() {
     try {
       setEliminandoProducto(true);
       setErrorAccion('');
+      setMensajeAccion('');
       await api.delete(`/productos/${productoAEliminar._id}`);
 
       const paginaObjetivo =
         productos.length === 1 && paginaActual > 1 ? paginaActual - 1 : paginaActual;
 
       setProductoAEliminar(null);
+      setMensajeAccion('Producto eliminado correctamente');
 
       await Promise.all([
         cargarProductos({
@@ -547,6 +804,96 @@ export default function Inventario() {
     );
   };
 
+  const abrirSelectorPdf = () => {
+    setErrorAccion('');
+    setMensajeAccion('');
+    pdfInputRef.current?.click();
+  };
+
+  const handlePdfChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setErrorAccion('');
+    setMensajeAccion('');
+
+    try {
+      const esPdf =
+        file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+      if (!esPdf) {
+        throw new Error('Solo se permiten archivos PDF');
+      }
+
+      if (file.size > PDF_MAX_BYTES) {
+        throw new Error('El PDF no debe superar los 10 MB');
+      }
+
+      setImportandoPdf(true);
+
+      const productosExtraidos = await extraerProductosDesdePdf(file);
+
+      if (!productosExtraidos.length) {
+        throw new Error(
+          'No se encontraron filas válidas en el PDF. Asegúrate de que tenga las columnas: Código, Categoría, Nombre, Costo artesano, Precio venta y Stock.'
+        );
+      }
+
+      let creados = 0;
+      const errores = [];
+
+      for (const producto of productosExtraidos) {
+        try {
+          await api.post('/productos', producto);
+          creados += 1;
+        } catch (error) {
+          errores.push(
+            `${producto.codigo}: ${
+              error.response?.data?.mensaje || 'No se pudo importar'
+            }`
+          );
+        }
+      }
+
+      if (creados > 0) {
+        await Promise.all([
+          cargarProductos({
+            page: paginaActual,
+            q: busquedaAplicada,
+            categoria: categoriaFiltro,
+            stockBajo: soloStockBajo,
+            sortKey: sortConfig.key,
+            direction: sortConfig.direction,
+          }),
+          cargarCategorias(),
+        ]);
+      }
+
+      if (creados > 0 && errores.length === 0) {
+        setMensajeAccion(`Se importaron ${creados} producto(s) desde el PDF`);
+      } else if (creados > 0 && errores.length > 0) {
+        setMensajeAccion(
+          `Se importaron ${creados} producto(s). ${errores.length} registro(s) no se pudieron cargar`
+        );
+        setErrorAccion(
+          errores.slice(0, 3).join(' | ') +
+            (errores.length > 3 ? ' | ...' : '')
+        );
+      } else {
+        setErrorAccion(
+          errores[0] || 'No se pudo importar ningún producto desde el PDF'
+        );
+      }
+    } catch (error) {
+      setErrorAccion(error.message || 'No se pudo importar el PDF');
+    } finally {
+      setImportandoPdf(false);
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
   const SortableHeader = ({ label, sortKey, align = 'left' }) => (
     <th className={`py-3 pr-4 ${align === 'right' ? 'text-right' : ''}`}>
       <button
@@ -567,6 +914,14 @@ export default function Inventario() {
       <Header title="Inventario" />
 
       <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 lg:p-7">
+        <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={handlePdfChange}
+        />
+
         <div className="mb-6 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
@@ -574,6 +929,9 @@ export default function Inventario() {
             </h3>
             <p className="mt-1 text-sm text-gray-500">
               Código, categoría, nombre, costo artesano, precio venta y stock
+            </p>
+            <p className="mt-1 text-xs text-gray-400">
+              También puedes importar un PDF con esas mismas columnas.
             </p>
           </div>
 
@@ -611,6 +969,16 @@ export default function Inventario() {
                   className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
                 />
               </div>
+
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={abrirSelectorPdf}
+                disabled={importandoPdf}
+              >
+                <FileUp size={17} />
+                {importandoPdf ? 'Importando PDF...' : 'Importar PDF'}
+              </button>
 
               <button
                 type="button"
@@ -707,6 +1075,12 @@ export default function Inventario() {
           </div>
         ) : null}
 
+        {mensajeAccion ? (
+          <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {mensajeAccion}
+          </div>
+        ) : null}
+
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-gray-500">
             {totalProductos > 0 ? (
@@ -743,7 +1117,7 @@ export default function Inventario() {
               No se encontraron productos
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              Agrega un producto nuevo o cambia la búsqueda
+              Agrega un producto nuevo, importa un PDF o cambia la búsqueda
             </p>
           </div>
         ) : (
@@ -998,6 +1372,9 @@ export default function Inventario() {
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
                   Captura la información del producto para inventario
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Presiona Esc para cerrar este modal.
                 </p>
               </div>
 
