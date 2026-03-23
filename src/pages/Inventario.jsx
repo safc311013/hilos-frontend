@@ -22,6 +22,9 @@ import {
   Image as ImageIcon,
   FileUp,
   FileSpreadsheet,
+  Eye,
+  CheckCircle2,
+  RefreshCcw,
 } from 'lucide-react';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -38,6 +41,15 @@ const initialForm = {
   stock: '',
   imagenUrl: '',
   imagenPublicId: '',
+};
+
+const initialResumenImportacion = {
+  archivo: '',
+  totalDetectados: 0,
+  nuevos: 0,
+  actualizar: 0,
+  errores: 0,
+  detalles: [],
 };
 
 const sortOptions = [
@@ -79,6 +91,33 @@ const normalizarNumero = (value) => {
   }
 
   return Number(raw);
+};
+
+const consolidarProductosPorCodigo = (productos = []) => {
+  const mapa = new Map();
+
+  productos.forEach((producto) => {
+    const codigo = String(producto.codigo || '').trim().toUpperCase();
+    if (!codigo) return;
+
+    if (!mapa.has(codigo)) {
+      mapa.set(codigo, {
+        ...producto,
+        codigo,
+        stock: Number(producto.stock || 0),
+      });
+      return;
+    }
+
+    const actual = mapa.get(codigo);
+
+    mapa.set(codigo, {
+      ...actual,
+      stock: Number(actual.stock || 0) + Number(producto.stock || 0),
+    });
+  });
+
+  return Array.from(mapa.values());
 };
 
 const esEncabezadoInventario = (text = '') => {
@@ -346,9 +385,7 @@ const extraerProductosDesdePdf = async (file, categoriasConocidas = []) => {
     });
   }
 
-  return Array.from(
-    new Map(productos.map((producto) => [producto.codigo, producto])).values()
-  );
+  return consolidarProductosPorCodigo(productos);
 };
 
 export default function Inventario() {
@@ -384,6 +421,13 @@ export default function Inventario() {
   const [previewImagen, setPreviewImagen] = useState('');
   const [importandoPdf, setImportandoPdf] = useState(false);
   const [exportandoExcel, setExportandoExcel] = useState(false);
+  const [mostrarPreviewImportacion, setMostrarPreviewImportacion] = useState(false);
+  const [resumenImportacion, setResumenImportacion] = useState(
+    initialResumenImportacion
+  );
+  const [productosPendientesImportacion, setProductosPendientesImportacion] = useState(
+    []
+  );
 
   const pdfInputRef = useRef(null);
 
@@ -553,6 +597,17 @@ export default function Inventario() {
   }, [mostrarFormulario, importandoPdf]);
 
   useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      if (!mostrarPreviewImportacion || importandoPdf) return;
+      cerrarPreviewImportacion();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mostrarPreviewImportacion, importandoPdf]);
+
+  useEffect(() => {
     return () => {
       if (previewImagen?.startsWith('blob:')) {
         URL.revokeObjectURL(previewImagen);
@@ -592,6 +647,147 @@ export default function Inventario() {
       </Layout>
     );
   }
+
+  const formatearMoneda = (valor) => `$${Number(valor || 0).toFixed(2)}`;
+
+  const buscarProductoExistentePorCodigo = async (codigo) => {
+    const codigoNormalizado = String(codigo || '').trim().toUpperCase();
+    if (!codigoNormalizado) return null;
+
+    const { data } = await api.get('/productos/inventario', {
+      params: {
+        page: 1,
+        limit: 50,
+        q: codigoNormalizado,
+        categoria: '',
+        stockBajo: false,
+        sortKey: 'codigo',
+        direction: 'asc',
+      },
+    });
+
+    const items = Array.isArray(data?.items) ? data.items : [];
+
+    return (
+      items.find(
+        (item) =>
+          String(item.codigo || '').trim().toUpperCase() === codigoNormalizado
+      ) || null
+    );
+  };
+
+  const analizarProductosImportacion = async (productosAnalizar = []) => {
+    const detalles = await Promise.all(
+      productosAnalizar.map(async (producto) => {
+        try {
+          const existente = await buscarProductoExistentePorCodigo(producto.codigo);
+
+          if (existente?._id) {
+            const stockActual = Number(existente.stock || 0);
+            const stockImportado = Number(producto.stock || 0);
+
+            return {
+              tipo: 'actualizar',
+              codigo: producto.codigo,
+              producto,
+              existente,
+              stockActual,
+              stockImportado,
+              stockFinal: stockActual + stockImportado,
+            };
+          }
+
+          return {
+            tipo: 'crear',
+            codigo: producto.codigo,
+            producto,
+            stockImportado: Number(producto.stock || 0),
+          };
+        } catch (error) {
+          return {
+            tipo: 'error',
+            codigo: producto.codigo,
+            producto,
+            mensaje:
+              error.response?.data?.mensaje ||
+              error.message ||
+              'No se pudo analizar el producto',
+          };
+        }
+      })
+    );
+
+    const orden = {
+      actualizar: 0,
+      crear: 1,
+      error: 2,
+    };
+
+    const detallesOrdenados = [...detalles].sort((a, b) => {
+      if (orden[a.tipo] !== orden[b.tipo]) {
+        return orden[a.tipo] - orden[b.tipo];
+      }
+
+      return String(a.codigo || '').localeCompare(String(b.codigo || ''));
+    });
+
+    return {
+      totalDetectados: detallesOrdenados.length,
+      nuevos: detallesOrdenados.filter((item) => item.tipo === 'crear').length,
+      actualizar: detallesOrdenados.filter((item) => item.tipo === 'actualizar')
+        .length,
+      errores: detallesOrdenados.filter((item) => item.tipo === 'error').length,
+      detalles: detallesOrdenados,
+    };
+  };
+
+  const importarProductoDesdePdf = async (detalle) => {
+    const producto = detalle?.producto;
+
+    if (!producto?.codigo) {
+      throw new Error('Producto inválido para importar');
+    }
+
+    if (detalle?.tipo === 'actualizar' && detalle?.existente?._id) {
+      const stockActual = Number(detalle.existente.stock || 0);
+      const stockImportado = Number(producto.stock || 0);
+
+      const payload = {
+        codigo: String(detalle.existente.codigo || producto.codigo || '')
+          .trim()
+          .toUpperCase(),
+        categoria: String(
+          detalle.existente.categoria || producto.categoria || ''
+        ).trim(),
+        nombre: String(detalle.existente.nombre || producto.nombre || '').trim(),
+        costoArtesano: Number(
+          detalle.existente.costoArtesano ?? producto.costoArtesano ?? 0
+        ),
+        precio: Number(detalle.existente.precio ?? producto.precio ?? 0),
+        stock: stockActual + stockImportado,
+        imagenUrl: detalle.existente.imagenUrl || '',
+        imagenPublicId: detalle.existente.imagenPublicId || '',
+      };
+
+      await api.put(`/productos/${detalle.existente._id}`, payload);
+
+      return {
+        tipo: 'actualizado',
+        codigo: payload.codigo,
+      };
+    }
+
+    await api.post('/productos', {
+      ...producto,
+      imagenUrl: '',
+      imagenPublicId: '',
+    });
+
+    return {
+      tipo: 'creado',
+      codigo: producto.codigo,
+    };
+  };
 
   const handleChange = (e) => {
     const value =
@@ -660,6 +856,17 @@ export default function Inventario() {
   const cerrarFormulario = () => {
     resetForm();
     setMostrarFormulario(false);
+  };
+
+  const limpiarPreviewImportacion = () => {
+    setMostrarPreviewImportacion(false);
+    setResumenImportacion(initialResumenImportacion);
+    setProductosPendientesImportacion([]);
+  };
+
+  const cerrarPreviewImportacion = () => {
+    if (importandoPdf) return;
+    limpiarPreviewImportacion();
   };
 
   const abrirNuevoProducto = () => {
@@ -861,6 +1068,18 @@ export default function Inventario() {
     return 'Disponible';
   };
 
+  const getTipoImportacionStyle = (tipo) => {
+    if (tipo === 'actualizar') return 'bg-amber-100 text-amber-700';
+    if (tipo === 'crear') return 'bg-emerald-100 text-emerald-700';
+    return 'bg-red-100 text-red-700';
+  };
+
+  const getTipoImportacionLabel = (tipo) => {
+    if (tipo === 'actualizar') return 'Sumar stock';
+    if (tipo === 'crear') return 'Nuevo';
+    return 'Error';
+  };
+
   const renderImagenProducto = (producto, className = 'h-14 w-14') => {
     if (producto?.imagenUrl) {
       return (
@@ -919,27 +1138,65 @@ export default function Inventario() {
         );
       }
 
+      const analisis = await analizarProductosImportacion(productosExtraidos);
+
+      const pendientes = analisis.detalles.filter(
+        (detalle) => detalle.tipo === 'crear' || detalle.tipo === 'actualizar'
+      );
+
+      if (!pendientes.length) {
+        throw new Error(
+          'No hay productos válidos para importar. Revisa el PDF e inténtalo de nuevo.'
+        );
+      }
+
+      setProductosPendientesImportacion(pendientes);
+      setResumenImportacion({
+        archivo: file.name,
+        ...analisis,
+      });
+      setMostrarPreviewImportacion(true);
+    } catch (error) {
+      setErrorAccion(error.message || 'No se pudo analizar el PDF');
+    } finally {
+      setImportandoPdf(false);
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
+  const confirmarImportacionPdf = async () => {
+    if (!productosPendientesImportacion.length) return;
+
+    try {
+      setImportandoPdf(true);
+      setErrorAccion('');
+      setMensajeAccion('');
+
       let creados = 0;
+      let actualizados = 0;
       const errores = [];
 
-      for (const producto of productosExtraidos) {
+      for (const detalle of productosPendientesImportacion) {
         try {
-          await api.post('/productos', {
-            ...producto,
-            imagenUrl: '',
-            imagenPublicId: '',
-          });
-          creados += 1;
+          const resultado = await importarProductoDesdePdf(detalle);
+
+          if (resultado.tipo === 'creado') {
+            creados += 1;
+          } else if (resultado.tipo === 'actualizado') {
+            actualizados += 1;
+          }
         } catch (error) {
           errores.push(
-            `${producto.codigo}: ${
+            `${detalle.codigo}: ${
               error.response?.data?.mensaje || 'No se pudo importar'
             }`
           );
         }
       }
 
-      if (creados > 0) {
+      if (creados > 0 || actualizados > 0) {
         await Promise.all([
           cargarProductos({
             page: paginaActual,
@@ -953,11 +1210,15 @@ export default function Inventario() {
         ]);
       }
 
-      if (creados > 0 && errores.length === 0) {
-        setMensajeAccion(`Se importaron ${creados} producto(s) desde el PDF`);
-      } else if (creados > 0 && errores.length > 0) {
+      limpiarPreviewImportacion();
+
+      if (errores.length === 0) {
         setMensajeAccion(
-          `Se importaron ${creados} producto(s). ${errores.length} registro(s) no se pudieron cargar`
+          `Importación completada. Nuevos: ${creados}. Stock actualizado: ${actualizados}.`
+        );
+      } else if (creados > 0 || actualizados > 0) {
+        setMensajeAccion(
+          `Importación parcial. Nuevos: ${creados}. Stock actualizado: ${actualizados}. Errores: ${errores.length}.`
         );
         setErrorAccion(
           errores.slice(0, 3).join(' | ') + (errores.length > 3 ? ' | ...' : '')
@@ -968,12 +1229,9 @@ export default function Inventario() {
         );
       }
     } catch (error) {
-      setErrorAccion(error.message || 'No se pudo importar el PDF');
+      setErrorAccion(error.message || 'No se pudo completar la importación');
     } finally {
       setImportandoPdf(false);
-      if (e.target) {
-        e.target.value = '';
-      }
     }
   };
 
@@ -1284,7 +1542,7 @@ export default function Inventario() {
                 disabled={importandoPdf || exportandoExcel}
               >
                 <FileUp size={17} />
-                {importandoPdf ? 'Importando PDF...' : 'Importar PDF'}
+                {importandoPdf ? 'Analizando PDF...' : 'Importar PDF'}
               </button>
 
               <button
@@ -1495,14 +1753,14 @@ export default function Inventario() {
                       <div className="rounded-2xl bg-gray-50 px-3 py-3">
                         <p className="text-[11px] text-gray-500">Costo artesano</p>
                         <p className="mt-1 text-sm font-semibold text-gray-800">
-                          ${Number(producto.costoArtesano || 0).toFixed(2)}
+                          {formatearMoneda(producto.costoArtesano)}
                         </p>
                       </div>
 
                       <div className="rounded-2xl bg-gray-50 px-3 py-3">
                         <p className="text-[11px] text-gray-500">Precio venta</p>
                         <p className="mt-1 text-sm font-semibold text-gray-800">
-                          ${Number(producto.precio || 0).toFixed(2)}
+                          {formatearMoneda(producto.precio)}
                         </p>
                       </div>
 
@@ -1588,11 +1846,11 @@ export default function Inventario() {
                         </td>
 
                         <td className="py-4 pr-4 text-gray-700">
-                          ${Number(producto.costoArtesano || 0).toFixed(2)}
+                          {formatearMoneda(producto.costoArtesano)}
                         </td>
 
                         <td className="py-4 pr-4 font-medium text-gray-800">
-                          ${Number(producto.precio || 0).toFixed(2)}
+                          {formatearMoneda(producto.precio)}
                         </td>
 
                         <td className="py-4 pr-4 font-medium">{producto.stock}</td>
@@ -1823,7 +2081,7 @@ export default function Inventario() {
                 </div>
 
                 <div className="flex items-end">
-                  {(previewImagen || form.imagenUrl) ? (
+                  {previewImagen || form.imagenUrl ? (
                     <button
                       type="button"
                       className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
@@ -1835,7 +2093,7 @@ export default function Inventario() {
                 </div>
               </div>
 
-              {(previewImagen || form.imagenUrl) ? (
+              {previewImagen || form.imagenUrl ? (
                 <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                   <p className="mb-3 text-sm font-medium text-gray-700">Vista previa</p>
                   <img
@@ -1864,6 +2122,217 @@ export default function Inventario() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {mostrarPreviewImportacion ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarPreviewImportacion} />
+
+          <div className="relative max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl">
+            <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                    <Eye size={14} />
+                    Vista previa de importación
+                  </div>
+
+                  <h3 className="mt-3 text-xl font-bold text-gray-900 sm:text-2xl">
+                    Revisa el PDF antes de importar
+                  </h3>
+
+                  <p className="mt-1 text-sm text-gray-500">
+                    Archivo: <span className="font-medium">{resumenImportacion.archivo}</span>
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-400">
+                    Los productos existentes no se duplicarán: solo se sumará el stock.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={cerrarPreviewImportacion}
+                  disabled={importandoPdf}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                    Detectados
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-slate-800">
+                    {resumenImportacion.totalDetectados}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-emerald-600">
+                    Nuevos
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-emerald-700">
+                    {resumenImportacion.nuevos}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-amber-600">
+                    Actualizar stock
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-amber-700">
+                    {resumenImportacion.actualizar}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-red-600">
+                    Errores
+                  </p>
+                  <p className="mt-2 text-2xl font-bold text-red-700">
+                    {resumenImportacion.errores}
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-gray-200">
+                <div className="max-h-[48vh] overflow-auto">
+                  <table className="min-w-[980px] w-full text-left">
+                    <thead className="sticky top-0 z-10 bg-white shadow-sm">
+                      <tr className="border-b border-gray-200 text-sm text-gray-500">
+                        <th className="px-4 py-3">Acción</th>
+                        <th className="px-4 py-3">Código</th>
+                        <th className="px-4 py-3">Categoría</th>
+                        <th className="px-4 py-3">Nombre</th>
+                        <th className="px-4 py-3 text-right">Costo</th>
+                        <th className="px-4 py-3 text-right">Precio</th>
+                        <th className="px-4 py-3 text-right">Stock PDF</th>
+                        <th className="px-4 py-3 text-right">Stock actual</th>
+                        <th className="px-4 py-3 text-right">Stock final</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {resumenImportacion.detalles.map((detalle) => {
+                        const producto = detalle.producto || {};
+                        const esError = detalle.tipo === 'error';
+
+                        return (
+                          <tr
+                            key={`${detalle.tipo}-${detalle.codigo}`}
+                            className={`border-b border-gray-100 ${
+                              detalle.tipo === 'actualizar'
+                                ? 'bg-amber-50/50'
+                                : detalle.tipo === 'crear'
+                                ? 'bg-emerald-50/40'
+                                : 'bg-red-50/50'
+                            }`}
+                          >
+                            <td className="px-4 py-4">
+                              <span
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getTipoImportacionStyle(
+                                  detalle.tipo
+                                )}`}
+                              >
+                                {getTipoImportacionLabel(detalle.tipo)}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-4 font-semibold text-gray-800">
+                              {detalle.codigo}
+                            </td>
+
+                            <td className="px-4 py-4 text-gray-700">
+                              {producto.categoria || '—'}
+                            </td>
+
+                            <td className="px-4 py-4 text-gray-800">
+                              {producto.nombre || '—'}
+                              {esError ? (
+                                <p className="mt-1 text-xs text-red-600">
+                                  {detalle.mensaje}
+                                </p>
+                              ) : null}
+                            </td>
+
+                            <td className="px-4 py-4 text-right text-gray-700">
+                              {formatearMoneda(producto.costoArtesano)}
+                            </td>
+
+                            <td className="px-4 py-4 text-right text-gray-700">
+                              {formatearMoneda(producto.precio)}
+                            </td>
+
+                            <td className="px-4 py-4 text-right font-medium text-gray-800">
+                              {Number(detalle.stockImportado ?? producto.stock ?? 0)}
+                            </td>
+
+                            <td className="px-4 py-4 text-right text-gray-700">
+                              {detalle.tipo === 'actualizar'
+                                ? Number(detalle.stockActual || 0)
+                                : '—'}
+                            </td>
+
+                            <td className="px-4 py-4 text-right font-semibold text-gray-900">
+                              {detalle.tipo === 'actualizar'
+                                ? Number(detalle.stockFinal || 0)
+                                : detalle.tipo === 'crear'
+                                ? Number(detalle.stockImportado || 0)
+                                : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+                Se importarán <strong>{productosPendientesImportacion.length}</strong>{' '}
+                producto(s). Los códigos existentes conservarán su información actual y
+                únicamente aumentarán su stock.
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 px-5 py-4 sm:px-6">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                <button
+                  type="button"
+                  onClick={cerrarPreviewImportacion}
+                  disabled={importandoPdf}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmarImportacionPdf}
+                  disabled={importandoPdf || !productosPendientesImportacion.length}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {importandoPdf ? (
+                    <>
+                      <RefreshCcw size={16} className="animate-spin" />
+                      Importando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={16} />
+                      Confirmar importación
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
