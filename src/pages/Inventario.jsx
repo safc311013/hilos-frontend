@@ -639,6 +639,22 @@ export default function Inventario() {
     return Array.from({ length: fin - inicio + 1 }, (_, i) => inicio + i);
   }, [paginaActual, totalPaginas]);
 
+  const productosNuevosImportacion = useMemo(
+    () => resumenImportacion.detalles.filter((detalle) => detalle.tipo === 'crear'),
+    [resumenImportacion.detalles]
+  );
+
+  const productosActualizarStockImportacion = useMemo(
+    () =>
+      resumenImportacion.detalles.filter((detalle) => detalle.tipo === 'actualizar'),
+    [resumenImportacion.detalles]
+  );
+
+  const productosErrorImportacion = useMemo(
+    () => resumenImportacion.detalles.filter((detalle) => detalle.tipo === 'error'),
+    [resumenImportacion.detalles]
+  );
+
   if (!puede(PERMISOS.GESTIONAR_INVENTARIO)) {
     return (
       <Layout>
@@ -2202,102 +2218,157 @@ export default function Inventario() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-gray-200">
-                <div className="max-h-[48vh] overflow-auto">
-                  <table className="min-w-[980px] w-full text-left">
-                    <thead className="sticky top-0 z-10 bg-white shadow-sm">
-                      <tr className="border-b border-gray-200 text-sm text-gray-500">
-                        <th className="px-4 py-3">Acción</th>
-                        <th className="px-4 py-3">Código</th>
-                        <th className="px-4 py-3">Categoría</th>
-                        <th className="px-4 py-3">Nombre</th>
-                        <th className="px-4 py-3 text-right">Costo</th>
-                        <th className="px-4 py-3 text-right">Precio</th>
-                        <th className="px-4 py-3 text-right">Stock PDF</th>
-                        <th className="px-4 py-3 text-right">Stock actual</th>
-                        <th className="px-4 py-3 text-right">Stock final</th>
-                      </tr>
-                    </thead>
+              <div className="space-y-6">
+                {productosNuevosImportacion.length > 0 ? (
+                  <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50/30">
+                    <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-3">
+                      <h4 className="text-sm font-bold text-emerald-800">
+                        Productos nuevos ({productosNuevosImportacion.length})
+                      </h4>
+                      <p className="mt-1 text-xs text-emerald-700">
+                        Estos productos se crearán en el inventario.
+                      </p>
+                    </div>
 
-                    <tbody>
-                      {resumenImportacion.detalles.map((detalle) => {
-                        const producto = detalle.producto || {};
-                        const esError = detalle.tipo === 'error';
-
-                        return (
-                          <tr
-                            key={`${detalle.tipo}-${detalle.codigo}`}
-                            className={`border-b border-gray-100 ${
-                              detalle.tipo === 'actualizar'
-                                ? 'bg-amber-50/50'
-                                : detalle.tipo === 'crear'
-                                ? 'bg-emerald-50/40'
-                                : 'bg-red-50/50'
-                            }`}
-                          >
-                            <td className="px-4 py-4">
-                              <span
-                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getTipoImportacionStyle(
-                                  detalle.tipo
-                                )}`}
-                              >
-                                {getTipoImportacionLabel(detalle.tipo)}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-4 font-semibold text-gray-800">
-                              {detalle.codigo}
-                            </td>
-
-                            <td className="px-4 py-4 text-gray-700">
-                              {producto.categoria || '—'}
-                            </td>
-
-                            <td className="px-4 py-4 text-gray-800">
-                              {producto.nombre || '—'}
-                              {esError ? (
-                                <p className="mt-1 text-xs text-red-600">
-                                  {detalle.mensaje}
-                                </p>
-                              ) : null}
-                            </td>
-
-                            <td className="px-4 py-4 text-right text-gray-700">
-                              {formatearMoneda(producto.costoArtesano)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right text-gray-700">
-                              {formatearMoneda(producto.precio)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-medium text-gray-800">
-                              {Number(detalle.stockImportado ?? producto.stock ?? 0)}
-                            </td>
-
-                            <td className="px-4 py-4 text-right text-gray-700">
-                              {detalle.tipo === 'actualizar'
-                                ? Number(detalle.stockActual || 0)
-                                : '—'}
-                            </td>
-
-                            <td className="px-4 py-4 text-right font-semibold text-gray-900">
-                              {detalle.tipo === 'actualizar'
-                                ? Number(detalle.stockFinal || 0)
-                                : detalle.tipo === 'crear'
-                                ? Number(detalle.stockImportado || 0)
-                                : '—'}
-                            </td>
+                    <div className="max-h-[28vh] overflow-auto bg-white">
+                      <table className="min-w-[820px] w-full text-left">
+                        <thead className="sticky top-0 z-10 bg-white shadow-sm">
+                          <tr className="border-b border-emerald-100 text-sm text-gray-500">
+                            <th className="px-4 py-3">Código</th>
+                            <th className="px-4 py-3">Categoría</th>
+                            <th className="px-4 py-3">Nombre</th>
+                            <th className="px-4 py-3 text-right">Costo</th>
+                            <th className="px-4 py-3 text-right">Precio</th>
+                            <th className="px-4 py-3 text-right">Stock inicial</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                        </thead>
+                        <tbody>
+                          {productosNuevosImportacion.map((detalle) => {
+                            const producto = detalle.producto || {};
+
+                            return (
+                              <tr
+                                key={`crear-${detalle.codigo}`}
+                                className="border-b border-gray-100 bg-emerald-50/20"
+                              >
+                                <td className="px-4 py-4 font-semibold text-gray-800">
+                                  {detalle.codigo}
+                                </td>
+                                <td className="px-4 py-4 text-gray-700">
+                                  {producto.categoria || '—'}
+                                </td>
+                                <td className="px-4 py-4 text-gray-800">
+                                  {producto.nombre || '—'}
+                                </td>
+                                <td className="px-4 py-4 text-right text-gray-700">
+                                  {formatearMoneda(producto.costoArtesano)}
+                                </td>
+                                <td className="px-4 py-4 text-right text-gray-700">
+                                  {formatearMoneda(producto.precio)}
+                                </td>
+                                <td className="px-4 py-4 text-right font-semibold text-emerald-700">
+                                  {Number(detalle.stockImportado || producto.stock || 0)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
+
+                {productosActualizarStockImportacion.length > 0 ? (
+                  <div className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/30">
+                    <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
+                      <h4 className="text-sm font-bold text-amber-800">
+                        Productos que solo aumentarán stock ({productosActualizarStockImportacion.length})
+                      </h4>
+                      <p className="mt-1 text-xs text-amber-700">
+                        Se conservará la información actual del producto y solo se sumará el stock.
+                      </p>
+                    </div>
+
+                    <div className="max-h-[28vh] overflow-auto bg-white">
+                      <table className="min-w-[980px] w-full text-left">
+                        <thead className="sticky top-0 z-10 bg-white shadow-sm">
+                          <tr className="border-b border-amber-100 text-sm text-gray-500">
+                            <th className="px-4 py-3">Código</th>
+                            <th className="px-4 py-3">Categoría actual</th>
+                            <th className="px-4 py-3">Nombre actual</th>
+                            <th className="px-4 py-3 text-right">Stock PDF</th>
+                            <th className="px-4 py-3 text-right">Stock actual</th>
+                            <th className="px-4 py-3 text-right">Stock final</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {productosActualizarStockImportacion.map((detalle) => {
+                            const existente = detalle.existente || {};
+
+                            return (
+                              <tr
+                                key={`actualizar-${detalle.codigo}`}
+                                className="border-b border-gray-100 bg-amber-50/20"
+                              >
+                                <td className="px-4 py-4 font-semibold text-gray-800">
+                                  {detalle.codigo}
+                                </td>
+                                <td className="px-4 py-4 text-gray-700">
+                                  {existente.categoria || detalle.producto?.categoria || '—'}
+                                </td>
+                                <td className="px-4 py-4 text-gray-800">
+                                  {existente.nombre || detalle.producto?.nombre || '—'}
+                                </td>
+                                <td className="px-4 py-4 text-right font-medium text-gray-800">
+                                  {Number(detalle.stockImportado || 0)}
+                                </td>
+                                <td className="px-4 py-4 text-right text-gray-700">
+                                  {Number(detalle.stockActual || 0)}
+                                </td>
+                                <td className="px-4 py-4 text-right font-bold text-amber-700">
+                                  {Number(detalle.stockFinal || 0)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
+
+                {productosErrorImportacion.length > 0 ? (
+                  <div className="overflow-hidden rounded-2xl border border-red-200 bg-red-50/30">
+                    <div className="border-b border-red-200 bg-red-50 px-4 py-3">
+                      <h4 className="text-sm font-bold text-red-800">
+                        Registros con error ({productosErrorImportacion.length})
+                      </h4>
+                    </div>
+
+                    <div className="divide-y divide-red-100 bg-white">
+                      {productosErrorImportacion.map((detalle) => (
+                        <div
+                          key={`error-${detalle.codigo || detalle.mensaje}`}
+                          className="px-4 py-3"
+                        >
+                          <p className="text-sm font-semibold text-gray-800">
+                            {detalle.codigo || 'Sin código'}
+                          </p>
+                          <p className="mt-1 text-sm text-red-600">
+                            {detalle.mensaje || 'No se pudo analizar el producto'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
                 Se importarán <strong>{productosPendientesImportacion.length}</strong>{' '}
-                producto(s). Los códigos existentes conservarán su información actual y
+                producto(s): <strong>{productosNuevosImportacion.length}</strong> nuevos y{' '}
+                <strong>{productosActualizarStockImportacion.length}</strong> con aumento de
+                stock. Los códigos existentes conservarán su información actual y
                 únicamente aumentarán su stock.
               </div>
             </div>
