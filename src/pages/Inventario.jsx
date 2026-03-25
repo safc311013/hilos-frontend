@@ -10,6 +10,7 @@ import { PERMISOS } from '../utils/permisos';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
 import pdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import ExcelJS from 'exceljs';
+import { Scanner } from '@yudiel/react-qr-scanner';
 import {
   Search,
   Pencil,
@@ -60,6 +61,20 @@ const sortOptions = [
   { value: 'precio', label: 'Precio venta' },
   { value: 'stock', label: 'Stock' },
 ];
+
+const BARCODE_FORMATS = [
+  'ean_13',
+  'ean_8',
+  'upc_a',
+  'upc_e',
+  'code_128',
+  'code_39',
+  'itf',
+  'codabar',
+];
+
+const normalizarCodigoEscaneado = (value = '') =>
+  String(value).replace(/\s+/g, '').trim().toUpperCase();
 
 const normalizarTexto = (value = '') =>
   String(value)
@@ -428,8 +443,13 @@ export default function Inventario() {
   const [productosPendientesImportacion, setProductosPendientesImportacion] = useState(
     []
   );
+  const [mostrarScanner, setMostrarScanner] = useState(false);
+  const [productoConsultado, setProductoConsultado] = useState(null);
+  const [consultandoCodigo, setConsultandoCodigo] = useState(false);
+  const [errorScanner, setErrorScanner] = useState('');
 
   const pdfInputRef = useRef(null);
+  const ultimoCodigoEscaneadoRef = useRef('');
 
   const cargarCategorias = async () => {
     try {
@@ -606,6 +626,28 @@ export default function Inventario() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [mostrarPreviewImportacion, importandoPdf]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      if (!mostrarScanner || consultandoCodigo) return;
+      cerrarScanner();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mostrarScanner, consultandoCodigo]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      if (!productoConsultado) return;
+      cerrarModalConsulta();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [productoConsultado]);
 
   useEffect(() => {
     return () => {
@@ -890,6 +932,58 @@ export default function Inventario() {
     setErrorAccion('');
     setMensajeAccion('');
     setMostrarFormulario(true);
+  };
+
+  const abrirScanner = () => {
+    setErrorAccion('');
+    setMensajeAccion('');
+    setErrorScanner('');
+    setProductoConsultado(null);
+    ultimoCodigoEscaneadoRef.current = '';
+    setMostrarScanner(true);
+  };
+
+  const cerrarScanner = () => {
+    if (consultandoCodigo) return;
+    setMostrarScanner(false);
+    setErrorScanner('');
+    ultimoCodigoEscaneadoRef.current = '';
+  };
+
+  const cerrarModalConsulta = () => {
+    setProductoConsultado(null);
+  };
+
+  const consultarProductoEscaneado = async (rawValue) => {
+    const codigo = normalizarCodigoEscaneado(rawValue);
+
+    if (!codigo || consultandoCodigo) return;
+    if (ultimoCodigoEscaneadoRef.current === codigo) return;
+
+    ultimoCodigoEscaneadoRef.current = codigo;
+    setConsultandoCodigo(true);
+    setErrorScanner('');
+
+    try {
+      const producto = await buscarProductoExistentePorCodigo(codigo);
+
+      if (!producto) {
+        setErrorScanner(`No se encontró un producto con el código ${codigo}`);
+        ultimoCodigoEscaneadoRef.current = '';
+        return;
+      }
+
+      setMostrarScanner(false);
+      setProductoConsultado(producto);
+    } catch (error) {
+      setErrorScanner(
+        error.response?.data?.mensaje ||
+          'No se pudo consultar el producto escaneado'
+      );
+      ultimoCodigoEscaneadoRef.current = '';
+    } finally {
+      setConsultandoCodigo(false);
+    }
   };
 
   const subirImagenProducto = async () => {
@@ -1569,6 +1663,16 @@ export default function Inventario() {
               >
                 <FileSpreadsheet size={17} />
                 {exportandoExcel ? 'Exportando Excel...' : 'Exportar Excel'}
+              </button>
+
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={abrirScanner}
+                disabled={loading || importandoPdf || exportandoExcel}
+              >
+                <Search size={17} />
+                Escanear código
               </button>
             </div>
 
@@ -2403,6 +2507,192 @@ export default function Inventario() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {mostrarScanner ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarScanner} />
+
+          <div className="relative w-full max-w-xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">
+                  Escanear código de barras
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Apunta la cámara trasera al código para consultar el producto.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
+                onClick={cerrarScanner}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {errorScanner ? (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorScanner}
+              </div>
+            ) : null}
+
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
+              <Scanner
+                onScan={(detectedCodes) => {
+                  const code = detectedCodes?.[0]?.rawValue;
+                  if (code) {
+                    void consultarProductoEscaneado(code);
+                  }
+                }}
+                onError={(error) => {
+                  setErrorScanner(error?.message || 'No se pudo acceder a la cámara');
+                }}
+                formats={BARCODE_FORMATS}
+                constraints={{
+                  facingMode: 'environment',
+                }}
+                components={{
+                  finder: true,
+                  torch: true,
+                  zoom: true,
+                }}
+                paused={consultandoCodigo}
+                scanDelay={1000}
+                allowMultiple={false}
+                styles={{
+                  container: { width: '100%' },
+                  video: {
+                    width: '100%',
+                    height: 'auto',
+                    objectFit: 'cover',
+                  },
+                }}
+              />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-xs text-gray-500">
+                {consultandoCodigo
+                  ? 'Consultando producto...'
+                  : 'Al detectar un código válido se abrirá la consulta del producto.'}
+              </p>
+
+              <button
+                type="button"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                onClick={cerrarScanner}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {productoConsultado ? (
+        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarModalConsulta} />
+
+          <div className="relative w-full max-w-2xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-7">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
+                    Consulta de producto
+                  </h3>
+                  <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                    Solo lectura
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Información encontrada por código de barras
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
+                onClick={cerrarModalConsulta}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-[auto_1fr]">
+              <div className="flex justify-center md:justify-start">
+                {renderImagenProducto(productoConsultado, 'h-24 w-24')}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500">Código</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-800">
+                    {productoConsultado.codigo || '—'}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500">Categoría</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-800">
+                    {productoConsultado.categoria || '—'}
+                  </p>
+                </div>
+
+                <div className="sm:col-span-2 rounded-2xl bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500">Nombre</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-800">
+                    {productoConsultado.nombre || '—'}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500">Costo artesano</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-800">
+                    {formatearMoneda(productoConsultado.costoArtesano)}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500">Precio venta</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-800">
+                    {formatearMoneda(productoConsultado.precio)}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500">Stock</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-800">
+                    {productoConsultado.stock ?? 0}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                  <p className="text-xs text-gray-500">Estado</p>
+                  <span
+                    className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStockStyle(
+                      productoConsultado.stock
+                    )}`}
+                  >
+                    {getStockLabel(productoConsultado.stock)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                onClick={cerrarModalConsulta}
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
