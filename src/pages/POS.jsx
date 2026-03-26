@@ -354,6 +354,9 @@ export default function POS() {
         <img
           src={imagenUrl}
           alt={nombre || 'Producto'}
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
           className={`${className} rounded-2xl border border-gray-200 bg-white object-cover`}
         />
       );

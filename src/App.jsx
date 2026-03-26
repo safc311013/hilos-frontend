@@ -1,92 +1,106 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import { RealtimeProvider } from './context/RealtimeContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import { Suspense, lazy } from 'react';
+ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+ import { AuthProvider } from './context/AuthContext';
+ import { RealtimeProvider } from './context/RealtimeContext';
+ import ProtectedRoute from './components/ProtectedRoute';
+import Loader from './components/Loader';
+ 
 
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Inventario from './pages/Inventario';
-import POS from './pages/POS';
-import Ventas from './pages/Ventas';
-import Reportes from './pages/Reportes';
-import Usuarios from './pages/Usuarios';
-import Cotizaciones from './pages/Cotizaciones';
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Inventario = lazy(() => import('./pages/Inventario'));
+const POS = lazy(() => import('./pages/POS'));
+const Ventas = lazy(() => import('./pages/Ventas'));
+const Reportes = lazy(() => import('./pages/Reportes'));
+const Usuarios = lazy(() => import('./pages/Usuarios'));
+const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
+ 
+ export default function App() {
+   return (
+     <BrowserRouter>
+       <AuthProvider>
+         <RealtimeProvider>
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <RealtimeProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
+          <Suspense fallback={<Loader />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+ 
 
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute roles={['admin', 'supervisor']}>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute roles={['admin', 'supervisor']}>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+ 
 
-            <Route
-              path="/inventario"
-              element={
-                <ProtectedRoute roles={['admin', 'supervisor']}>
-                  <Inventario />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/inventario"
+                element={
+                  <ProtectedRoute roles={['admin', 'supervisor']}>
+                    <Inventario />
+                  </ProtectedRoute>
+                }
+              />
+ 
 
-            <Route
-              path="/pos"
-              element={
-                <ProtectedRoute roles={['admin', 'supervisor', 'cajero']}>
-                  <POS />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/pos"
+                element={
+                  <ProtectedRoute roles={['admin', 'supervisor', 'cajero']}>
+                    <POS />
+                  </ProtectedRoute>
+                }
+              />
+ 
 
-            <Route
-              path="/ventas"
-              element={
-                <ProtectedRoute roles={['admin', 'supervisor']}>
-                  <Ventas />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/ventas"
+                element={
+                  <ProtectedRoute roles={['admin', 'supervisor']}>
+                    <Ventas />
+                  </ProtectedRoute>
+                }
+              />
+ 
 
-            <Route
-              path="/reportes"
-              element={
-                <ProtectedRoute roles={['admin', 'supervisor']}>
-                  <Reportes />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/reportes"
+                element={
+                  <ProtectedRoute roles={['admin', 'supervisor']}>
+                    <Reportes />
+                  </ProtectedRoute>
+                }
+              />
+ 
 
-            <Route
-              path="/usuarios"
-              element={
-                <ProtectedRoute roles={['admin']}>
-                  <Usuarios />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/usuarios"
+                element={
+                  <ProtectedRoute roles={['admin']}>
+                    <Usuarios />
+                  </ProtectedRoute>
+                }
+              />
+ 
 
-            <Route
-              path="/cotizaciones"
-              element={
-                <ProtectedRoute roles={['admin', 'supervisor']}>
-                  <Cotizaciones />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/cotizaciones"
+                element={
+                  <ProtectedRoute roles={['admin', 'supervisor']}>
+                    <Cotizaciones />
+                  </ProtectedRoute>
+                }
+              />
+ 
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </RealtimeProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  );
-}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+         </RealtimeProvider>
+       </AuthProvider>
+     </BrowserRouter>
+   );
+  }

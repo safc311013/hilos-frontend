@@ -1364,6 +1364,9 @@ export default function Inventario() {
         <img
           src={producto.imagenUrl}
           alt={producto.nombre}
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
           className={`${className} rounded-2xl border border-gray-200 bg-white object-cover`}
         />
       );
