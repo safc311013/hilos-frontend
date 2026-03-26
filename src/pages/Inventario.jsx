@@ -447,6 +447,12 @@ export default function Inventario() {
   const [productoConsultado, setProductoConsultado] = useState(null);
   const [consultandoCodigo, setConsultandoCodigo] = useState(false);
   const [errorScanner, setErrorScanner] = useState('');
+  const [modoEdicionScanner, setModoEdicionScanner] = useState(false);
+  const [formScanner, setFormScanner] = useState(initialForm);
+  const [guardandoCambiosScanner, setGuardandoCambiosScanner] = useState(false);
+  const [mostrarConfirmacionScanner, setMostrarConfirmacionScanner] =
+    useState(false);
+  const [errorEdicionScanner, setErrorEdicionScanner] = useState('');
 
   const pdfInputRef = useRef(null);
   const ultimoCodigoEscaneadoRef = useRef('');
@@ -641,13 +647,22 @@ export default function Inventario() {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key !== 'Escape') return;
+      if (mostrarConfirmacionScanner) {
+        cerrarConfirmacionScanner();
+        return;
+      }
       if (!productoConsultado) return;
       cerrarModalConsulta();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [productoConsultado]);
+  }, [
+    productoConsultado,
+    mostrarConfirmacionScanner,
+    guardandoCambiosScanner,
+    modoEdicionScanner,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -934,12 +949,159 @@ export default function Inventario() {
     setMostrarFormulario(true);
   };
 
+  const mapProductoToForm = (producto) => ({
+    codigo: producto?.codigo || '',
+    categoria: producto?.categoria || '',
+    nombre: producto?.nombre || '',
+    costoArtesano: producto?.costoArtesano ?? '',
+    precio: producto?.precio ?? '',
+    stock: producto?.stock ?? '',
+    imagenUrl: producto?.imagenUrl || '',
+    imagenPublicId: producto?.imagenPublicId || '',
+  });
+
+  const resetScannerEdicion = () => {
+    setModoEdicionScanner(false);
+    setFormScanner(initialForm);
+    setMostrarConfirmacionScanner(false);
+    setErrorEdicionScanner('');
+  };
+
+  const handleChangeScanner = (e) => {
+    const value =
+      e.target.name === 'codigo' ? e.target.value.toUpperCase() : e.target.value;
+
+    setFormScanner((prev) => ({
+      ...prev,
+      [e.target.name]: value,
+    }));
+
+    if (errorEdicionScanner) setErrorEdicionScanner('');
+  };
+
+  const validarEdicionScanner = () => {
+    const codigo = String(formScanner.codigo || '').trim();
+    const categoria = String(formScanner.categoria || '').trim();
+    const nombre = String(formScanner.nombre || '').trim();
+    const costoArtesano = Number(formScanner.costoArtesano);
+    const precio = Number(formScanner.precio);
+    const stock = Number(formScanner.stock);
+
+    if (!codigo || !categoria || !nombre) {
+      return 'Código, categoría y nombre son obligatorios';
+    }
+
+    if (
+      Number.isNaN(costoArtesano) ||
+      Number.isNaN(precio) ||
+      Number.isNaN(stock)
+    ) {
+      return 'Costo artesano, precio y stock deben ser valores válidos';
+    }
+
+    return '';
+  };
+
+  const construirPayloadScanner = () => ({
+    codigo: String(formScanner.codigo || '').trim().toUpperCase(),
+    categoria: String(formScanner.categoria || '').trim(),
+    nombre: String(formScanner.nombre || '').trim(),
+    costoArtesano: Number(formScanner.costoArtesano),
+    precio: Number(formScanner.precio),
+    stock: Number(formScanner.stock),
+    imagenUrl: formScanner.imagenUrl ?? productoConsultado?.imagenUrl ?? '',
+    imagenPublicId:
+      formScanner.imagenPublicId ?? productoConsultado?.imagenPublicId ?? '',
+  });
+
+  const iniciarEdicionScanner = () => {
+    if (!productoConsultado) return;
+    setFormScanner(mapProductoToForm(productoConsultado));
+    setModoEdicionScanner(true);
+    setErrorEdicionScanner('');
+  };
+
+  const cancelarEdicionScanner = () => {
+    if (!productoConsultado) return;
+    setFormScanner(mapProductoToForm(productoConsultado));
+    setModoEdicionScanner(false);
+    setMostrarConfirmacionScanner(false);
+    setErrorEdicionScanner('');
+  };
+
+  const solicitarConfirmacionScanner = () => {
+    const errorValidacion = validarEdicionScanner();
+
+    if (errorValidacion) {
+      setErrorEdicionScanner(errorValidacion);
+      return;
+    }
+
+    setMostrarConfirmacionScanner(true);
+  };
+
+  const cerrarConfirmacionScanner = () => {
+    if (guardandoCambiosScanner) return;
+    setMostrarConfirmacionScanner(false);
+  };
+
+  const confirmarCambiosScanner = async () => {
+    if (!productoConsultado?._id) return;
+
+    try {
+      setGuardandoCambiosScanner(true);
+      setErrorEdicionScanner('');
+      setErrorAccion('');
+      setMensajeAccion('');
+
+      const payload = construirPayloadScanner();
+
+      await api.put(`/productos/${productoConsultado._id}`, payload);
+
+      const productoActualizado = {
+        ...productoConsultado,
+        ...payload,
+      };
+
+      setProductoConsultado(productoActualizado);
+      setFormScanner(mapProductoToForm(productoActualizado));
+      setModoEdicionScanner(false);
+      setMostrarConfirmacionScanner(false);
+      setMensajeAccion('Producto actualizado correctamente desde el lector');
+
+      try {
+        await Promise.all([
+          cargarProductos({
+            page: paginaActual,
+            q: busquedaAplicada,
+            categoria: categoriaFiltro,
+            stockBajo: soloStockBajo,
+            sortKey: sortConfig.key,
+            direction: sortConfig.direction,
+          }),
+          cargarCategorias(),
+        ]);
+      } catch (error) {
+        setErrorAccion(
+          'El producto se actualizó, pero no se pudo refrescar la lista'
+        );
+      }
+    } catch (error) {
+      setErrorEdicionScanner(
+        error.response?.data?.mensaje || 'No se pudo actualizar el producto'
+      );
+    } finally {
+      setGuardandoCambiosScanner(false);
+    }
+  };
+
   const abrirScanner = () => {
     setErrorAccion('');
     setMensajeAccion('');
     setErrorScanner('');
     setProductoConsultado(null);
     ultimoCodigoEscaneadoRef.current = '';
+    resetScannerEdicion();
     setMostrarScanner(true);
   };
 
@@ -951,7 +1113,9 @@ export default function Inventario() {
   };
 
   const cerrarModalConsulta = () => {
+    if (guardandoCambiosScanner) return;
     setProductoConsultado(null);
+    resetScannerEdicion();
   };
 
   const consultarProductoEscaneado = async (rawValue) => {
@@ -975,6 +1139,10 @@ export default function Inventario() {
 
       setMostrarScanner(false);
       setProductoConsultado(producto);
+      setFormScanner(mapProductoToForm(producto));
+      setModoEdicionScanner(false);
+      setMostrarConfirmacionScanner(false);
+      setErrorEdicionScanner('');
     } catch (error) {
       setErrorScanner(
         error.response?.data?.mensaje ||
@@ -2599,19 +2767,25 @@ export default function Inventario() {
         <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarModalConsulta} />
 
-          <div className="relative w-full max-w-2xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-7">
+          <div className="relative w-full max-w-3xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-7">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
-                    Consulta de producto
+                    {modoEdicionScanner
+                      ? 'Editar producto escaneado'
+                      : 'Consulta de producto'}
                   </h3>
-                  <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                    Solo lectura
+
+                  <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
+                    {productoConsultado.codigo}
                   </span>
                 </div>
+
                 <p className="mt-1 text-sm text-gray-500">
-                  Información encontrada por código de barras
+                  {modoEdicionScanner
+                    ? 'Modifica los datos y confirma para aplicar los cambios.'
+                    : 'Aquí puedes consultar el producto y editarlo sin salir del lector.'}
                 </p>
               </div>
 
@@ -2619,79 +2793,293 @@ export default function Inventario() {
                 type="button"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
                 onClick={cerrarModalConsulta}
+                disabled={guardandoCambiosScanner}
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-[auto_1fr]">
+            {errorEdicionScanner ? (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorEdicionScanner}
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-[180px_minmax(0,1fr)]">
               <div className="flex justify-center md:justify-start">
-                {renderImagenProducto(productoConsultado, 'h-24 w-24')}
+                {renderImagenProducto(
+                  modoEdicionScanner ? formScanner : productoConsultado,
+                  'h-40 w-40'
+                )}
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                  <p className="text-xs text-gray-500">Código</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-800">
-                    {productoConsultado.codigo || '—'}
-                  </p>
-                </div>
+              {!modoEdicionScanner ? (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400">
+                      Nombre
+                    </p>
+                    <h4 className="mt-1 text-2xl font-bold text-gray-900">
+                      {productoConsultado.nombre}
+                    </h4>
+                  </div>
 
-                <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                  <p className="text-xs text-gray-500">Categoría</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-800">
-                    {productoConsultado.categoria || '—'}
-                  </p>
-                </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getCategoriaStyle(
+                        productoConsultado.categoria
+                      )}`}
+                    >
+                      {productoConsultado.categoria || 'General'}
+                    </span>
 
-                <div className="sm:col-span-2 rounded-2xl bg-gray-50 px-4 py-3">
-                  <p className="text-xs text-gray-500">Nombre</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-800">
-                    {productoConsultado.nombre || '—'}
-                  </p>
-                </div>
+                    <span
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStockStyle(
+                        productoConsultado.stock
+                      )}`}
+                    >
+                      {getStockLabel(productoConsultado.stock)}
+                    </span>
+                  </div>
 
-                <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                  <p className="text-xs text-gray-500">Costo artesano</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-800">
-                    {formatearMoneda(productoConsultado.costoArtesano)}
-                  </p>
-                </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                      <p className="text-[11px] text-gray-500">Costo artesano</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-800">
+                        {formatearMoneda(productoConsultado.costoArtesano)}
+                      </p>
+                    </div>
 
-                <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                  <p className="text-xs text-gray-500">Precio venta</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-800">
-                    {formatearMoneda(productoConsultado.precio)}
-                  </p>
-                </div>
+                    <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                      <p className="text-[11px] text-gray-500">Precio venta</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-800">
+                        {formatearMoneda(productoConsultado.precio)}
+                      </p>
+                    </div>
 
-                <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                  <p className="text-xs text-gray-500">Stock</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-800">
-                    {productoConsultado.stock ?? 0}
-                  </p>
+                    <div className="rounded-2xl bg-gray-50 px-4 py-3 sm:col-span-2">
+                      <p className="text-[11px] text-gray-500">Stock disponible</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-800">
+                        {productoConsultado.stock}
+                      </p>
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Código
+                      </label>
+                      <input
+                        className="input"
+                        name="codigo"
+                        value={formScanner.codigo}
+                        onChange={handleChangeScanner}
+                      />
+                    </div>
 
-                <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                  <p className="text-xs text-gray-500">Estado</p>
-                  <span
-                    className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStockStyle(
-                      productoConsultado.stock
-                    )}`}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Categoría
+                      </label>
+                      <input
+                        className="input"
+                        name="categoria"
+                        value={formScanner.categoria}
+                        onChange={handleChangeScanner}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Nombre
+                      </label>
+                      <input
+                        className="input"
+                        name="nombre"
+                        value={formScanner.nombre}
+                        onChange={handleChangeScanner}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Costo artesano
+                      </label>
+                      <input
+                        className="input"
+                        type="number"
+                        step="0.01"
+                        name="costoArtesano"
+                        value={formScanner.costoArtesano}
+                        onChange={handleChangeScanner}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Precio venta
+                      </label>
+                      <input
+                        className="input"
+                        type="number"
+                        step="0.01"
+                        name="precio"
+                        value={formScanner.precio}
+                        onChange={handleChangeScanner}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Stock
+                      </label>
+                      <input
+                        className="input"
+                        type="number"
+                        step="1"
+                        name="stock"
+                        value={formScanner.stock}
+                        onChange={handleChangeScanner}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+              {!modoEdicionScanner ? (
+                <>
+                  <button
+                    type="button"
+                    className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    onClick={abrirScanner}
                   >
-                    {getStockLabel(productoConsultado.stock)}
-                  </span>
-                </div>
+                    Volver a escanear
+                  </button>
+
+                  <button
+                    type="button"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                    onClick={iniciarEdicionScanner}
+                  >
+                    <Pencil size={16} />
+                    Editar
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    onClick={cancelarEdicionScanner}
+                    disabled={guardandoCambiosScanner}
+                  >
+                    Cancelar
+                  </button>
+
+                  <button
+                    type="button"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={solicitarConfirmacionScanner}
+                    disabled={guardandoCambiosScanner}
+                  >
+                    <CheckCircle2 size={16} />
+                    Guardar cambios
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {mostrarConfirmacionScanner ? (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarConfirmacionScanner} />
+
+          <div className="relative w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                <AlertTriangle size={20} />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-gray-800">
+                  Confirmar cambios
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Vas a actualizar el producto escaneado. Revisa la información antes de aplicar los cambios.
+                </p>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="mt-5 grid grid-cols-1 gap-3 rounded-2xl bg-gray-50 p-4 text-sm sm:grid-cols-2">
+              <div>
+                <p className="text-xs text-gray-500">Código</p>
+                <p className="mt-1 font-semibold text-gray-800">{formScanner.codigo}</p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">Categoría</p>
+                <p className="mt-1 font-semibold text-gray-800">{formScanner.categoria}</p>
+              </div>
+
+              <div className="sm:col-span-2">
+                <p className="text-xs text-gray-500">Nombre</p>
+                <p className="mt-1 font-semibold text-gray-800">{formScanner.nombre}</p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">Costo artesano</p>
+                <p className="mt-1 font-semibold text-gray-800">
+                  {formatearMoneda(formScanner.costoArtesano)}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">Precio venta</p>
+                <p className="mt-1 font-semibold text-gray-800">
+                  {formatearMoneda(formScanner.precio)}
+                </p>
+              </div>
+
+              <div className="sm:col-span-2">
+                <p className="text-xs text-gray-500">Stock</p>
+                <p className="mt-1 font-semibold text-gray-800">{formScanner.stock}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                onClick={cerrarModalConsulta}
+                onClick={cerrarConfirmacionScanner}
+                disabled={guardandoCambiosScanner}
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Cerrar
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmarCambiosScanner}
+                disabled={guardandoCambiosScanner}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {guardandoCambiosScanner ? (
+                  <>
+                    <RefreshCcw size={16} className="animate-spin" />
+                    Aplicando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={16} />
+                    Sí, aplicar cambios
+                  </>
+                )}
               </button>
             </div>
           </div>
