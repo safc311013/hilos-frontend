@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Scanner } from '@yudiel/react-qr-scanner';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
 import Loader from '../components/Loader';
@@ -30,6 +31,20 @@ const MODOS_PANTALLA = {
   VENTA: 'venta',
   COTIZACION: 'cotizacion',
 };
+
+const BARCODE_FORMATS = [
+  'ean_13',
+  'ean_8',
+  'upc_a',
+  'upc_e',
+  'code_128',
+  'code_39',
+  'itf',
+  'codabar',
+];
+
+const normalizarCodigoEscaneado = (value = '') =>
+  String(value).replace(/\s+/g, '').trim().toUpperCase();
 
 const obtenerFechaHoyISO = () => {
   const hoy = new Date();
@@ -165,6 +180,7 @@ export default function POS() {
   const inputBusquedaRef = useRef(null);
   const focoInicialAplicadoRef = useRef(false);
   const carritoRef = useRef([]);
+  const ultimoCodigoEscaneadoRef = useRef('');
 
   const [productos, setProductos] = useState([]);
   const [carrito, setCarrito] = useState([]);
@@ -189,6 +205,11 @@ export default function POS() {
   const [vigenciaCotizacion, setVigenciaCotizacion] = useState('');
   const [folioCotizacion, setFolioCotizacion] = useState(FOLIO_PROVISIONAL);
 
+  const [mostrarScanner, setMostrarScanner] = useState(false);
+  const [productoConsultado, setProductoConsultado] = useState(null);
+  const [consultandoCodigo, setConsultandoCodigo] = useState(false);
+  const [errorScanner, setErrorScanner] = useState('');
+
   const esModoCotizacion = modoPantalla === MODOS_PANTALLA.COTIZACION;
 
   useEffect(() => {
@@ -206,7 +227,7 @@ export default function POS() {
   }, [mensajeExito]);
 
   useEffect(() => {
-    if (ticketVenta) {
+    if (ticketVenta || mostrarScanner || productoConsultado) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -215,7 +236,7 @@ export default function POS() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [ticketVenta]);
+  }, [ticketVenta, mostrarScanner, productoConsultado]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -229,7 +250,27 @@ export default function POS() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [ticketVenta]);
 
-  
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      if (!mostrarScanner || consultandoCodigo) return;
+      cerrarScanner();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mostrarScanner, consultandoCodigo]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      if (!productoConsultado) return;
+      cerrarModalConsulta();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [productoConsultado]);
 
   const enfocarBusqueda = () => {
     setTimeout(() => {
@@ -242,6 +283,64 @@ export default function POS() {
       inputBusquedaRef.current?.focus();
       inputBusquedaRef.current?.select?.();
     }, 0);
+  };
+
+  const abrirScanner = () => {
+    setError('');
+    setMensajeExito('');
+    setErrorScanner('');
+    setProductoConsultado(null);
+    ultimoCodigoEscaneadoRef.current = '';
+    setMostrarScanner(true);
+  };
+
+  const cerrarScanner = () => {
+    if (consultandoCodigo) return;
+    setMostrarScanner(false);
+    setErrorScanner('');
+    ultimoCodigoEscaneadoRef.current = '';
+  };
+
+  const cerrarModalConsulta = () => {
+    setProductoConsultado(null);
+    enfocarBusqueda();
+  };
+
+  const consultarProductoEscaneado = async (rawValue) => {
+    const codigo = normalizarCodigoEscaneado(rawValue);
+
+    if (!codigo || consultandoCodigo) return;
+    if (ultimoCodigoEscaneadoRef.current === codigo) return;
+
+    ultimoCodigoEscaneadoRef.current = codigo;
+    setConsultandoCodigo(true);
+    setErrorScanner('');
+    setError('');
+
+    try {
+      const { data } = await api.get(`/productos/codigo/${encodeURIComponent(codigo)}`);
+
+      if (!data) {
+        setErrorScanner(`No se encontró un producto con el código ${codigo}`);
+        ultimoCodigoEscaneadoRef.current = '';
+        return;
+      }
+
+      setMostrarScanner(false);
+      setProductoConsultado(data);
+    } catch (errorConsulta) {
+      if (errorConsulta?.response?.status === 404) {
+        setErrorScanner(`No se encontró un producto con el código ${codigo}`);
+      } else {
+        setErrorScanner(
+          errorConsulta.response?.data?.mensaje ||
+            'No se pudo consultar el producto escaneado'
+        );
+      }
+      ultimoCodigoEscaneadoRef.current = '';
+    } finally {
+      setConsultandoCodigo(false);
+    }
   };
 
   const renderImagenProducto = (
@@ -1422,12 +1521,23 @@ export default function POS() {
               </div>
 
               <p className="mt-2 text-xs text-gray-500">
-                Escribe el código completo con formato HEN0000 o el nombre del producto y presiona Enter. Si hay varias coincidencias, selecciónalo del catálogo.
+                Escribe el código completo con formato HEN0000 o el nombre del producto y
+                presiona Enter. Si hay varias coincidencias, selecciónalo del catálogo.
               </p>
             </div>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
+            {!esModoCotizacion ? (
+              <button
+                type="button"
+                onClick={abrirScanner}
+                className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
+              >
+                Escanear código
+              </button>
+            ) : null}
+
             {esModoCotizacion ? (
               <>
                 <button
@@ -2055,16 +2165,12 @@ export default function POS() {
 
                       <div className="flex justify-between gap-3">
                         <span className="text-gray-500">Fecha</span>
-                        <span className="font-semibold text-gray-900">
-                          {ticketVenta.fecha}
-                        </span>
+                        <span className="font-semibold text-gray-900">{ticketVenta.fecha}</span>
                       </div>
 
                       <div className="flex justify-between gap-3">
                         <span className="text-gray-500">Hora</span>
-                        <span className="font-semibold text-gray-900">
-                          {ticketVenta.hora}
-                        </span>
+                        <span className="font-semibold text-gray-900">{ticketVenta.hora}</span>
                       </div>
 
                       <div className="flex justify-between gap-3">
@@ -2079,60 +2185,36 @@ export default function POS() {
 
                     <div className="space-y-3">
                       {ticketVenta.productos.map((item, index) => (
-                        <div key={`${item.nombre}-${index}`} className="text-sm">
-                          <div className="flex items-start gap-3">
-                            {renderImagenProducto(
-                              item.imagenUrl,
-                              item.nombre,
-                              'h-10 w-10 shrink-0',
-                              14
-                            )}
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-gray-900">{item.nombre}</p>
-                              <div className="mt-1 flex items-center justify-between gap-3 text-gray-600">
-                                <span>
-                                  {item.cantidad} x {formatearMoneda(item.precioUnitario)}
-                                </span>
-                                <span className="font-semibold text-gray-900">
-                                  {formatearMoneda(item.subtotal)}
-                                </span>
-                              </div>
-
-                              {Number(item.montoDescuento || 0) > 0 ? (
-                                <div className="mt-1 flex items-center justify-between gap-3 text-amber-700">
-                                  <span>
-                                    Descuento {Number(item.descuento || 0).toFixed(2)}%
-                                  </span>
-                                  <span className="font-semibold">
-                                    - {formatearMoneda(item.montoDescuento)}
-                                  </span>
-                                </div>
-                              ) : null}
-                            </div>
+                        <div key={`${item.nombre}-${index}`} className="border-b border-dashed border-gray-200 pb-3 last:border-b-0 last:pb-0">
+                          <p className="text-sm font-semibold text-gray-900">{item.nombre}</p>
+                          <div className="mt-1 flex items-center justify-between gap-3 text-xs text-gray-500">
+                            <span>
+                              {item.cantidad} x {formatearMoneda(item.precioUnitario)}
+                            </span>
+                            <span className="font-semibold text-gray-800">
+                              {formatearMoneda(item.subtotal)}
+                            </span>
                           </div>
+                          {Number(item.montoDescuento || 0) > 0 ? (
+                            <div className="mt-1 flex items-center justify-between gap-3 text-[11px] text-amber-700">
+                              <span>Descuento {Number(item.descuento || 0).toFixed(2)}%</span>
+                              <span>- {formatearMoneda(item.montoDescuento)}</span>
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                     </div>
 
                     <div className="my-4 border-t border-dashed border-gray-300" />
 
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-lg font-bold text-gray-900">TOTAL</span>
-                      <span className="text-xl font-extrabold text-gray-900">
-                        {formatearMoneda(ticketVenta.total)}
-                      </span>
+                    <div className="flex items-center justify-between gap-3 text-base font-bold text-gray-900">
+                      <span>Total</span>
+                      <span>{formatearMoneda(ticketVenta.total)}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-4 sm:p-6">
-                  <div className="mb-5">
-                    <h4 className="text-lg font-bold text-gray-900 sm:text-xl">Acciones del ticket</h4>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Puedes imprimir el ticket en formato térmico de 80mm o descargarlo en PDF.
-                    </p>
-                  </div>
-
+                <div className="p-4 sm:p-6 lg:p-8">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <button
                       type="button"
@@ -2175,27 +2257,46 @@ export default function POS() {
                     <p className="text-sm font-medium text-gray-700">Resumen rápido</p>
 
                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <div className="rounded-xl bg-white px-4 py-3">
-                        <p className="text-xs text-gray-500">Ticket</p>
-                        <p className="mt-1 font-bold text-gray-900">
-                          {ticketVenta.numeroTicket}
+                      <div className="rounded-2xl bg-white px-4 py-4">
+                        <p className="text-xs text-gray-500">Productos vendidos</p>
+                        <p className="mt-1 text-2xl font-bold text-gray-900">
+                          {ticketVenta.productos.reduce(
+                            (acc, item) => acc + Number(item.cantidad || 0),
+                            0
+                          )}
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-white px-4 py-3">
-                        <p className="text-xs text-gray-500">Método de pago</p>
-                        <p className="mt-1 font-bold text-gray-900">
-                          {ticketVenta.metodoPago}
+                      <div className="rounded-2xl bg-white px-4 py-4">
+                        <p className="text-xs text-gray-500">Descuento aplicado</p>
+                        <p className="mt-1 text-2xl font-bold text-amber-700">
+                          {formatearMoneda(
+                            ticketVenta.productos.reduce(
+                              (acc, item) => acc + Number(item.montoDescuento || 0),
+                              0
+                            )
+                          )}
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-white px-4 py-3">
-                        <p className="text-xs text-gray-500">Total</p>
-                        <p className="mt-1 font-bold text-gray-900">
-                          {formatearMoneda(ticketVenta.total)}
-                        </p>
+                      <div className="rounded-2xl bg-slate-900 px-4 py-4 text-white">
+                        <p className="text-xs text-slate-300">Total cobrado</p>
+                        <p className="mt-1 text-2xl font-bold">{formatearMoneda(ticketVenta.total)}</p>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTicketVenta(null);
+                        enfocarBusqueda();
+                      }}
+                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Cerrar
+                    </button>
 
                     <button
                       type="button"
@@ -2203,13 +2304,165 @@ export default function POS() {
                         setTicketVenta(null);
                         enfocarBusqueda();
                       }}
-                      className="mt-5 w-full rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 sm:w-auto"
+                      className="inline-flex h-11 items-center justify-center rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
                     >
-                      Cerrar ticket
+                      Seguir vendiendo
                     </button>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {mostrarScanner ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarScanner} />
+
+          <div className="relative w-full max-w-xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">
+                  Escanear código de barras
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Apunta la cámara trasera al código para consultar el producto.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
+                onClick={cerrarScanner}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {errorScanner ? (
+              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorScanner}
+              </div>
+            ) : null}
+
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
+              <Scanner
+                onScan={(detectedCodes) => {
+                  const code = detectedCodes?.[0]?.rawValue;
+                  if (code) {
+                    void consultarProductoEscaneado(code);
+                  }
+                }}
+                onError={(scannerError) => {
+                  setErrorScanner(
+                    scannerError?.message || 'No se pudo acceder a la cámara'
+                  );
+                }}
+                formats={BARCODE_FORMATS}
+                constraints={{
+                  facingMode: 'environment',
+                }}
+                components={{
+                  finder: true,
+                  torch: true,
+                  zoom: true,
+                }}
+                paused={consultandoCodigo}
+                scanDelay={1000}
+                allowMultiple={false}
+                styles={{
+                  container: { width: '100%' },
+                  video: {
+                    width: '100%',
+                    height: 'auto',
+                    objectFit: 'cover',
+                  },
+                }}
+              />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-xs text-gray-500">
+                {consultandoCodigo
+                  ? 'Consultando producto...'
+                  : 'Al detectar un código válido se abrirá la consulta del producto.'}
+              </p>
+
+              <button
+                type="button"
+                className="inline-flex h-10 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                onClick={cerrarScanner}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {productoConsultado ? (
+        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarModalConsulta} />
+
+          <div className="relative w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-7">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
+                  Consulta de producto
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Información encontrada por código de barras
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
+                onClick={cerrarModalConsulta}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs text-gray-500">Código</p>
+                <p className="mt-1 text-sm font-semibold text-gray-800">
+                  {productoConsultado.codigo || '—'}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs text-gray-500">Stock</p>
+                <p className="mt-1 text-sm font-semibold text-gray-800">
+                  {productoConsultado.stock ?? 0}
+                </p>
+              </div>
+
+              <div className="sm:col-span-2 rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs text-gray-500">Nombre</p>
+                <p className="mt-1 text-sm font-semibold text-gray-800">
+                  {productoConsultado.nombre || '—'}
+                </p>
+              </div>
+
+              <div className="sm:col-span-2 rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="text-xs text-gray-500">Precio venta</p>
+                <p className="mt-1 text-sm font-semibold text-gray-800">
+                  {formatearMoneda(productoConsultado.precio)}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                onClick={cerrarModalConsulta}
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
