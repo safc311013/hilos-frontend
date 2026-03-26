@@ -20,12 +20,10 @@ const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
      <BrowserRouter>
        <AuthProvider>
          <RealtimeProvider>
-
           <Suspense fallback={<Loader />}>
             <Routes>
               <Route path="/login" element={<Login />} />
  
-
               <Route
                 path="/"
                 element={
@@ -35,7 +33,6 @@ const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
                 }
               />
  
-
               <Route
                 path="/inventario"
                 element={
@@ -45,7 +42,6 @@ const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
                 }
               />
  
-
               <Route
                 path="/pos"
                 element={
@@ -55,7 +51,6 @@ const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
                 }
               />
  
-
               <Route
                 path="/ventas"
                 element={
@@ -65,7 +60,6 @@ const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
                 }
               />
  
-
               <Route
                 path="/reportes"
                 element={
@@ -75,7 +69,6 @@ const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
                 }
               />
  
-
               <Route
                 path="/usuarios"
                 element={
@@ -85,7 +78,6 @@ const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
                 }
               />
  
-
               <Route
                 path="/cotizaciones"
                 element={
@@ -95,7 +87,6 @@ const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
                 }
               />
  
-
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>

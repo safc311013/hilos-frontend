@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Scanner } from '@yudiel/react-qr-scanner';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
 import Loader from '../components/Loader';
@@ -170,6 +169,11 @@ const prepararCarritoParaCotizacion = (items = []) => {
 };
 
 const FOLIO_PROVISIONAL = 'Se asignará al guardar';
+const QrScanner = lazy(() =>
+  import('@yudiel/react-qr-scanner').then((module) => ({
+    default: module.Scanner,
+  }))
+);
 
 export default function POS() {
   const location = useLocation();
@@ -411,14 +415,28 @@ export default function POS() {
     try {
       const { data } = await api.get('/productos');
       const inventarioActual = Array.isArray(data) ? data : [];
-      const mapaProductos = new Map(
-        inventarioActual.map((producto) => [String(producto._id), producto])
-      );
+      const mapaPorCodigo = new Map();
+      const mapaPorId = new Map();
+
+      inventarioActual.forEach((producto) => {
+        const codigo = String(producto.codigo || '').trim().toUpperCase();
+        const id = String(producto._id || '').trim();
+
+        if (codigo) {
+          mapaPorCodigo.set(codigo, producto);
+        }
+
+        if (id) {
+          mapaPorId.set(id, producto);
+        }
+      });
 
       let mensajeAjuste = '';
 
       const carritoActualizado = carritoActual.reduce((acc, item) => {
-        const productoActual = mapaProductos.get(String(item.producto));
+        const codigo = String(item.codigo || '').trim().toUpperCase();
+        const productoActual =
+          mapaPorCodigo.get(codigo) || mapaPorId.get(String(item.producto || '').trim());
 
         if (
           !productoActual ||
@@ -2350,39 +2368,41 @@ export default function POS() {
             ) : null}
 
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
-              <Scanner
-                onScan={(detectedCodes) => {
-                  const code = detectedCodes?.[0]?.rawValue;
-                  if (code) {
-                    void consultarProductoEscaneado(code);
-                  }
-                }}
-                onError={(scannerError) => {
-                  setErrorScanner(
-                    scannerError?.message || 'No se pudo acceder a la cámara'
-                  );
-                }}
-                formats={BARCODE_FORMATS}
-                constraints={{
-                  facingMode: 'environment',
-                }}
-                components={{
-                  finder: true,
-                  torch: true,
-                  zoom: true,
-                }}
-                paused={consultandoCodigo}
-                scanDelay={1000}
-                allowMultiple={false}
-                styles={{
-                  container: { width: '100%' },
-                  video: {
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'cover',
-                  },
-                }}
-              />
+              <Suspense fallback={<div className="p-6 text-center text-sm text-white">Cargando escáner…</div>}>
+                <QrScanner
+                  onScan={(detectedCodes) => {
+                    const code = detectedCodes?.[0]?.rawValue;
+                    if (code) {
+                      void consultarProductoEscaneado(code);
+                    }
+                  }}
+                  onError={(scannerError) => {
+                    setErrorScanner(
+                      scannerError?.message || 'No se pudo acceder a la cámara'
+                    );
+                  }}
+                  formats={BARCODE_FORMATS}
+                  constraints={{
+                    facingMode: 'environment',
+                  }}
+                  components={{
+                    finder: true,
+                    torch: true,
+                    zoom: true,
+                  }}
+                  paused={consultandoCodigo}
+                  scanDelay={1000}
+                  allowMultiple={false}
+                  styles={{
+                    container: { width: '100%' },
+                    video: {
+                      width: '100%',
+                      height: 'auto',
+                      objectFit: 'cover',
+                    },
+                  }}
+                />
+              </Suspense>
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3">

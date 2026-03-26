@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
@@ -7,10 +7,8 @@ import { api } from '../config/api';
 import { useRealtime } from '../context/RealtimeContext';
 import usePermisos from '../hooks/usePermisos';
 import { PERMISOS } from '../utils/permisos';
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import pdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
-import ExcelJS from 'exceljs';
-import { Scanner } from '@yudiel/react-qr-scanner';
+
+
 import {
   Search,
   Pencil,
@@ -28,7 +26,26 @@ import {
   RefreshCcw,
 } from 'lucide-react';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+const QrScanner = lazy(() =>
+  import('@yudiel/react-qr-scanner').then((module) => ({
+    default: module.Scanner,
+  }))
+);
+
+let pdfLibPromise;
+const getPdfLib = async () => {
+  if (!pdfLibPromise) {
+    pdfLibPromise = Promise.all([
+      import('pdfjs-dist/legacy/build/pdf.mjs'),
+      import('pdfjs-dist/legacy/build/pdf.worker.min.mjs?url'),
+    ]).then(([pdfjsLib, worker]) => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = worker.default;
+      return pdfjsLib;
+    });
+  }
+
+  return pdfLibPromise;
+};
 
 const PRODUCTOS_POR_PAGINA = 40;
 const PDF_MAX_BYTES = 10 * 1024 * 1024;
@@ -365,6 +382,7 @@ const parsearLineaPorTexto = (text, categoriasConocidas = []) => {
 };
 
 const extraerProductosDesdePdf = async (file, categoriasConocidas = []) => {
+  const pdfjsLib = await getPdfLib();
   const buffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
 
@@ -750,45 +768,92 @@ export default function Inventario() {
   };
 
   const analizarProductosImportacion = async (productosAnalizar = []) => {
-    const detalles = await Promise.all(
-      productosAnalizar.map(async (producto) => {
-        try {
-          const existente = await buscarProductoExistentePorCodigo(producto.codigo);
+    const mapaExistentes = new Map();
+    try {
+      let inventarioActual = [];
 
-          if (existente?._id) {
-            const stockActual = Number(existente.stock || 0);
-            const stockImportado = Number(producto.stock || 0);
+      try {
+        const { data } = await api.get('/productos');
+        inventarioActual = Array.isArray(data) ? data : [];
+      } catch {
+        inventarioActual = [];
+      }
 
-            return {
-              tipo: 'actualizar',
-              codigo: producto.codigo,
-              producto,
-              existente,
-              stockActual,
-              stockImportado,
-              stockFinal: stockActual + stockImportado,
-            };
-          }
+      if (!inventarioActual.length) {
+        let page = 1;
+        let totalPages = 1;
 
-          return {
-            tipo: 'crear',
-            codigo: producto.codigo,
-            producto,
-            stockImportado: Number(producto.stock || 0),
-          };
-        } catch (error) {
-          return {
-            tipo: 'error',
-            codigo: producto.codigo,
-            producto,
-            mensaje:
-              error.response?.data?.mensaje ||
-              error.message ||
-              'No se pudo analizar el producto',
-          };
+        do {
+          const { data } = await api.get('/productos/inventario', {
+            params: {
+              page,
+              limit: 500,
+              q: '',
+              categoria: '',
+              stockBajo: false,
+              sortKey: 'codigo',
+              direction: 'asc',
+            },
+          });
+
+          const items = Array.isArray(data?.items) ? data.items : [];
+          inventarioActual = inventarioActual.concat(items);
+          totalPages = Number(data?.totalPages || 1);
+          page += 1;
+        } while (page <= totalPages);
+      }
+
+      inventarioActual.forEach((item) => {
+        const codigo = String(item.codigo || '').trim().toUpperCase();
+        if (codigo) {
+          mapaExistentes.set(codigo, item);
         }
-      })
-    );
+
+       });
+    } catch (errorCargaExistentes) {
+      return {
+        totalDetectados: productosAnalizar.length,
+        nuevos: 0,
+        actualizar: 0,
+        errores: productosAnalizar.length,
+        detalles: productosAnalizar.map((producto) => ({
+          tipo: 'error',
+          codigo: producto.codigo,
+          producto,
+          mensaje:
+            errorCargaExistentes.response?.data?.mensaje ||
+            'No se pudo validar el inventario existente para la importación',
+        })),
+      };
+    }
+
+    const detalles = productosAnalizar.map((producto) => {
+      const codigo = String(producto.codigo || '').trim().toUpperCase();
+      const existente = mapaExistentes.get(codigo);
+
+      if (existente?._id) {
+        const stockActual = Number(existente.stock || 0);
+        const stockImportado = Number(producto.stock || 0);
+
+        return {
+          tipo: 'actualizar',
+          codigo: producto.codigo,
+          producto,
+          existente,
+          stockActual,
+          stockImportado,
+          stockFinal: stockActual + stockImportado,
+        };
+      }
+
+      return {
+        tipo: 'crear',
+        codigo: producto.codigo,
+        producto,
+        stockImportado: Number(producto.stock || 0),
+      };
+    });
+    
 
     const orden = {
       actualizar: 0,
@@ -1570,7 +1635,7 @@ export default function Inventario() {
         setErrorAccion('No hay productos para exportar');
         return;
       }
-
+      const { default: ExcelJS } = await import('exceljs');
       const workbook = new ExcelJS.Workbook();
       workbook.creator = 'Hilos en Nogada';
       workbook.created = new Date();
@@ -2421,7 +2486,7 @@ export default function Inventario() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarPreviewImportacion} />
 
-          <div className="relative max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl">
+          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl">
             <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -2454,7 +2519,7 @@ export default function Inventario() {
               </div>
             </div>
 
-            <div className="space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -2714,37 +2779,39 @@ export default function Inventario() {
             ) : null}
 
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
-              <Scanner
-                onScan={(detectedCodes) => {
-                  const code = detectedCodes?.[0]?.rawValue;
-                  if (code) {
-                    void consultarProductoEscaneado(code);
-                  }
-                }}
-                onError={(error) => {
-                  setErrorScanner(error?.message || 'No se pudo acceder a la cámara');
-                }}
-                formats={BARCODE_FORMATS}
-                constraints={{
-                  facingMode: 'environment',
-                }}
-                components={{
-                  finder: true,
-                  torch: true,
-                  zoom: true,
-                }}
-                paused={consultandoCodigo}
-                scanDelay={1000}
-                allowMultiple={false}
-                styles={{
-                  container: { width: '100%' },
-                  video: {
-                    width: '100%',
-                    height: 'auto',
-                    objectFit: 'cover',
-                  },
-                }}
-              />
+              <Suspense fallback={<div className="p-6 text-center text-sm text-white">Cargando escáner…</div>}>
+                <QrScanner
+                  onScan={(detectedCodes) => {
+                    const code = detectedCodes?.[0]?.rawValue;
+                    if (code) {
+                      void consultarProductoEscaneado(code);
+                    }
+                  }}
+                  onError={(error) => {
+                    setErrorScanner(error?.message || 'No se pudo acceder a la cámara');
+                  }}
+                  formats={BARCODE_FORMATS}
+                  constraints={{
+                    facingMode: 'environment',
+                  }}
+                  components={{
+                    finder: true,
+                    torch: true,
+                    zoom: true,
+                  }}
+                  paused={consultandoCodigo}
+                  scanDelay={1000}
+                  allowMultiple={false}
+                  styles={{
+                    container: { width: '100%' },
+                    video: {
+                      width: '100%',
+                      height: 'auto',
+                      objectFit: 'cover',
+                    },
+                  }}
+                />
+              </Suspense>
             </div>
 
             <div className="mt-4 flex items-center justify-between gap-3">
