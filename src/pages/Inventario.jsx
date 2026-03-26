@@ -2767,7 +2767,13 @@ export default function Inventario() {
         <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarModalConsulta} />
 
-          <div className="relative w-full max-w-3xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-7">
+          <div
+  className={`relative w-full overflow-y-auto rounded-3xl border border-gray-200 bg-white shadow-2xl ${
+    modoEdicionScanner
+      ? 'max-h-[88vh] max-w-2xl p-4 sm:p-5'
+      : 'max-h-[80vh] max-w-xl p-4 sm:p-5'
+  }`}
+>
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -2805,11 +2811,11 @@ export default function Inventario() {
               </div>
             ) : null}
 
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-[180px_minmax(0,1fr)]">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-[140px_minmax(0,1fr)]">
               <div className="flex justify-center md:justify-start">
                 {renderImagenProducto(
                   modoEdicionScanner ? formScanner : productoConsultado,
-                  'h-40 w-40'
+                  'h-24 w-24 sm:h-28 sm:w-28'
                 )}
               </div>
 
