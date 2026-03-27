@@ -107,7 +107,9 @@ const escapeRegExp = (value = '') =>
   String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const normalizarNumero = (value) => {
-  const raw = String(value ?? '').trim().replace(/\s/g, '');
+  const raw = String(value ?? '')
+    .replace(/[^\d,.\-]/g, '')
+    .trim();
 
   if (!raw) return NaN;
 
@@ -164,29 +166,52 @@ const esEncabezadoInventario = (text = '') => {
   );
 };
 
-const agruparItemsPorLinea = (items = []) => {
-  const lineas = new Map();
+const limpiarTextoCelda = (value = '') =>
+  String(value)
+    .replace(/\s+/g, ' ')
+    .replace(/^[|:;,\-]+|[|:;,\-]+$/g, '')
+    .trim();
 
-  items.forEach((item) => {
-    const str = String(item?.str ?? '').trim();
-    if (!str) return;
+const TOLERANCIA_Y_PDF = 3;
 
-    const y = Math.round(item.transform?.[5] ?? 0);
-    const x = item.transform?.[4] ?? 0;
+const agruparItemsPorLinea = (items = [], toleranciaY = TOLERANCIA_Y_PDF) => {
+  const lineas = [];
 
-    if (!lineas.has(y)) {
-      lineas.set(y, []);
+  const itemsLimpios = items
+    .map((item) => ({
+      str: String(item?.str ?? '').trim(),
+      x: Number(item?.transform?.[4] ?? 0),
+      y: Number(item?.transform?.[5] ?? 0),
+    }))
+    .filter((item) => item.str)
+    .sort((a, b) => {
+      if (Math.abs(b.y - a.y) > toleranciaY) return b.y - a.y;
+      return a.x - b.x;
+    });
+
+  itemsLimpios.forEach((item) => {
+    const lineaExistente = lineas.find(
+      (linea) => Math.abs(linea.baseY - item.y) <= toleranciaY
+    );
+
+    if (lineaExistente) {
+      lineaExistente.items.push({ str: item.str, x: item.x });
+      return;
     }
 
-    lineas.get(y).push({ str, x });
+    lineas.push({
+      baseY: item.y,
+      items: [{ str: item.str, x: item.x }],
+    });
   });
 
-  return [...lineas.entries()]
-    .sort((a, b) => b[0] - a[0])
-    .map(([y, fila]) => {
-      const itemsOrdenados = [...fila].sort((a, b) => a.x - b.x);
+  return lineas
+    .sort((a, b) => b.baseY - a.baseY)
+    .map((linea) => {
+      const itemsOrdenados = [...linea.items].sort((a, b) => a.x - b.x);
+
       return {
-        y,
+        y: linea.baseY,
         items: itemsOrdenados,
         text: normalizarEspacios(itemsOrdenados.map((item) => item.str).join(' ')),
       };
@@ -254,10 +279,102 @@ const construirLayoutDesdeEncabezado = (lineaEncabezado) => {
   });
 };
 
-const normalizarProductoDesdeColumnas = (columnas) => {
+const resolverCategoriaYNombre = (resto, categoriasConocidas = []) => {
+  const texto = limpiarTextoCelda(resto);
+  if (!texto) return null;
+
+  const categoriasOrdenadas = [...new Set(categoriasConocidas)]
+    .filter(Boolean)
+    .map((categoria) => String(categoria).trim())
+    .sort((a, b) => normalizarTexto(b).length - normalizarTexto(a).length);
+
+  const textoNormalizado = normalizarTexto(texto);
+
+  for (const categoria of categoriasOrdenadas) {
+    const categoriaNormalizada = normalizarTexto(categoria);
+
+    if (!textoNormalizado.startsWith(categoriaNormalizada)) continue;
+
+    let nombre = texto.slice(categoria.length).trim();
+
+    if (!nombre) {
+      const regex = new RegExp(`^${escapeRegExp(categoria)}\\s*`, 'i');
+      nombre = texto.replace(regex, '').trim();
+    }
+
+    if (!nombre && textoNormalizado !== categoriaNormalizada) continue;
+
+    return {
+      categoria,
+      nombre: nombre || '',
+    };
+  }
+
+  const partes = texto.split(/\s+/).filter(Boolean);
+
+  if (partes.length >= 2) {
+    return {
+      categoria: partes[0],
+      nombre: partes.slice(1).join(' '),
+    };
+  }
+
+  return {
+    categoria: 'General',
+    nombre: texto,
+  };
+};
+
+const extraerUltimosCamposNumericos = (linea = '') => {
+  const texto = normalizarEspacios(linea);
+
+  const match = texto.match(
+    /^(.*?)\s+([$€]?\s*-?\d[\d.,]*)\s+([$€]?\s*-?\d[\d.,]*)\s+(-?\d+)\s*$/
+  );
+
+  if (!match) return null;
+
+  const [, resto, costoRaw, precioRaw, stockRaw] = match;
+
+  const costoArtesano = normalizarNumero(costoRaw);
+  const precio = normalizarNumero(precioRaw);
+  const stock = Number.parseInt(String(stockRaw).replace(/[^\d-]/g, ''), 10);
+
+  if (
+    Number.isNaN(costoArtesano) ||
+    Number.isNaN(precio) ||
+    Number.isNaN(stock)
+  ) {
+    return null;
+  }
+
+  return {
+    resto: limpiarTextoCelda(resto),
+    costoArtesano,
+    precio,
+    stock,
+  };
+};
+
+const normalizarProductoDesdeColumnas = (columnas, categoriasConocidas = []) => {
   const codigo = String(columnas.codigo || '').trim().toUpperCase();
-  const categoria = String(columnas.categoria || '').trim();
-  const nombre = String(columnas.nombre || '').trim();
+
+  let categoria = limpiarTextoCelda(columnas.categoria || '');
+  let nombre = limpiarTextoCelda(columnas.nombre || '');
+
+  if ((!categoria || !nombre) && (columnas.categoria || columnas.nombre)) {
+    const combinado = limpiarTextoCelda(
+      `${columnas.categoria || ''} ${columnas.nombre || ''}`
+    );
+
+    const resuelto = resolverCategoriaYNombre(combinado, categoriasConocidas);
+
+    if (resuelto) {
+      categoria = categoria || resuelto.categoria;
+      nombre = nombre || resuelto.nombre;
+    }
+  }
+
   const costoArtesano = normalizarNumero(columnas.costoArtesano);
   const precio = normalizarNumero(columnas.precio);
   const stock = Number.parseInt(
@@ -288,7 +405,7 @@ const normalizarProductoDesdeColumnas = (columnas) => {
   };
 };
 
-const parsearLineaPorLayout = (linea, layout) => {
+const parsearLineaPorLayout = (linea, layout, categoriasConocidas = []) => {
   if (!layout?.length || !linea?.items?.length) return null;
   if (esEncabezadoInventario(linea.text)) return null;
 
@@ -304,81 +421,41 @@ const parsearLineaPorLayout = (linea, layout) => {
     columnas[columna.key] = `${columnas[columna.key] || ''} ${item.str}`.trim();
   });
 
-  return normalizarProductoDesdeColumnas(columnas);
-};
-
-const resolverCategoriaYNombre = (resto, categoriasConocidas = []) => {
-  const texto = normalizarEspacios(resto);
-  if (!texto) return null;
-
-  const categoriasOrdenadas = [...new Set(categoriasConocidas)]
-    .filter(Boolean)
-    .map((categoria) => String(categoria).trim())
-    .sort((a, b) => normalizarTexto(b).length - normalizarTexto(a).length);
-
-  const textoNormalizado = normalizarTexto(texto);
-
-  for (const categoria of categoriasOrdenadas) {
-    const categoriaNormalizada = normalizarTexto(categoria);
-
-    if (!textoNormalizado.startsWith(categoriaNormalizada)) continue;
-
-    let nombre = texto.slice(categoria.length).trim();
-
-    if (!nombre) {
-      const regex = new RegExp(`^${escapeRegExp(categoria)}\\s*`, 'i');
-      nombre = texto.replace(regex, '').trim();
-    }
-
-    if (!nombre && textoNormalizado !== categoriaNormalizada) continue;
-
-    return {
-      categoria,
-      nombre: nombre || '',
-    };
-  }
-
-  return null;
+  return normalizarProductoDesdeColumnas(columnas, categoriasConocidas);
 };
 
 const parsearLineaPorTexto = (text, categoriasConocidas = []) => {
   const linea = normalizarEspacios(text);
   if (!linea || esEncabezadoInventario(linea)) return null;
 
-  const match = linea.match(
-    /^(\S+)\s+(.+?)\s+(-?\d+(?:[.,]\d+)?)\s+(-?\d+(?:[.,]\d+)?)\s+(-?\d+)\s*$/
+  const datos = extraerUltimosCamposNumericos(linea);
+  if (!datos) return null;
+
+  const primerEspacio = datos.resto.indexOf(' ');
+  const codigoRaw =
+    primerEspacio === -1 ? datos.resto : datos.resto.slice(0, primerEspacio);
+  const restoDescripcion =
+    primerEspacio === -1 ? '' : datos.resto.slice(primerEspacio + 1);
+
+  if (!codigoRaw || !restoDescripcion) return null;
+
+  const categoriaYNombre = resolverCategoriaYNombre(
+    restoDescripcion,
+    categoriasConocidas
   );
-
-  if (!match) return null;
-
-  const [, codigoRaw, restoRaw, costoRaw, precioRaw, stockRaw] = match;
-  const categoriaYNombre = resolverCategoriaYNombre(restoRaw, categoriasConocidas);
 
   if (!categoriaYNombre || !categoriaYNombre.nombre) return null;
 
-  const producto = {
+  return {
     codigo: String(codigoRaw || '').trim().toUpperCase(),
     categoria: categoriaYNombre.categoria,
     nombre: categoriaYNombre.nombre,
-    costoArtesano: normalizarNumero(costoRaw),
-    precio: normalizarNumero(precioRaw),
-    stock: Number.parseInt(stockRaw, 10),
+    costoArtesano: datos.costoArtesano,
+    precio: datos.precio,
+    stock: datos.stock,
     imagenUrl: '',
     imagenPublicId: '',
   };
-
-  if (
-    !producto.codigo ||
-    !producto.categoria ||
-    !producto.nombre ||
-    Number.isNaN(producto.costoArtesano) ||
-    Number.isNaN(producto.precio) ||
-    Number.isNaN(producto.stock)
-  ) {
-    return null;
-  }
-
-  return producto;
 };
 
 const extraerProductosDesdePdf = async (file, categoriasConocidas = []) => {
@@ -388,10 +465,14 @@ const extraerProductosDesdePdf = async (file, categoriasConocidas = []) => {
 
   let layout = null;
   const productos = [];
+  const invalidas = [];
 
   for (let pagina = 1; pagina <= pdf.numPages; pagina += 1) {
     const page = await pdf.getPage(pagina);
-    const textContent = await page.getTextContent();
+    const textContent = await page.getTextContent({
+      normalizeWhitespace: true,
+      disableCombineTextItems: false,
+    });
     const lineas = agruparItemsPorLinea(textContent.items || []);
 
     if (!layout) {
@@ -405,7 +486,7 @@ const extraerProductosDesdePdf = async (file, categoriasConocidas = []) => {
       let producto = null;
 
       if (layout) {
-        producto = parsearLineaPorLayout(linea, layout);
+        producto = parsearLineaPorLayout(linea, layout, categoriasConocidas);
       }
 
       if (!producto) {
@@ -414,11 +495,19 @@ const extraerProductosDesdePdf = async (file, categoriasConocidas = []) => {
 
       if (producto) {
         productos.push(producto);
+        return;
+      }
+
+      if (!esEncabezadoInventario(linea.text) && /\d/.test(linea.text)) {
+        invalidas.push(`Pág. ${pagina}: ${linea.text}`);
       }
     });
   }
 
-  return consolidarProductosPorCodigo(productos);
+  return {
+    productos: consolidarProductosPorCodigo(productos),
+    invalidas,
+  };
 };
 
 export default function Inventario() {
@@ -1473,14 +1562,19 @@ export default function Inventario() {
 
       setImportandoPdf(true);
 
-      const productosExtraidos = await extraerProductosDesdePdf(
-        file,
-        categoriasDisponibles
-      );
+      const { productos: productosExtraidos, invalidas } =
+        await extraerProductosDesdePdf(file, categoriasDisponibles);
 
       if (!productosExtraidos.length) {
+        const detalle = invalidas.length
+          ? ` Líneas detectadas pero no válidas: ${invalidas.slice(0, 3).join(' | ')}${
+              invalidas.length > 3 ? ' | ...' : ''
+            }`
+          : '';
+
         throw new Error(
-          'No se encontraron filas válidas en el PDF. Verifica que las columnas estén en este orden: Código, Categoría, Nombre, Costo artesano, Precio venta y Stock.'
+          'No se encontraron filas válidas en el PDF. Verifica que exista texto real en el archivo y que las columnas sean: Código, Categoría, Nombre, Costo artesano, Precio venta y Stock.' +
+            detalle
         );
       }
 
@@ -1492,7 +1586,7 @@ export default function Inventario() {
 
       if (!pendientes.length) {
         throw new Error(
-          'No hay productos válidos para importar. Revisa el PDF e inténtalo de nuevo.'
+          'El PDF sí se leyó, pero no hubo productos nuevos ni stock por actualizar.'
         );
       }
 
@@ -1503,7 +1597,11 @@ export default function Inventario() {
       });
       setMostrarPreviewImportacion(true);
     } catch (error) {
-      setErrorAccion(error.message || 'No se pudo analizar el PDF');
+      setErrorAccion(
+        error?.response?.data?.mensaje ||
+          error?.message ||
+          'No se pudo analizar el PDF'
+      );
     } finally {
       setImportandoPdf(false);
       if (e.target) {
