@@ -306,9 +306,44 @@ export default function POS() {
   };
 
   const cerrarModalConsulta = () => {
-    setProductoConsultado(null);
-    enfocarBusqueda();
-  };
+  setProductoConsultado(null);
+  enfocarBusqueda();
+};
+
+const agregarProductoDesdeModalScanner = () => {
+  if (!productoConsultado) return;
+
+  setError('');
+  setMensajeExito('');
+
+  const stockDisponible = Number(
+    productoConsultado.stock ?? productoConsultado.stockDisponible ?? 0
+  );
+
+  if (stockDisponible <= 0) {
+    setError(`El producto ${productoConsultado.nombre} ya no tiene stock disponible.`);
+    return;
+  }
+
+  const itemEnCarrito = carritoRef.current.find(
+    (item) => item.producto === productoConsultado._id
+  );
+
+  if (itemEnCarrito && Number(itemEnCarrito.cantidad || 0) >= stockDisponible) {
+    setError(
+      `No puedes agregar más de ${stockDisponible} unidades de ${productoConsultado.nombre}.`
+    );
+    return;
+  }
+
+  agregarProducto(productoConsultado);
+  setProductoConsultado(null);
+  ultimoCodigoEscaneadoRef.current = '';
+  setMensajeExito(
+    'Producto agregado al carrito. Ahora captura la cantidad y el descuento como venta normal.'
+  );
+  enfocarBusqueda();
+};
 
   const consultarProductoEscaneado = async (rawValue) => {
     const codigo = normalizarCodigoEscaneado(rawValue);
@@ -2425,71 +2460,111 @@ export default function POS() {
       ) : null}
 
       {productoConsultado ? (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-3 sm:p-4">
-          <div className="absolute inset-0" onClick={cerrarModalConsulta} />
+  <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+    <div className="absolute inset-0" onClick={cerrarModalConsulta} />
 
-          <div className="relative w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-7">
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
-                  Consulta de producto
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Información encontrada por código de barras
-                </p>
-              </div>
+    <div className="relative w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-7">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
+            Consulta de producto
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Puedes solo consultar o añadirlo al carrito para capturar cantidad y descuento como venta normal
+          </p>
+        </div>
 
-              <button
-                type="button"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
-                onClick={cerrarModalConsulta}
-              >
-                <X size={18} />
-              </button>
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
+          onClick={cerrarModalConsulta}
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-[120px_minmax(0,1fr)]">
+        <div className="flex justify-center sm:justify-start">
+          {renderImagenProducto(
+            productoConsultado.imagenUrl,
+            productoConsultado.nombre,
+            'h-28 w-28',
+            22
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
+              {productoConsultado.codigo || 'Sin código'}
+            </span>
+
+            <h4 className="mt-3 text-2xl font-bold text-gray-900">
+              {productoConsultado.nombre}
+            </h4>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+              {productoConsultado.categoria || 'General'}
+            </span>
+
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                Number(productoConsultado.stock || 0) > 0
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-red-100 text-red-700'
+              }`}
+            >
+              {Number(productoConsultado.stock || 0) > 0
+                ? `Stock: ${productoConsultado.stock}`
+                : 'Sin stock'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl bg-gray-50 px-4 py-3">
+              <p className="text-xs text-gray-500">Precio de venta</p>
+              <p className="mt-1 text-lg font-bold text-indigo-700">
+                {formatearMoneda(productoConsultado.precio || 0)}
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                <p className="text-xs text-gray-500">Código</p>
-                <p className="mt-1 text-sm font-semibold text-gray-800">
-                  {productoConsultado.codigo || '—'}
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                <p className="text-xs text-gray-500">Stock</p>
-                <p className="mt-1 text-sm font-semibold text-gray-800">
-                  {productoConsultado.stock ?? 0}
-                </p>
-              </div>
-
-              <div className="sm:col-span-2 rounded-2xl bg-gray-50 px-4 py-3">
-                <p className="text-xs text-gray-500">Nombre</p>
-                <p className="mt-1 text-sm font-semibold text-gray-800">
-                  {productoConsultado.nombre || '—'}
-                </p>
-              </div>
-
-              <div className="sm:col-span-2 rounded-2xl bg-gray-50 px-4 py-3">
-                <p className="text-xs text-gray-500">Precio venta</p>
-                <p className="mt-1 text-sm font-semibold text-gray-800">
-                  {formatearMoneda(productoConsultado.precio)}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-                onClick={cerrarModalConsulta}
-              >
-                Cerrar
-              </button>
+            <div className="rounded-2xl bg-gray-50 px-4 py-3">
+              <p className="text-xs text-gray-500">Stock disponible</p>
+              <p className="mt-1 text-lg font-semibold text-gray-900">
+                {Number(productoConsultado.stock || productoConsultado.stockDisponible || 0)}
+              </p>
             </div>
           </div>
+
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+            Si lo añades al carrito, aparecerá en el formulario de venta normal para que captures la cantidad y el descuento.
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={agregarProductoDesdeModalScanner}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            >
+              <ShoppingCart size={18} />
+              Añadir al carrito
+            </button>
+
+            <button
+              type="button"
+              onClick={cerrarModalConsulta}
+              className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            >
+              Solo consultar
+            </button>
+          </div>
         </div>
-      ) : null}
+      </div>
+    </div>
+  </div>
+) : null}
     </Layout>
   );
 }
