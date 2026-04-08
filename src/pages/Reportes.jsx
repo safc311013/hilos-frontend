@@ -16,6 +16,7 @@ import {
   CreditCard,
   Landmark,
   Receipt,
+  Filter,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -37,6 +38,7 @@ export default function Reportes() {
   const [resultado, setResultado] = useState(null);
   const [loading, setLoading] = useState(false);
   const [busqueda, setBusqueda] = useState('');
+  const [usuarioFiltro, setUsuarioFiltro] = useState('');
   const [error, setError] = useState('');
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
 
@@ -57,6 +59,7 @@ export default function Reportes() {
       setLoading(true);
       const { data } = await api.get(`/reportes/por-fecha?inicio=${inicio}&fin=${fin}`);
       setResultado(data);
+      setUsuarioFiltro('');
     } catch (err) {
       setError(err.response?.data?.mensaje || 'No se pudo consultar el reporte');
     } finally {
@@ -80,18 +83,44 @@ export default function Reportes() {
     return Number(item.subtotalFinal ?? item.subtotal ?? 0);
   };
 
+  const usuariosDisponibles = useMemo(() => {
+    if (!resultado?.ventas) return [];
+
+    const mapa = new Map();
+
+    resultado.ventas.forEach((venta) => {
+      const id = venta.usuario?._id || venta.usuario?.id || venta.usuario?.nombre || '';
+      const nombre = String(venta.usuario?.nombre || '').trim();
+
+      if (id && nombre && !mapa.has(id)) {
+        mapa.set(id, {
+          id,
+          nombre,
+        });
+      }
+    });
+
+    return Array.from(mapa.values()).sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    );
+  }, [resultado]);
+
   const ventasFiltradas = useMemo(() => {
     if (!resultado?.ventas) return [];
 
     const texto = busqueda.trim().toLowerCase();
-    if (!texto) return resultado.ventas;
 
     return resultado.ventas.filter((venta) => {
       const folio = String(venta.folio || '').toLowerCase();
       const usuario = String(venta.usuario?.nombre || '').toLowerCase();
-      return folio.includes(texto) || usuario.includes(texto);
+      const usuarioId = String(venta.usuario?._id || venta.usuario?.id || venta.usuario?.nombre || '');
+
+      const coincideBusqueda = !texto || folio.includes(texto) || usuario.includes(texto);
+      const coincideUsuario = !usuarioFiltro || usuarioId === usuarioFiltro;
+
+      return coincideBusqueda && coincideUsuario;
     });
-  }, [resultado, busqueda]);
+  }, [resultado, busqueda, usuarioFiltro]);
 
   const totalFiltrado = useMemo(() => {
     return ventasFiltradas.reduce((acc, venta) => acc + Number(venta.total || 0), 0);
@@ -131,7 +160,12 @@ export default function Reportes() {
 
     XLSX.utils.book_append_sheet(libro, hoja, 'Reporte');
 
-    const nombreArchivo = `reporte_${inicio}_a_${fin}.xlsx`;
+    const nombreUsuario =
+      usuariosDisponibles.find((u) => u.id === usuarioFiltro)?.nombre
+        ?.replace(/\s+/g, '_')
+        ?.replace(/[^\w-]/g, '') || 'todos';
+
+    const nombreArchivo = `reporte_${inicio}_a_${fin}_${nombreUsuario}.xlsx`;
     XLSX.writeFile(libro, nombreArchivo);
   };
 
@@ -449,27 +483,65 @@ export default function Reportes() {
             </div>
 
             <div className="card p-5 sm:p-6">
-              <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <h4 className="text-lg font-semibold text-gray-800 sm:text-xl">
-                    Detalle del reporte
-                  </h4>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Rango consultado: {resultado.rango?.inicio} a {resultado.rango?.fin}
-                  </p>
+              <div className="mb-5 flex flex-col gap-4">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-800 sm:text-xl">
+                      Detalle del reporte
+                    </h4>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Rango consultado: {resultado.rango?.inicio} a {resultado.rango?.fin}
+                    </p>
+                  </div>
+
+                  <div className="relative w-full lg:w-[340px]">
+                    <Search
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+                    <input
+                      className="h-11 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                      placeholder="Buscar por folio o usuario"
+                      value={busqueda}
+                      onChange={(e) => setBusqueda(e.target.value)}
+                    />
+                  </div>
                 </div>
 
-                <div className="relative w-full lg:w-[340px]">
-                  <Search
-                    size={18}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                  />
-                  <input
-                    className="h-11 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                    placeholder="Buscar por folio o usuario"
-                    value={busqueda}
-                    onChange={(e) => setBusqueda(e.target.value)}
-                  />
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-[280px_auto]">
+                  <div>
+                    <label className="mb-1 flex items-center gap-2 text-sm font-medium text-gray-700">
+                      <Filter size={16} />
+                      Filtrar por usuario
+                    </label>
+                    <select
+                      value={usuarioFiltro}
+                      onChange={(e) => setUsuarioFiltro(e.target.value)}
+                      className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    >
+                      <option value="">Todos los usuarios</option>
+                      {usuariosDisponibles.map((usuario) => (
+                        <option key={usuario.id} value={usuario.id}>
+                          {usuario.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-end">
+                    {(busqueda || usuarioFiltro) ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBusqueda('');
+                          setUsuarioFiltro('');
+                        }}
+                        className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                      >
+                        Limpiar filtros
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
@@ -479,7 +551,7 @@ export default function Reportes() {
                     No hay ventas para mostrar
                   </p>
                   <p className="mt-2 text-sm text-gray-500">
-                    Ajusta el rango o cambia la búsqueda
+                    Ajusta el rango, la búsqueda o el filtro de usuario
                   </p>
                 </div>
               ) : (
