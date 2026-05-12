@@ -579,6 +579,13 @@ export default function Inventario() {
   const [productosPendientesImportacion, setProductosPendientesImportacion] = useState(
     []
   );
+  const [inventarioImportacion, setInventarioImportacion] = useState(
+    INVENTARIOS.TIENDA
+  );
+  const [mostrarOpcionesExportacion, setMostrarOpcionesExportacion] = useState(false);
+  const [inventarioExportacion, setInventarioExportacion] = useState(
+    INVENTARIOS.TIENDA
+  );
   const [mostrarScanner, setMostrarScanner] = useState(false);
   const [productoConsultado, setProductoConsultado] = useState(null);
   const [consultandoCodigo, setConsultandoCodigo] = useState(false);
@@ -848,6 +855,15 @@ export default function Inventario() {
     [resumenImportacion.detalles]
   );
 
+  const calcularStockDestinoImportacion = (producto = {}, cantidad = 0) => {
+    const stockActual =
+      inventarioImportacion === INVENTARIOS.TAXCO
+        ? obtenerStockTaxco(producto)
+        : obtenerStockTienda(producto);
+
+    return stockActual + Number(cantidad || 0);
+  };
+
   if (!puede(PERMISOS.GESTIONAR_INVENTARIO)) {
     return (
       <Layout>
@@ -997,8 +1013,9 @@ export default function Inventario() {
     };
   };
 
-  const importarProductoDesdePdf = async (detalle) => {
+  const importarProductoDesdePdf = async (detalle, inventarioDestino) => {
     const producto = detalle?.producto;
+    const destino = normalizarInventario(inventarioDestino);
 
     if (!producto?.codigo) {
       throw new Error('Producto inválido para importar');
@@ -1007,7 +1024,14 @@ export default function Inventario() {
     if (detalle?.tipo === 'actualizar' && detalle?.existente?._id) {
       const stockActual = Number(detalle.existente.stock || 0);
       const stockImportado = Number(producto.stock || 0);
-      const stockTiendaFinal = obtenerStockTienda(detalle.existente) + stockImportado;
+      const stockTaxcoFinal =
+        destino === INVENTARIOS.TAXCO
+          ? obtenerStockTaxco(detalle.existente) + stockImportado
+          : obtenerStockTaxco(detalle.existente);
+      const stockTiendaFinal =
+        destino === INVENTARIOS.TIENDA
+          ? obtenerStockTienda(detalle.existente) + stockImportado
+          : obtenerStockTienda(detalle.existente);
 
       const payload = {
         codigo: String(detalle.existente.codigo || producto.codigo || '')
@@ -1021,10 +1045,10 @@ export default function Inventario() {
           detalle.existente.costoArtesano ?? producto.costoArtesano ?? 0
         ),
         precio: Number(detalle.existente.precio ?? producto.precio ?? 0),
-        stockTaxco: obtenerStockTaxco(detalle.existente),
+        stockTaxco: stockTaxcoFinal,
         stockTienda: stockTiendaFinal,
         stock: stockActual + stockImportado,
-        inventario: normalizarInventario(detalle.existente.inventario),
+        inventario: destino,
         imagenUrl: detalle.existente.imagenUrl || '',
         imagenPublicId: detalle.existente.imagenPublicId || '',
       };
@@ -1039,9 +1063,11 @@ export default function Inventario() {
 
     await api.post('/productos', {
       ...producto,
-      stockTienda: Number(producto.stock || 0),
-      stockTaxco: 0,
-      inventario: INVENTARIOS.TIENDA,
+      stockTienda:
+        destino === INVENTARIOS.TIENDA ? Number(producto.stock || 0) : 0,
+      stockTaxco:
+        destino === INVENTARIOS.TAXCO ? Number(producto.stock || 0) : 0,
+      inventario: destino,
       imagenUrl: '',
       imagenPublicId: '',
     });
@@ -1125,6 +1151,7 @@ export default function Inventario() {
     setMostrarPreviewImportacion(false);
     setResumenImportacion(initialResumenImportacion);
     setProductosPendientesImportacion([]);
+    setInventarioImportacion(INVENTARIOS.TIENDA);
   };
 
   const cerrarPreviewImportacion = () => {
@@ -1662,7 +1689,10 @@ export default function Inventario() {
 
       for (const detalle of productosPendientesImportacion) {
         try {
-          const resultado = await importarProductoDesdePdf(detalle);
+          const resultado = await importarProductoDesdePdf(
+            detalle,
+            inventarioImportacion
+          );
 
           if (resultado.tipo === 'creado') {
             creados += 1;
@@ -1759,16 +1789,33 @@ export default function Inventario() {
     return items;
   };
 
-  const exportarInventarioExcel = async () => {
+  const abrirOpcionesExportacion = () => {
+    setErrorAccion('');
+    setMensajeAccion('');
+    setInventarioExportacion(INVENTARIOS.TIENDA);
+    setMostrarOpcionesExportacion(true);
+  };
+
+  const exportarInventarioExcel = async (
+    inventarioSeleccionado = INVENTARIOS.TIENDA
+  ) => {
     try {
       setExportandoExcel(true);
       setErrorAccion('');
       setMensajeAccion('');
 
-      const items = await obtenerTodosLosProductosParaExportar();
+      const inventarioDestino = normalizarInventario(inventarioSeleccionado);
+      const itemsBase = await obtenerTodosLosProductosParaExportar();
+      const items = itemsBase.filter((producto) =>
+        inventarioDestino === INVENTARIOS.TAXCO
+          ? obtenerStockTaxco(producto) > 0
+          : obtenerStockTienda(producto) > 0
+      );
 
       if (!items.length) {
-        setErrorAccion('No hay productos para exportar');
+        setErrorAccion(
+          `No hay productos con stock en inventario de ${INVENTARIO_LABELS[inventarioDestino]} para exportar`
+        );
         return;
       }
       const { default: ExcelJS } = await import('exceljs');
@@ -1777,9 +1824,10 @@ export default function Inventario() {
       workbook.created = new Date();
       workbook.modified = new Date();
 
-      const worksheet = workbook.addWorksheet('Inventario', {
-        views: [{ state: 'frozen', ySplit: 1 }],
-      });
+      const worksheet = workbook.addWorksheet(
+        `Inventario ${INVENTARIO_LABELS[inventarioDestino]}`,
+        { views: [{ state: 'frozen', ySplit: 1 }] }
+      );
 
       worksheet.columns = [
         { header: 'Código', key: 'codigo', width: 16 },
@@ -1787,9 +1835,12 @@ export default function Inventario() {
         { header: 'Nombre', key: 'nombre', width: 38 },
         { header: 'Costo artesano', key: 'costoArtesano', width: 18 },
         { header: 'Precio venta', key: 'precio', width: 18 },
+        {
+          header: `Stock ${INVENTARIO_LABELS[inventarioDestino]}`,
+          key: 'stockInventario',
+          width: 16,
+        },
         { header: 'Stock total', key: 'stock', width: 12 },
-        { header: 'Stock Tienda', key: 'stockTienda', width: 14 },
-        { header: 'Stock Taxco', key: 'stockTaxco', width: 14 },
         { header: 'Estado', key: 'estado', width: 14 },
       ];
 
@@ -1820,12 +1871,16 @@ export default function Inventario() {
 
       worksheet.autoFilter = {
         from: 'A1',
-        to: 'I1',
+        to: 'H1',
       };
 
       items.forEach((producto) => {
+        const stockInventario =
+          inventarioDestino === INVENTARIOS.TAXCO
+            ? obtenerStockTaxco(producto)
+            : obtenerStockTienda(producto);
         const stock = obtenerStockTotal(producto);
-        const estado = getStockLabel(stock);
+        const estado = getStockLabel(stockInventario);
 
         const row = worksheet.addRow({
           codigo: producto.codigo || '',
@@ -1833,9 +1888,8 @@ export default function Inventario() {
           nombre: producto.nombre || '',
           costoArtesano: Number(producto.costoArtesano || 0),
           precio: Number(producto.precio || 0),
+          stockInventario,
           stock,
-          stockTienda: obtenerStockTienda(producto),
-          stockTaxco: obtenerStockTaxco(producto),
           estado,
         });
 
@@ -1862,10 +1916,9 @@ export default function Inventario() {
               colNumber === 4 ||
               colNumber === 5 ||
               colNumber === 6 ||
-              colNumber === 7 ||
-              colNumber === 8
+              colNumber === 7
                 ? 'right'
-                : colNumber === 9
+                : colNumber === 8
                 ? 'center'
                 : 'left',
           };
@@ -1898,7 +1951,15 @@ export default function Inventario() {
         nombre: `Total de productos: ${items.length}`,
         costoArtesano: '',
         precio: '',
-        stock: items.reduce((acc, item) => acc + Number(item.stock || 0), 0),
+        stockInventario: items.reduce(
+          (acc, item) =>
+            acc +
+            (inventarioDestino === INVENTARIOS.TAXCO
+              ? obtenerStockTaxco(item)
+              : obtenerStockTienda(item)),
+          0
+        ),
+        stock: items.reduce((acc, item) => acc + obtenerStockTotal(item), 0),
         estado: '',
       });
 
@@ -1933,13 +1994,15 @@ export default function Inventario() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `inventario_${yyyy}-${mm}-${dd}.xlsx`;
+      link.download = `inventario_${inventarioDestino}_${yyyy}-${mm}-${dd}.xlsx`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      setMensajeAccion(`Se exportaron ${items.length} producto(s) a Excel`);
+      setMensajeAccion(
+        `Se exportaron ${items.length} producto(s) del inventario de ${INVENTARIO_LABELS[inventarioDestino]} a Excel`
+      );
     } catch (error) {
       setErrorAccion(
         error.response?.data?.mensaje || 'No se pudo exportar el inventario'
@@ -2038,7 +2101,7 @@ export default function Inventario() {
               <button
                 type="button"
                 className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={exportarInventarioExcel}
+                onClick={abrirOpcionesExportacion}
                 disabled={exportandoExcel || loading || importandoPdf}
               >
                 <FileSpreadsheet size={17} />
@@ -2688,6 +2751,23 @@ export default function Inventario() {
                     Archivo: <span className="font-medium">{resumenImportacion.archivo}</span>
                   </p>
 
+                  <div className="mt-4 max-w-xs">
+                    <label className="mb-1 block text-sm font-semibold text-gray-700">
+                      Cargar productos en
+                    </label>
+                    <select
+                      className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                      value={inventarioImportacion}
+                      onChange={(e) =>
+                        setInventarioImportacion(normalizarInventario(e.target.value))
+                      }
+                      disabled={importandoPdf}
+                    >
+                      <option value={INVENTARIOS.TIENDA}>Inventario de Tienda</option>
+                      <option value={INVENTARIOS.TAXCO}>Inventario de Taxco</option>
+                    </select>
+                  </div>
+
                   <p className="mt-1 text-xs text-gray-400">
                     Los productos existentes no se duplicarán: solo se sumará el stock.
                   </p>
@@ -2822,13 +2902,25 @@ export default function Inventario() {
                             <th className="px-4 py-3">Categoría actual</th>
                             <th className="px-4 py-3">Nombre actual</th>
                             <th className="px-4 py-3 text-right">Stock PDF</th>
-                            <th className="px-4 py-3 text-right">Stock actual</th>
-                            <th className="px-4 py-3 text-right">Stock final</th>
+                            <th className="px-4 py-3 text-right">
+                              Stock actual {INVENTARIO_LABELS[inventarioImportacion]}
+                            </th>
+                            <th className="px-4 py-3 text-right">
+                              Stock final {INVENTARIO_LABELS[inventarioImportacion]}
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
                           {productosActualizarStockImportacion.map((detalle) => {
                             const existente = detalle.existente || {};
+                            const stockDestinoActual =
+                              inventarioImportacion === INVENTARIOS.TAXCO
+                                ? obtenerStockTaxco(existente)
+                                : obtenerStockTienda(existente);
+                            const stockDestinoFinal = calcularStockDestinoImportacion(
+                              existente,
+                              detalle.stockImportado
+                            );
 
                             return (
                               <tr
@@ -2848,10 +2940,10 @@ export default function Inventario() {
                                   {Number(detalle.stockImportado || 0)}
                                 </td>
                                 <td className="px-4 py-4 text-right text-gray-700">
-                                  {Number(detalle.stockActual || 0)}
+                                  {stockDestinoActual}
                                 </td>
                                 <td className="px-4 py-4 text-right font-bold text-amber-700">
-                                  {Number(detalle.stockFinal || 0)}
+                                  {stockDestinoFinal}
                                 </td>
                               </tr>
                             );
@@ -2928,6 +3020,76 @@ export default function Inventario() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {mostrarOpcionesExportacion ? (
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div
+            className="absolute inset-0"
+            onClick={() => !exportandoExcel && setMostrarOpcionesExportacion(false)}
+          />
+
+          <div className="relative w-full max-w-md rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Exportar inventario
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Elige qué inventario quieres enviar al archivo Excel.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200 disabled:opacity-60"
+                onClick={() => setMostrarOpcionesExportacion(false)}
+                disabled={exportandoExcel}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              Inventario
+            </label>
+            <select
+              className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              value={inventarioExportacion}
+              onChange={(e) =>
+                setInventarioExportacion(normalizarInventario(e.target.value))
+              }
+              disabled={exportandoExcel}
+            >
+              <option value={INVENTARIOS.TIENDA}>Inventario de Tienda</option>
+              <option value={INVENTARIOS.TAXCO}>Inventario de Taxco</option>
+            </select>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setMostrarOpcionesExportacion(false)}
+                disabled={exportandoExcel}
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await exportarInventarioExcel(inventarioExportacion);
+                  setMostrarOpcionesExportacion(false);
+                }}
+                disabled={exportandoExcel}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+              >
+                <FileSpreadsheet size={17} />
+                {exportandoExcel ? 'Exportando...' : 'Exportar'}
+              </button>
             </div>
           </div>
         </div>
