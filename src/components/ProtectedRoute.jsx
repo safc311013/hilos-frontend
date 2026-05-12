@@ -28,6 +28,10 @@ export default function ProtectedRoute({ children, roles = [] }) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  if (usuario.debeCambiarPassword) {
+    return <Navigate to="/login" replace state={{ requiereCambioPassword: true }} />;
+  }
+
   const rolUsuario = normalizarRol(usuario?.rol);
   const rolesPermitidos = roles.map(normalizarRol);
 

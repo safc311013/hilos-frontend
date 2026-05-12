@@ -1,21 +1,36 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, cambiarPassword, usuario } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [form, setForm] = useState({
     email: '',
     password: '',
   });
+  const [cambioForm, setCambioForm] = useState({
+    passwordActual: '',
+    nuevaPassword: '',
+    confirmarPassword: '',
+  });
+  const [passwordTemporal, setPasswordTemporal] = useState('');
+  const [modoCambioPassword, setModoCambioPassword] = useState(
+    Boolean(location.state?.requiereCambioPassword || usuario?.debeCambiarPassword)
+  );
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showNuevaPassword, setShowNuevaPassword] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleCambioChange = (e) => {
+    setCambioForm({ ...cambioForm, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -24,10 +39,46 @@ export default function Login() {
     try {
       setLoading(true);
       setError('');
-      await login(form.email, form.password);
+      const resultado = await login(form.email, form.password);
+
+      if (resultado?.debeCambiarPassword) {
+        setPasswordTemporal(form.password);
+        setModoCambioPassword(true);
+        setCambioForm({
+          passwordActual: '',
+          nuevaPassword: '',
+          confirmarPassword: '',
+        });
+        return;
+      }
+
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.mensaje || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCambiarPassword = async (e) => {
+    e.preventDefault();
+
+    try {
+      setLoading(true);
+      setError('');
+
+      await cambiarPassword({
+        passwordActual:
+          passwordTemporal || form.password || cambioForm.passwordActual,
+        nuevaPassword: cambioForm.nuevaPassword,
+        confirmarPassword: cambioForm.confirmarPassword,
+      });
+
+      setModoCambioPassword(false);
+      setPasswordTemporal('');
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.mensaje || 'No se pudo cambiar la contraseÃ±a');
     } finally {
       setLoading(false);
     }
@@ -66,6 +117,7 @@ export default function Login() {
                 </p>
               </div>
 
+              {!modoCambioPassword ? (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-200">
@@ -125,6 +177,88 @@ export default function Login() {
                   {loading ? 'Ingresando...' : 'Entrar al sistema'}
                 </button>
               </form>
+              ) : (
+                <form onSubmit={handleCambiarPassword} className="space-y-4">
+                  <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                    Es tu primer acceso o tu usuario fue restablecido. Define una nueva contraseÃ±a para continuar.
+                  </div>
+
+                  {!passwordTemporal && !form.password ? (
+                    <div>
+                      <label className="mb-1.5 block text-sm font-medium text-slate-200">
+                        ContraseÃ±a temporal
+                      </label>
+                      <input
+                        type="password"
+                        name="passwordActual"
+                        value={cambioForm.passwordActual}
+                        onChange={handleCambioChange}
+                        placeholder="Ingresa la contraseÃ±a temporal"
+                        autoComplete="current-password"
+                        required
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
+                      />
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-200">
+                      Nueva contraseÃ±a
+                    </label>
+
+                    <div className="relative">
+                      <input
+                        type={showNuevaPassword ? 'text' : 'password'}
+                        name="nuevaPassword"
+                        value={cambioForm.nuevaPassword}
+                        onChange={handleCambioChange}
+                        placeholder="MÃ­nimo 6 caracteres"
+                        autoComplete="new-password"
+                        required
+                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pr-24 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => setShowNuevaPassword(!showNuevaPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-medium text-indigo-300 transition hover:bg-white/10 hover:text-white"
+                      >
+                        {showNuevaPassword ? 'Ocultar' : 'Mostrar'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-200">
+                      Confirmar contraseÃ±a
+                    </label>
+                    <input
+                      type={showNuevaPassword ? 'text' : 'password'}
+                      name="confirmarPassword"
+                      value={cambioForm.confirmarPassword}
+                      onChange={handleCambioChange}
+                      placeholder="Repite la nueva contraseÃ±a"
+                      autoComplete="new-password"
+                      required
+                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
+                    />
+                  </div>
+
+                  {error ? (
+                    <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-2xl bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-4 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:scale-[1.01] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {loading ? 'Actualizando...' : 'Guardar nueva contraseÃ±a'}
+                  </button>
+                </form>
+              )}
 
               <div className="mt-5 text-center">
                 <p className="text-xs leading-relaxed text-slate-400">

@@ -27,6 +27,11 @@ export default function Usuarios() {
     abierto: false,
     usuario: null,
   });
+  const [modalRestablecer, setModalRestablecer] = useState({
+    abierto: false,
+    usuario: null,
+  });
+  const [passwordTemporalReset, setPasswordTemporalReset] = useState('');
 
   const cargarUsuarios = async () => {
     const { data } = await api.get('/usuarios');
@@ -69,6 +74,7 @@ export default function Usuarios() {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
+        if (modalRestablecer.abierto) cerrarModalRestablecer();
         if (modalEliminar.abierto) cerrarModalEliminar();
         if (modalFormulario) cerrarModalFormulario();
       }
@@ -76,10 +82,10 @@ export default function Usuarios() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [modalEliminar.abierto, modalFormulario]);
+  }, [modalEliminar.abierto, modalRestablecer.abierto, modalFormulario]);
 
   useEffect(() => {
-    if (modalEliminar.abierto || modalFormulario) {
+    if (modalEliminar.abierto || modalRestablecer.abierto || modalFormulario) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -88,7 +94,7 @@ export default function Usuarios() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [modalEliminar.abierto, modalFormulario]);
+  }, [modalEliminar.abierto, modalRestablecer.abierto, modalFormulario]);
 
   if (!puede(PERMISOS.GESTIONAR_USUARIOS)) {
     return (
@@ -194,6 +200,40 @@ export default function Usuarios() {
     });
   };
 
+  const abrirModalRestablecer = (item) => {
+    setErrorAccion('');
+    setPasswordTemporalReset('');
+    setModalRestablecer({
+      abierto: true,
+      usuario: item,
+    });
+  };
+
+  const cerrarModalRestablecer = () => {
+    setModalRestablecer({
+      abierto: false,
+      usuario: null,
+    });
+    setPasswordTemporalReset('');
+  };
+
+  const confirmarRestablecer = async () => {
+    if (!modalRestablecer.usuario?._id) return;
+
+    try {
+      setErrorAccion('');
+      await api.post(`/usuarios/${modalRestablecer.usuario._id}/restablecer`, {
+        password: passwordTemporalReset,
+      });
+      cerrarModalRestablecer();
+      await cargarUsuarios();
+    } catch (error) {
+      setErrorAccion(
+        error.response?.data?.mensaje || 'No se pudo restablecer el usuario'
+      );
+    }
+  };
+
   const confirmarEliminacion = async () => {
     if (!modalEliminar.usuario?._id) return;
 
@@ -271,6 +311,9 @@ export default function Usuarios() {
             onChange={handleChange}
             required
           />
+          <p className="mt-1 text-xs text-gray-500">
+            Esta es una contraseÃ±a temporal. El usuario deberÃ¡ cambiarla en su primer inicio de sesiÃ³n.
+          </p>
         </div>
       ) : null}
 
@@ -459,6 +502,12 @@ export default function Usuarios() {
                               >
                                 {item.activo ? 'Activo' : 'Inactivo'}
                               </span>
+
+                              {item.debeCambiarPassword ? (
+                                <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                                  Cambio pendiente
+                                </span>
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -478,6 +527,14 @@ export default function Usuarios() {
                             onClick={() => abrirModalEliminar(item)}
                           >
                             Eliminar
+                          </button>
+
+                          <button
+                            type="button"
+                            className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-100 sm:col-span-2"
+                            onClick={() => abrirModalRestablecer(item)}
+                          >
+                            Restablecer acceso
                           </button>
                         </div>
                       </div>
@@ -531,6 +588,11 @@ export default function Usuarios() {
                               >
                                 {item.activo ? 'Activo' : 'Inactivo'}
                               </span>
+                              {item.debeCambiarPassword ? (
+                                <span className="ml-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                                  Cambio pendiente
+                                </span>
+                              ) : null}
                             </td>
 
                             <td className="px-6 py-5">
@@ -541,6 +603,14 @@ export default function Usuarios() {
                                   onClick={() => editar(item)}
                                 >
                                   Editar
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="rounded-xl bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-100"
+                                  onClick={() => abrirModalRestablecer(item)}
+                                >
+                                  Restablecer
                                 </button>
 
                                 <button
@@ -613,6 +683,67 @@ export default function Usuarios() {
             </div>
 
             {FormularioUsuario}
+          </div>
+        </div>
+      )}
+
+      {modalRestablecer.abierto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:px-4"
+          onClick={cerrarModalRestablecer}
+        >
+          <div
+            className="w-full max-w-md rounded-[28px] border border-gray-200 bg-white p-5 shadow-2xl sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
+              !
+            </div>
+
+            <div className="mt-4 text-center">
+              <h3 className="text-xl font-bold text-gray-900">
+                Restablecer acceso
+              </h3>
+              <p className="mt-2 text-sm text-gray-500">
+                Asigna una nueva contraseÃ±a temporal para{' '}
+                <span className="font-semibold text-gray-800">
+                  {modalRestablecer.usuario?.nombre}
+                </span>
+                . Al iniciar sesiÃ³n se le pedirÃ¡ cambiarla.
+              </p>
+            </div>
+
+            <div className="mt-5">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Nueva contraseÃ±a temporal
+              </label>
+              <input
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100"
+                type="password"
+                value={passwordTemporalReset}
+                onChange={(e) => setPasswordTemporalReset(e.target.value)}
+                placeholder="MÃ­nimo 6 caracteres"
+                required
+              />
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={cerrarModalRestablecer}
+                className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmarRestablecer}
+                className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700"
+              >
+                Restablecer
+              </button>
+            </div>
           </div>
         </div>
       )}

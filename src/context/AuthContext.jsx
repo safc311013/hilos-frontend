@@ -58,6 +58,31 @@ export const AuthProvider = ({ children }) => {
 
     setToken(data.token);
     setUsuario(usuarioNormalizado);
+
+    return {
+      token: data.token,
+      usuario: usuarioNormalizado,
+      debeCambiarPassword: Boolean(usuarioNormalizado?.debeCambiarPassword),
+    };
+  };
+
+  const cambiarPassword = async ({
+    passwordActual,
+    nuevaPassword,
+    confirmarPassword,
+  }) => {
+    const { data } = await api.post('/auth/cambiar-password', {
+      passwordActual,
+      nuevaPassword,
+      confirmarPassword,
+    });
+
+    const usuarioNormalizado = normalizarUsuario(data.usuario);
+
+    localStorage.setItem('usuario', JSON.stringify(usuarioNormalizado));
+    setUsuario(usuarioNormalizado);
+
+    return usuarioNormalizado;
   };
 
   const logout = () => {
@@ -74,6 +99,7 @@ export const AuthProvider = ({ children }) => {
       loading,
       autenticado: !!token && !!usuario,
       login,
+      cambiarPassword,
       logout,
     }),
     [usuario, token, loading]
