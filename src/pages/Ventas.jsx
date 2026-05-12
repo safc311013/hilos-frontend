@@ -78,6 +78,9 @@ const obtenerSubtotalItem = (item) => {
   return Number(item.subtotalFinal ?? item.subtotal ?? 0);
 };
 
+const getInventarioLabel = (valor) =>
+  String(valor || '').toLowerCase() === 'taxco' ? 'Taxco' : 'Tienda';
+
 const construirTicketDesdeVenta = (venta) => {
   const metodo = getMetodoPagoInfo(venta?.metodoPago);
 
@@ -98,6 +101,7 @@ const construirTicketDesdeVenta = (venta) => {
       subtotal: obtenerSubtotalItem(item),
       descuento: Number(item.descuentoPorcentaje || 0),
       montoDescuento: Number(item.descuentoMonto || 0),
+      inventarioOrigen: getInventarioLabel(item.inventarioOrigen),
     })),
   };
 };
@@ -1022,6 +1026,10 @@ export default function Ventas() {
                                     </span>
                                   ) : null}
 
+                                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
+                                    Inventario: {getInventarioLabel(item.inventarioOrigen)}
+                                  </span>
+
                                   {item.pieza ? (
                                     <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
                                       Pieza: {item.pieza}
@@ -1171,6 +1179,9 @@ export default function Ventas() {
                       {ticketActual.productos.map((item, index) => (
                         <div key={`${item.nombre}-${index}`} className="text-sm">
                           <p className="font-semibold text-gray-900">{item.nombre}</p>
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            Inventario: {item.inventarioOrigen}
+                          </p>
                           <div className="mt-1 flex items-center justify-between gap-3 text-gray-600">
                             <span>
                               {item.cantidad} x {formatearMoneda(item.precioUnitario)}

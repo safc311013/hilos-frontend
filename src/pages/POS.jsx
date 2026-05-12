@@ -25,6 +25,14 @@ import {
 } from 'lucide-react';
 
 const PRODUCTOS_POR_PAGINA = 12;
+const INVENTARIOS = {
+  TAXCO: 'taxco',
+  TIENDA: 'tienda',
+};
+const INVENTARIO_LABELS = {
+  [INVENTARIOS.TAXCO]: 'Taxco',
+  [INVENTARIOS.TIENDA]: 'Tienda',
+};
 
 const MODOS_PANTALLA = {
   VENTA: 'venta',
@@ -66,6 +74,44 @@ const formatearMetodoPago = (metodo) => {
   };
 
   return metodos[metodo] || metodo || 'No especificado';
+};
+
+const normalizarInventario = (valor) => {
+  const inventario = String(valor || '').trim().toLowerCase();
+  return inventario === INVENTARIOS.TAXCO ? INVENTARIOS.TAXCO : INVENTARIOS.TIENDA;
+};
+
+const obtenerStockPorInventario = (producto, inventario) => {
+  const origen = normalizarInventario(inventario);
+  if (origen === INVENTARIOS.TAXCO) {
+    return Number(producto?.stockTaxco ?? 0);
+  }
+
+  const stockTienda = Number(producto?.stockTienda ?? 0);
+  const stockTaxco = Number(producto?.stockTaxco ?? 0);
+  if (stockTienda > 0 || stockTaxco > 0) return stockTienda;
+
+  return Number(producto?.stock ?? producto?.stockDisponible ?? 0);
+};
+
+const obtenerInventarioDisponible = (producto) => {
+  const inventarioActual = normalizarInventario(
+    producto?.inventarioOrigen || producto?.inventario
+  );
+
+  if (obtenerStockPorInventario(producto, inventarioActual) > 0) {
+    return inventarioActual;
+  }
+
+  if (obtenerStockPorInventario(producto, INVENTARIOS.TIENDA) > 0) {
+    return INVENTARIOS.TIENDA;
+  }
+
+  if (obtenerStockPorInventario(producto, INVENTARIOS.TAXCO) > 0) {
+    return INVENTARIOS.TAXCO;
+  }
+
+  return inventarioActual;
 };
 
 const obtenerNombreUsuario = (usuario) => {
@@ -130,6 +176,7 @@ const construirTicketDesdeVenta = ({
       montoDescuento: Number(item.montoDescuento || 0),
       subtotalBruto: Number(item.subtotalBruto || 0),
       imagenUrl: item.imagenUrl || '',
+      inventarioOrigen: normalizarInventario(item.inventarioOrigen),
     })),
   };
 };
@@ -154,6 +201,9 @@ const construirCarritoDesdeCotizacion = (cotizacionVenta) => {
     categoria: item.categoria || '',
     precio: Number(item.precio || 0),
     stockDisponible: Number(item.stockDisponible || 0),
+    stockTaxco: Number(item.stockTaxco || 0),
+    stockTienda: Number(item.stockTienda || 0),
+    inventarioOrigen: normalizarInventario(item.inventarioOrigen || item.inventario),
     cantidad: String(Number(item.cantidad || 0)),
     descuento: String(Number(item.descuento || 0)),
     pieza: item.pieza || '',
@@ -316,9 +366,8 @@ const agregarProductoDesdeModalScanner = () => {
   setError('');
   setMensajeExito('');
 
-  const stockDisponible = Number(
-    productoConsultado.stock ?? productoConsultado.stockDisponible ?? 0
-  );
+  const inventarioOrigen = obtenerInventarioDisponible(productoConsultado);
+  const stockDisponible = obtenerStockPorInventario(productoConsultado, inventarioOrigen);
 
   if (stockDisponible <= 0) {
     setError(`El producto ${productoConsultado.nombre} ya no tiene stock disponible.`);
@@ -326,7 +375,9 @@ const agregarProductoDesdeModalScanner = () => {
   }
 
   const itemEnCarrito = carritoRef.current.find(
-    (item) => item.producto === productoConsultado._id
+    (item) =>
+      item.producto === productoConsultado._id &&
+      normalizarInventario(item.inventarioOrigen) === inventarioOrigen
   );
 
   if (itemEnCarrito && Number(itemEnCarrito.cantidad || 0) >= stockDisponible) {
@@ -476,7 +527,7 @@ const agregarProductoDesdeModalScanner = () => {
         if (
           !productoActual ||
           productoActual.activo === false ||
-          Number(productoActual.stock ?? 0) <= 0
+          obtenerStockPorInventario(productoActual, item.inventarioOrigen) <= 0
         ) {
           if (!mensajeAjuste) {
             mensajeAjuste = `${item.nombre} ya no tiene stock disponible y se eliminó del carrito.`;
@@ -484,7 +535,8 @@ const agregarProductoDesdeModalScanner = () => {
           return acc;
         }
 
-        const nuevoStock = Number(productoActual.stock ?? 0);
+        const inventarioOrigen = normalizarInventario(item.inventarioOrigen);
+        const nuevoStock = obtenerStockPorInventario(productoActual, inventarioOrigen);
         const cantidadActual = Number(item.cantidad || 0);
         let nuevaCantidad = item.cantidad;
 
@@ -502,6 +554,9 @@ const agregarProductoDesdeModalScanner = () => {
           nombre: productoActual.nombre || item.nombre,
           categoria: productoActual.categoria || item.categoria,
           precio: Number(productoActual.precio ?? item.precio ?? 0),
+          stockTaxco: Number(productoActual.stockTaxco ?? item.stockTaxco ?? 0),
+          stockTienda: Number(productoActual.stockTienda ?? item.stockTienda ?? 0),
+          inventarioOrigen,
           stockDisponible: nuevoStock,
           cantidad: nuevaCantidad,
           imagenUrl: productoActual.imagenUrl || item.imagenUrl || '',
@@ -665,29 +720,36 @@ const agregarProductoDesdeModalScanner = () => {
     setError('');
     setMensajeExito('');
 
-    if (Number(producto.stock || producto.stockDisponible || 0) <= 0) {
+    const inventarioOrigen = obtenerInventarioDisponible(producto);
+    const stockDisponible = obtenerStockPorInventario(producto, inventarioOrigen);
+
+    if (stockDisponible <= 0) {
       setError(`El producto ${producto.nombre} ya no tiene stock disponible.`);
       return;
     }
 
     setCarrito((prev) => {
-      const existe = prev.find((item) => item.producto === producto._id);
+      const existe = prev.find(
+        (item) =>
+          item.producto === producto._id &&
+          normalizarInventario(item.inventarioOrigen) === inventarioOrigen
+      );
 
       if (existe) {
         if (
-          Number(existe.cantidad || 0) >=
-          Number(producto.stock || producto.stockDisponible || 0)
+          Number(existe.cantidad || 0) >= stockDisponible
         ) {
           setError(
             `No puedes agregar más de ${
-              producto.stock || producto.stockDisponible
-            } unidades de ${producto.nombre}.`
+              stockDisponible
+            } unidades de ${producto.nombre} desde ${INVENTARIO_LABELS[inventarioOrigen]}.`
           );
           return prev;
         }
 
         return prev.map((item) =>
-          item.producto === producto._id
+          item.producto === producto._id &&
+          normalizarInventario(item.inventarioOrigen) === inventarioOrigen
             ? { ...item, cantidad: String(Number(item.cantidad || 0) + 1) }
             : item
         );
@@ -701,7 +763,10 @@ const agregarProductoDesdeModalScanner = () => {
           nombre: producto.nombre,
           categoria: producto.categoria,
           precio: Number(producto.precio),
-          stockDisponible: Number(producto.stock ?? producto.stockDisponible ?? 0),
+          stockTaxco: Number(producto.stockTaxco ?? 0),
+          stockTienda: Number(producto.stockTienda ?? 0),
+          inventarioOrigen,
+          stockDisponible,
           cantidad: '',
           descuento: '',
           pieza: '',
@@ -830,6 +895,36 @@ const agregarProductoDesdeModalScanner = () => {
         }
 
         return { ...item, cantidad: String(numero) };
+      })
+    );
+  };
+
+  const cambiarInventarioOrigen = (id, valor) => {
+    const inventarioOrigen = normalizarInventario(valor);
+    setError('');
+
+    setCarrito((prev) =>
+      prev.map((item) => {
+        if (item.producto !== id) return item;
+
+        const stockDisponible =
+          inventarioOrigen === INVENTARIOS.TAXCO
+            ? Number(item.stockTaxco || 0)
+            : Number(item.stockTienda || 0) ||
+              (Number(item.stockTaxco || 0) > 0 ? 0 : Number(item.stockDisponible || 0));
+        const cantidadActual = Number(item.cantidad || 0);
+
+        return {
+          ...item,
+          inventarioOrigen,
+          stockDisponible,
+          cantidad:
+            cantidadActual > stockDisponible
+              ? stockDisponible > 0
+                ? String(stockDisponible)
+                : ''
+              : item.cantidad,
+        };
       })
     );
   };
@@ -1390,6 +1485,7 @@ const agregarProductoDesdeModalScanner = () => {
           codigo: item.codigo || '',
           categoria: item.categoria || '',
           imagenUrl: item.imagenUrl || '',
+          inventarioOrigen: normalizarInventario(item.inventarioOrigen),
           stock: Number(item.stockDisponible || 0),
           cantidad: Number(item.cantidadNumero || 0),
           precioUnitario: Number(item.precio || 0),
@@ -1459,6 +1555,7 @@ const agregarProductoDesdeModalScanner = () => {
           nombreProducto: item.nombre || '',
           codigoProducto: item.codigo || '',
           categoriaProducto: item.categoria || '',
+          inventarioOrigen: normalizarInventario(item.inventarioOrigen),
           subtotalBruto: Number(item.subtotalBruto || 0),
           montoDescuento: Number(item.montoDescuento || 0),
           subtotalFinal: Number(item.subtotalFinal || 0),
@@ -1788,7 +1885,7 @@ const agregarProductoDesdeModalScanner = () => {
               ) : (
                 resumenCarrito.detalle.map((item) => (
                   <div
-                    key={item.producto}
+                    key={`${item.producto}-${item.inventarioOrigen || 'tienda'}`}
                     className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
                   >
                     <div className="flex items-start gap-3">
@@ -1823,6 +1920,24 @@ const agregarProductoDesdeModalScanner = () => {
                           <p className="mt-2 text-xs text-gray-500">Pieza: {item.pieza}</p>
                         ) : null}
                       </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Inventario de salida
+                      </label>
+                      <select
+                        className="input h-11"
+                        value={normalizarInventario(item.inventarioOrigen)}
+                        onChange={(e) => cambiarInventarioOrigen(item.producto, e.target.value)}
+                      >
+                        <option value={INVENTARIOS.TIENDA}>
+                          Tienda ({Number(item.stockTienda || item.stockDisponible || 0)})
+                        </option>
+                        <option value={INVENTARIOS.TAXCO}>
+                          Taxco ({Number(item.stockTaxco || 0)})
+                        </option>
+                      </select>
                     </div>
 
                     <div
@@ -2119,6 +2234,10 @@ const agregarProductoDesdeModalScanner = () => {
                             <p className="text-xs text-gray-500">Stock</p>
                             <p className="text-sm font-semibold text-gray-700">
                               {producto.stock}
+                            </p>
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              Tienda {Number(producto.stockTienda || 0)} · Taxco{' '}
+                              {Number(producto.stockTaxco || 0)}
                             </p>
                           </div>
                         </div>

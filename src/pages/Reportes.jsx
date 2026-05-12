@@ -29,6 +29,9 @@ const formatearMoneda = (valor) => {
   }).format(Number(valor || 0));
 };
 
+const getInventarioLabel = (valor) =>
+  String(valor || '').toLowerCase() === 'taxco' ? 'Taxco' : 'Tienda';
+
 export default function Reportes() {
   const { puede } = usePermisos();
   const hoy = new Date().toISOString().slice(0, 10);
@@ -153,6 +156,9 @@ export default function Reportes() {
         (acc, item) => acc + Number(item.cantidad || 0),
         0
       ),
+      Inventarios: [
+        ...new Set((venta.productos || []).map((item) => getInventarioLabel(item.inventarioOrigen))),
+      ].join(', '),
     }));
 
     const hoja = XLSX.utils.json_to_sheet(datos);
@@ -915,6 +921,9 @@ export default function Reportes() {
                               <div>
                                 <p className="text-base font-semibold text-gray-900">
                                   {item.nombreProducto}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  Inventario: {getInventarioLabel(item.inventarioOrigen)}
                                 </p>
                                 <p className="mt-1 text-sm text-gray-500">
                                   Código: {item.codigoProducto || '—'}

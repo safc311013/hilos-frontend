@@ -49,6 +49,14 @@ const getPdfLib = async () => {
 
 const PRODUCTOS_POR_PAGINA = 40;
 const PDF_MAX_BYTES = 10 * 1024 * 1024;
+const INVENTARIOS = {
+  TAXCO: 'taxco',
+  TIENDA: 'tienda',
+};
+const INVENTARIO_LABELS = {
+  [INVENTARIOS.TAXCO]: 'Taxco',
+  [INVENTARIOS.TIENDA]: 'Tienda',
+};
 
 const initialForm = {
   codigo: '',
@@ -57,6 +65,9 @@ const initialForm = {
   costoArtesano: '',
   precio: '',
   stock: '',
+  stockTaxco: '',
+  stockTienda: '',
+  inventario: INVENTARIOS.TIENDA,
   imagenUrl: '',
   imagenPublicId: '',
 };
@@ -77,6 +88,8 @@ const sortOptions = [
   { value: 'costoArtesano', label: 'Costo artesano' },
   { value: 'precio', label: 'Precio venta' },
   { value: 'stock', label: 'Stock' },
+  { value: 'stockTaxco', label: 'Stock Taxco' },
+  { value: 'stockTienda', label: 'Stock Tienda' },
 ];
 
 const BARCODE_FORMATS = [
@@ -126,6 +139,22 @@ const normalizarNumero = (value) => {
 
   return Number(raw);
 };
+
+const normalizarInventario = (valor) => {
+  const inventario = String(valor || '').trim().toLowerCase();
+  return inventario === INVENTARIOS.TAXCO ? INVENTARIOS.TAXCO : INVENTARIOS.TIENDA;
+};
+
+const obtenerStockTaxco = (producto = {}) => Number(producto.stockTaxco || 0);
+const obtenerStockTienda = (producto = {}) => {
+  const stockTienda = Number(producto.stockTienda || 0);
+  const stockTaxco = Number(producto.stockTaxco || 0);
+  if (stockTienda > 0 || stockTaxco > 0) return stockTienda;
+  return Number(producto.stock || 0);
+};
+
+const obtenerStockTotal = (producto = {}) =>
+  obtenerStockTaxco(producto) + obtenerStockTienda(producto);
 
 const consolidarProductosPorCodigo = (productos = []) => {
   const mapa = new Map();
@@ -978,6 +1007,7 @@ export default function Inventario() {
     if (detalle?.tipo === 'actualizar' && detalle?.existente?._id) {
       const stockActual = Number(detalle.existente.stock || 0);
       const stockImportado = Number(producto.stock || 0);
+      const stockTiendaFinal = obtenerStockTienda(detalle.existente) + stockImportado;
 
       const payload = {
         codigo: String(detalle.existente.codigo || producto.codigo || '')
@@ -991,7 +1021,10 @@ export default function Inventario() {
           detalle.existente.costoArtesano ?? producto.costoArtesano ?? 0
         ),
         precio: Number(detalle.existente.precio ?? producto.precio ?? 0),
+        stockTaxco: obtenerStockTaxco(detalle.existente),
+        stockTienda: stockTiendaFinal,
         stock: stockActual + stockImportado,
+        inventario: normalizarInventario(detalle.existente.inventario),
         imagenUrl: detalle.existente.imagenUrl || '',
         imagenPublicId: detalle.existente.imagenPublicId || '',
       };
@@ -1006,6 +1039,9 @@ export default function Inventario() {
 
     await api.post('/productos', {
       ...producto,
+      stockTienda: Number(producto.stock || 0),
+      stockTaxco: 0,
+      inventario: INVENTARIOS.TIENDA,
       imagenUrl: '',
       imagenPublicId: '',
     });
@@ -1109,7 +1145,10 @@ export default function Inventario() {
     nombre: producto?.nombre || '',
     costoArtesano: producto?.costoArtesano ?? '',
     precio: producto?.precio ?? '',
-    stock: producto?.stock ?? '',
+    stock: obtenerStockTotal(producto),
+    stockTaxco: obtenerStockTaxco(producto),
+    stockTienda: obtenerStockTienda(producto),
+    inventario: normalizarInventario(producto?.inventario),
     imagenUrl: producto?.imagenUrl || '',
     imagenPublicId: producto?.imagenPublicId || '',
   });
@@ -1139,7 +1178,8 @@ export default function Inventario() {
     const nombre = String(formScanner.nombre || '').trim();
     const costoArtesano = Number(formScanner.costoArtesano);
     const precio = Number(formScanner.precio);
-    const stock = Number(formScanner.stock);
+    const stockTaxco = Number(formScanner.stockTaxco);
+    const stockTienda = Number(formScanner.stockTienda);
 
     if (!codigo || !categoria || !nombre) {
       return 'Código, categoría y nombre son obligatorios';
@@ -1148,7 +1188,8 @@ export default function Inventario() {
     if (
       Number.isNaN(costoArtesano) ||
       Number.isNaN(precio) ||
-      Number.isNaN(stock)
+      Number.isNaN(stockTaxco) ||
+      Number.isNaN(stockTienda)
     ) {
       return 'Costo artesano, precio y stock deben ser valores válidos';
     }
@@ -1162,7 +1203,10 @@ export default function Inventario() {
     nombre: String(formScanner.nombre || '').trim(),
     costoArtesano: Number(formScanner.costoArtesano),
     precio: Number(formScanner.precio),
-    stock: Number(formScanner.stock),
+    stockTaxco: Number(formScanner.stockTaxco),
+    stockTienda: Number(formScanner.stockTienda),
+    stock: Number(formScanner.stockTaxco || 0) + Number(formScanner.stockTienda || 0),
+    inventario: normalizarInventario(formScanner.inventario),
     imagenUrl: formScanner.imagenUrl ?? productoConsultado?.imagenUrl ?? '',
     imagenPublicId:
       formScanner.imagenPublicId ?? productoConsultado?.imagenPublicId ?? '',
@@ -1333,7 +1377,10 @@ export default function Inventario() {
         nombre: String(form.nombre || '').trim(),
         costoArtesano: Number(form.costoArtesano),
         precio: Number(form.precio),
-        stock: Number(form.stock),
+        stockTaxco: Number(form.stockTaxco),
+        stockTienda: Number(form.stockTienda),
+        stock: Number(form.stockTaxco || 0) + Number(form.stockTienda || 0),
+        inventario: normalizarInventario(form.inventario),
         imagenUrl: imagenSubida?.url ?? form.imagenUrl ?? '',
         imagenPublicId: imagenSubida?.publicId ?? form.imagenPublicId ?? '',
       };
@@ -1373,16 +1420,7 @@ export default function Inventario() {
     }
 
     setEditandoId(producto._id);
-    setForm({
-      codigo: producto.codigo || '',
-      categoria: producto.categoria || '',
-      nombre: producto.nombre || '',
-      costoArtesano: producto.costoArtesano ?? '',
-      precio: producto.precio ?? '',
-      stock: producto.stock ?? '',
-      imagenUrl: producto.imagenUrl || '',
-      imagenPublicId: producto.imagenPublicId || '',
-    });
+    setForm(mapProductoToForm(producto));
     setPreviewImagen(producto.imagenUrl || '');
     setImagenArchivo(null);
     setErrorFormulario('');
@@ -1749,7 +1787,9 @@ export default function Inventario() {
         { header: 'Nombre', key: 'nombre', width: 38 },
         { header: 'Costo artesano', key: 'costoArtesano', width: 18 },
         { header: 'Precio venta', key: 'precio', width: 18 },
-        { header: 'Stock', key: 'stock', width: 12 },
+        { header: 'Stock total', key: 'stock', width: 12 },
+        { header: 'Stock Tienda', key: 'stockTienda', width: 14 },
+        { header: 'Stock Taxco', key: 'stockTaxco', width: 14 },
         { header: 'Estado', key: 'estado', width: 14 },
       ];
 
@@ -1780,11 +1820,11 @@ export default function Inventario() {
 
       worksheet.autoFilter = {
         from: 'A1',
-        to: 'G1',
+        to: 'I1',
       };
 
       items.forEach((producto) => {
-        const stock = Number(producto.stock || 0);
+        const stock = obtenerStockTotal(producto);
         const estado = getStockLabel(stock);
 
         const row = worksheet.addRow({
@@ -1794,6 +1834,8 @@ export default function Inventario() {
           costoArtesano: Number(producto.costoArtesano || 0),
           precio: Number(producto.precio || 0),
           stock,
+          stockTienda: obtenerStockTienda(producto),
+          stockTaxco: obtenerStockTaxco(producto),
           estado,
         });
 
@@ -1817,9 +1859,13 @@ export default function Inventario() {
           cell.alignment = {
             vertical: 'middle',
             horizontal:
-              colNumber === 4 || colNumber === 5 || colNumber === 6
+              colNumber === 4 ||
+              colNumber === 5 ||
+              colNumber === 6 ||
+              colNumber === 7 ||
+              colNumber === 8
                 ? 'right'
-                : colNumber === 7
+                : colNumber === 9
                 ? 'center'
                 : 'left',
           };
@@ -2155,7 +2201,7 @@ export default function Inventario() {
           <>
             <div className="space-y-4 lg:hidden">
               {productos.map((producto) => {
-                const stock = Number(producto.stock);
+                const stock = obtenerStockTotal(producto);
 
                 return (
                   <div
@@ -2184,10 +2230,10 @@ export default function Inventario() {
 
                           <span
                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStockStyle(
-                              producto.stock
+                              stock
                             )}`}
                           >
-                            {getStockLabel(producto.stock)}
+                            {getStockLabel(stock)}
                           </span>
                         </div>
 
@@ -2219,9 +2265,12 @@ export default function Inventario() {
                       </div>
 
                       <div className="col-span-2 rounded-2xl bg-gray-50 px-3 py-3">
-                        <p className="text-[11px] text-gray-500">Stock disponible</p>
+                        <p className="text-[11px] text-gray-500">Stock total</p>
                         <p className="mt-1 text-sm font-semibold text-gray-800">
-                          {producto.stock}
+                          {stock}
+                        </p>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          Tienda {obtenerStockTienda(producto)} · Taxco {obtenerStockTaxco(producto)}
                         </p>
                       </div>
                     </div>
@@ -2260,7 +2309,9 @@ export default function Inventario() {
                     <SortableHeader label="Nombre" sortKey="nombre" />
                     <SortableHeader label="Costo artesano" sortKey="costoArtesano" />
                     <SortableHeader label="Precio venta" sortKey="precio" />
-                    <SortableHeader label="Stock" sortKey="stock" />
+                    <SortableHeader label="Total" sortKey="stock" />
+                    <SortableHeader label="Tienda" sortKey="stockTienda" />
+                    <SortableHeader label="Taxco" sortKey="stockTaxco" />
                     <th className="py-3 pr-4">Estado</th>
                     <th className="py-3 pr-4 text-right">Acciones</th>
                   </tr>
@@ -2268,7 +2319,7 @@ export default function Inventario() {
 
                 <tbody>
                   {productos.map((producto) => {
-                    const stock = Number(producto.stock);
+                    const stock = obtenerStockTotal(producto);
 
                     return (
                       <tr
@@ -2307,15 +2358,21 @@ export default function Inventario() {
                           {formatearMoneda(producto.precio)}
                         </td>
 
-                        <td className="py-4 pr-4 font-medium">{producto.stock}</td>
+                        <td className="py-4 pr-4 font-medium">{stock}</td>
+                        <td className="py-4 pr-4 font-medium text-gray-700">
+                          {obtenerStockTienda(producto)}
+                        </td>
+                        <td className="py-4 pr-4 font-medium text-gray-700">
+                          {obtenerStockTaxco(producto)}
+                        </td>
 
                         <td className="py-4 pr-4">
                           <span
                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStockStyle(
-                              producto.stock
+                              stock
                             )}`}
                           >
-                            {getStockLabel(producto.stock)}
+                            {getStockLabel(stock)}
                           </span>
                         </td>
 
@@ -2469,7 +2526,7 @@ export default function Inventario() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
                     Costo artesano
@@ -2504,14 +2561,44 @@ export default function Inventario() {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
-                    Stock
+                    Inventario principal
+                  </label>
+                  <select
+                    className="input"
+                    name="inventario"
+                    value={form.inventario}
+                    onChange={handleChange}
+                  >
+                    <option value={INVENTARIOS.TIENDA}>Inventario de Tienda</option>
+                    <option value={INVENTARIOS.TAXCO}>Inventario de Taxco</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Stock Tienda
                   </label>
                   <input
                     className="input"
                     type="number"
-                    name="stock"
+                    name="stockTienda"
                     placeholder="0"
-                    value={form.stock}
+                    value={form.stockTienda}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Stock Taxco
+                  </label>
+                  <input
+                    className="input"
+                    type="number"
+                    name="stockTaxco"
+                    placeholder="0"
+                    value={form.stockTaxco}
                     onChange={handleChange}
                     required
                   />
@@ -3032,9 +3119,13 @@ export default function Inventario() {
                     </div>
 
                     <div className="rounded-2xl bg-gray-50 px-4 py-3 sm:col-span-2">
-                      <p className="text-[11px] text-gray-500">Stock disponible</p>
+                      <p className="text-[11px] text-gray-500">Stock total</p>
                       <p className="mt-1 text-sm font-semibold text-gray-800">
-                        {productoConsultado.stock}
+                        {obtenerStockTotal(productoConsultado)}
+                      </p>
+                      <p className="mt-1 text-[11px] text-gray-500">
+                        Tienda {obtenerStockTienda(productoConsultado)} · Taxco{' '}
+                        {obtenerStockTaxco(productoConsultado)}
                       </p>
                     </div>
                   </div>
@@ -3106,16 +3197,30 @@ export default function Inventario() {
                       />
                     </div>
 
-                    <div className="sm:col-span-2">
+                    <div>
                       <label className="mb-1 block text-sm font-medium text-gray-700">
-                        Stock
+                        Stock Tienda
                       </label>
                       <input
                         className="input"
                         type="number"
                         step="1"
-                        name="stock"
-                        value={formScanner.stock}
+                        name="stockTienda"
+                        value={formScanner.stockTienda}
+                        onChange={handleChangeScanner}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Stock Taxco
+                      </label>
+                      <input
+                        className="input"
+                        type="number"
+                        step="1"
+                        name="stockTaxco"
+                        value={formScanner.stockTaxco}
                         onChange={handleChangeScanner}
                       />
                     </div>
@@ -3221,9 +3326,14 @@ export default function Inventario() {
                 </p>
               </div>
 
-              <div className="sm:col-span-2">
-                <p className="text-xs text-gray-500">Stock</p>
-                <p className="mt-1 font-semibold text-gray-800">{formScanner.stock}</p>
+              <div>
+                <p className="text-xs text-gray-500">Stock Tienda</p>
+                <p className="mt-1 font-semibold text-gray-800">{formScanner.stockTienda}</p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">Stock Taxco</p>
+                <p className="mt-1 font-semibold text-gray-800">{formScanner.stockTaxco}</p>
               </div>
             </div>
 

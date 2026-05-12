@@ -17,6 +17,14 @@ const FORMATOS = {
   VENTA: 'ventas',
   CONSIGNACION: 'consignaciones',
 };
+const INVENTARIOS = {
+  TAXCO: 'taxco',
+  TIENDA: 'tienda',
+};
+const INVENTARIO_LABELS = {
+  [INVENTARIOS.TAXCO]: 'Taxco',
+  [INVENTARIOS.TIENDA]: 'Tienda',
+};
 
 const TIPOS_POR_FORMATO = {
   [FORMATOS.VENTA]: 'COMPRA',
@@ -66,6 +74,22 @@ const formatearMoneda = (valor) => {
   }).format(Number(valor || 0));
 };
 
+const normalizarInventario = (valor) => {
+  const inventario = String(valor || '').trim().toLowerCase();
+  return inventario === INVENTARIOS.TAXCO ? INVENTARIOS.TAXCO : INVENTARIOS.TIENDA;
+};
+
+const obtenerStockPorInventario = (producto, inventario) => {
+  const origen = normalizarInventario(inventario);
+  if (origen === INVENTARIOS.TAXCO) return Number(producto?.stockTaxco || 0);
+
+  const stockTienda = Number(producto?.stockTienda || 0);
+  const stockTaxco = Number(producto?.stockTaxco || 0);
+  if (stockTienda > 0 || stockTaxco > 0) return stockTienda;
+
+  return Number(producto?.stock || 0);
+};
+
 const initialItemForm = {
   productoId: '',
   nombreProducto: '',
@@ -73,6 +97,9 @@ const initialItemForm = {
   precioUnitario: '',
   descuento: '',
   stock: '',
+  stockTaxco: '',
+  stockTienda: '',
+  inventarioOrigen: INVENTARIOS.TIENDA,
   incrementoPorcentaje: '',
   comisionClientePorcentaje: '',
   imagenUrl: '',
@@ -397,6 +424,14 @@ export default function Cotizaciones() {
     setItemForm((prev) => ({
       ...prev,
       [field]: value,
+      ...(field === 'inventarioOrigen'
+        ? {
+            stock:
+              normalizarInventario(value) === INVENTARIOS.TAXCO
+                ? Number(prev.stockTaxco || 0)
+                : Number(prev.stockTienda || 0),
+          }
+        : {}),
     }));
   };
 
@@ -483,7 +518,12 @@ export default function Cotizaciones() {
       ...prev,
       productoId: productoEncontrado?._id || '',
       nombreProducto: value,
-      stock: productoEncontrado?.stock ?? '',
+      stock: productoEncontrado
+        ? obtenerStockPorInventario(productoEncontrado, productoEncontrado.inventario)
+        : '',
+      stockTaxco: productoEncontrado?.stockTaxco ?? '',
+      stockTienda: productoEncontrado?.stockTienda ?? '',
+      inventarioOrigen: normalizarInventario(productoEncontrado?.inventario),
       imagenUrl: productoEncontrado?.imagenUrl || '',
     }));
 
@@ -496,7 +536,10 @@ export default function Cotizaciones() {
       ...prev,
       productoId: producto._id || '',
       nombreProducto: producto.nombre || '',
-      stock: producto.stock ?? '',
+      stock: obtenerStockPorInventario(producto, producto.inventario),
+      stockTaxco: producto.stockTaxco ?? '',
+      stockTienda: producto.stockTienda ?? '',
+      inventarioOrigen: normalizarInventario(producto.inventario),
       imagenUrl: producto.imagenUrl || '',
     }));
     setMostrarSugerencias(false);
@@ -677,6 +720,9 @@ export default function Cotizaciones() {
             100
           ),
       stock: Number(itemForm.stock || 0),
+      stockTaxco: Number(itemForm.stockTaxco || 0),
+      stockTienda: Number(itemForm.stockTienda || 0),
+      inventarioOrigen: normalizarInventario(itemForm.inventarioOrigen),
       codigo: productoSeleccionado?.codigo || '',
       categoria: productoSeleccionado?.categoria || '',
       imagenUrl: itemForm.imagenUrl || productoSeleccionado?.imagenUrl || '',
@@ -709,6 +755,9 @@ export default function Cotizaciones() {
       precioUnitario: item.precioUnitario ?? '',
       descuento: item.descuento ?? '',
       stock: item.stock ?? '',
+      stockTaxco: item.stockTaxco ?? '',
+      stockTienda: item.stockTienda ?? '',
+      inventarioOrigen: normalizarInventario(item.inventarioOrigen),
       incrementoPorcentaje: item.incrementoPorcentaje ?? '',
       comisionClientePorcentaje: item.comisionClientePorcentaje ?? '',
       imagenUrl: item.imagenUrl || '',
@@ -815,6 +864,7 @@ export default function Cotizaciones() {
         codigo: item.codigo || '',
         categoria: item.categoria || '',
         imagenUrl: item.imagenUrl || '',
+        inventarioOrigen: normalizarInventario(item.inventarioOrigen),
         stock: Number(item.stock || 0),
         cantidad: Number(item.cantidad || 0),
         precioUnitario: Number(item.precioUnitario || 0),
@@ -905,6 +955,11 @@ export default function Cotizaciones() {
           cantidad: Number(item.cantidad || 0),
           descuento: Number(item.descuento || 0),
           stockDisponible: Number(item.stock || productoInfo?.stock || 0),
+          stockTaxco: Number(item.stockTaxco || productoInfo?.stockTaxco || 0),
+          stockTienda: Number(item.stockTienda || productoInfo?.stockTienda || 0),
+          inventarioOrigen: normalizarInventario(
+            item.inventarioOrigen || productoInfo?.inventario
+          ),
           imagenUrl: item.imagenUrl || productoInfo?.imagenUrl || '',
         };
       }),
@@ -1344,6 +1399,9 @@ export default function Cotizaciones() {
       precioUnitario: Number(item.precioUnitario || 0),
       descuento: Number(item.descuento || 0),
       stock: Number(item.stock || 0),
+      stockTaxco: Number(item.stockTaxco || 0),
+      stockTienda: Number(item.stockTienda || 0),
+      inventarioOrigen: normalizarInventario(item.inventarioOrigen),
       incrementoPorcentaje: Number(item.incrementoPorcentaje || 0),
       comisionClientePorcentaje: Number(item.comisionClientePorcentaje || 0),
       codigo: item.codigo || '',
@@ -1537,7 +1595,7 @@ export default function Cotizaciones() {
                         </div>
 
                         <span className="shrink-0 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
-                          Stock: {Number(producto.stock || 0)}
+                          T {Number(producto.stockTienda || 0)} · Tx {Number(producto.stockTaxco || 0)}
                         </span>
                       </div>
                     </div>
@@ -1579,7 +1637,27 @@ export default function Cotizaciones() {
           </div>
         ) : null}
 
-        <div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Inventario de salida
+            </label>
+            <select
+              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+              value={itemForm.inventarioOrigen}
+              onChange={(e) => actualizarCampoForm('inventarioOrigen', e.target.value)}
+              disabled={!productoValido}
+            >
+              <option value={INVENTARIOS.TIENDA}>
+                Tienda ({Number(itemForm.stockTienda || 0)})
+              </option>
+              <option value={INVENTARIOS.TAXCO}>
+                Taxco ({Number(itemForm.stockTaxco || 0)})
+              </option>
+            </select>
+          </div>
+
+          <div>
           <label className="mb-2 block text-sm font-medium text-gray-700">
             Stock disponible
           </label>
@@ -1590,6 +1668,7 @@ export default function Cotizaciones() {
             readOnly
             disabled
           />
+          </div>
         </div>
 
         {esFormatoVenta ? (
