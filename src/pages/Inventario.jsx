@@ -596,6 +596,7 @@ export default function Inventario() {
   const [mostrarConfirmacionScanner, setMostrarConfirmacionScanner] =
     useState(false);
   const [errorEdicionScanner, setErrorEdicionScanner] = useState('');
+  const [codigoPendienteRegistro, setCodigoPendienteRegistro] = useState('');
 
   const pdfInputRef = useRef(null);
   const ultimoCodigoEscaneadoRef = useRef('');
@@ -779,13 +780,17 @@ export default function Inventario() {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key !== 'Escape') return;
+      if (codigoPendienteRegistro) {
+        cerrarPreguntaRegistroScanner();
+        return;
+      }
       if (!mostrarScanner || consultandoCodigo) return;
       cerrarScanner();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mostrarScanner, consultandoCodigo]);
+  }, [mostrarScanner, consultandoCodigo, codigoPendienteRegistro]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -1334,6 +1339,7 @@ export default function Inventario() {
     if (consultandoCodigo) return;
     setMostrarScanner(false);
     setErrorScanner('');
+    setCodigoPendienteRegistro('');
     ultimoCodigoEscaneadoRef.current = '';
   };
 
@@ -1341,6 +1347,30 @@ export default function Inventario() {
     if (guardandoCambiosScanner) return;
     setProductoConsultado(null);
     resetScannerEdicion();
+  };
+
+  const cerrarPreguntaRegistroScanner = () => {
+    setCodigoPendienteRegistro('');
+    ultimoCodigoEscaneadoRef.current = '';
+  };
+
+  const registrarCodigoEscaneado = () => {
+    const codigo = codigoPendienteRegistro;
+    if (!codigo) return;
+
+    setCodigoPendienteRegistro('');
+    setMostrarScanner(false);
+    setErrorScanner('');
+    ultimoCodigoEscaneadoRef.current = '';
+    resetForm();
+    setForm({
+      ...initialForm,
+      codigo,
+    });
+    setEditandoId(null);
+    setErrorAccion('');
+    setMensajeAccion('');
+    setMostrarFormulario(true);
   };
 
   const consultarProductoEscaneado = async (rawValue) => {
@@ -1357,7 +1387,8 @@ export default function Inventario() {
       const producto = await buscarProductoExistentePorCodigo(codigo);
 
       if (!producto) {
-        setErrorScanner(`No se encontró un producto con el código ${codigo}`);
+        setErrorScanner('');
+        setCodigoPendienteRegistro(codigo);
         ultimoCodigoEscaneadoRef.current = '';
         return;
       }
@@ -3146,7 +3177,7 @@ export default function Inventario() {
                     torch: true,
                     zoom: true,
                   }}
-                  paused={consultandoCodigo}
+                  paused={consultandoCodigo || Boolean(codigoPendienteRegistro)}
                   scanDelay={1000}
                   allowMultiple={false}
                   styles={{
@@ -3174,6 +3205,55 @@ export default function Inventario() {
                 onClick={cerrarScanner}
               >
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {codigoPendienteRegistro ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarPreguntaRegistroScanner} />
+
+          <div className="relative w-full max-w-md rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
+                <Plus size={20} />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-gray-800">
+                  Registrar producto
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  No existe un producto con este codigo de barras. Puedes darlo de alta ahora en inventario.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl bg-gray-50 p-4">
+              <p className="text-xs text-gray-500">Codigo escaneado</p>
+              <p className="mt-1 break-all font-semibold text-gray-800">
+                {codigoPendienteRegistro}
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <button
+                type="button"
+                onClick={cerrarPreguntaRegistroScanner}
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              >
+                Seguir escaneando
+              </button>
+
+              <button
+                type="button"
+                onClick={registrarCodigoEscaneado}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              >
+                <Plus size={16} />
+                Si, registrarlo
               </button>
             </div>
           </div>
