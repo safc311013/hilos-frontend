@@ -50,7 +50,7 @@ export default function Dashboard() {
       try {
         await cargarResumen();
       } catch (error) {
-        console.error('No se pudo actualizar el dashboard en tiempo real', error);
+        console.error('No se pudo actualizar el panel en tiempo real', error);
       }
     };
 
@@ -109,9 +109,9 @@ export default function Dashboard() {
   if (!puede(PERMISOS.VER_DASHBOARD)) {
     return (
       <Layout>
-        <Header title="Dashboard" />
+        <Header title="Panel" />
         <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          No tienes permiso para ver el dashboard.
+          No tienes permiso para ver el panel.
         </div>
       </Layout>
     );
@@ -119,7 +119,7 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <Header title="Dashboard" />
+      <Header title="Panel" />
 
       {loading || !resumen ? (
         <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm sm:p-10">

@@ -78,7 +78,7 @@ export default function Login() {
       setPasswordTemporal('');
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.mensaje || 'No se pudo cambiar la contraseÃ±a');
+      setError(err.response?.data?.mensaje || 'No se pudo cambiar la contraseña');
     } finally {
       setLoading(false);
     }
@@ -180,20 +180,20 @@ export default function Login() {
               ) : (
                 <form onSubmit={handleCambiarPassword} className="space-y-4">
                   <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                    Es tu primer acceso o tu usuario fue restablecido. Define una nueva contraseÃ±a para continuar.
+                    Es tu primer acceso o tu usuario fue restablecido. Define una nueva contraseña para continuar.
                   </div>
 
                   {!passwordTemporal && !form.password ? (
                     <div>
                       <label className="mb-1.5 block text-sm font-medium text-slate-200">
-                        ContraseÃ±a temporal
+                        Contraseña temporal
                       </label>
                       <input
                         type="password"
                         name="passwordActual"
                         value={cambioForm.passwordActual}
                         onChange={handleCambioChange}
-                        placeholder="Ingresa la contraseÃ±a temporal"
+                        placeholder="Ingresa la contraseña temporal"
                         autoComplete="current-password"
                         required
                         className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
@@ -203,7 +203,7 @@ export default function Login() {
 
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-slate-200">
-                      Nueva contraseÃ±a
+                      Nueva contraseña
                     </label>
 
                     <div className="relative">
@@ -212,7 +212,7 @@ export default function Login() {
                         name="nuevaPassword"
                         value={cambioForm.nuevaPassword}
                         onChange={handleCambioChange}
-                        placeholder="MÃ­nimo 6 caracteres"
+                        placeholder="Mínimo 6 caracteres"
                         autoComplete="new-password"
                         required
                         className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pr-24 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
@@ -230,14 +230,14 @@ export default function Login() {
 
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-slate-200">
-                      Confirmar contraseÃ±a
+                      Confirmar contraseña
                     </label>
                     <input
                       type={showNuevaPassword ? 'text' : 'password'}
                       name="confirmarPassword"
                       value={cambioForm.confirmarPassword}
                       onChange={handleCambioChange}
-                      placeholder="Repite la nueva contraseÃ±a"
+                      placeholder="Repite la nueva contraseña"
                       autoComplete="new-password"
                       required
                       className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
@@ -255,7 +255,7 @@ export default function Login() {
                     disabled={loading}
                     className="w-full rounded-2xl bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-4 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:scale-[1.01] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {loading ? 'Actualizando...' : 'Guardar nueva contraseÃ±a'}
+                    {loading ? 'Actualizando...' : 'Guardar nueva contraseña'}
                   </button>
                 </form>
               )}

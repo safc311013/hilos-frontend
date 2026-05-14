@@ -312,7 +312,7 @@ export default function Usuarios() {
             required
           />
           <p className="mt-1 text-xs text-gray-500">
-            Esta es una contraseÃ±a temporal. El usuario deberÃ¡ cambiarla en su primer inicio de sesiÃ³n.
+            Esta es una contraseña temporal. El usuario deberá cambiarla en su primer inicio de sesión.
           </p>
         </div>
       ) : null}
@@ -705,24 +705,24 @@ export default function Usuarios() {
                 Restablecer acceso
               </h3>
               <p className="mt-2 text-sm text-gray-500">
-                Asigna una nueva contraseÃ±a temporal para{' '}
+                Asigna una nueva contraseña temporal para{' '}
                 <span className="font-semibold text-gray-800">
                   {modalRestablecer.usuario?.nombre}
                 </span>
-                . Al iniciar sesiÃ³n se le pedirÃ¡ cambiarla.
+                . Al iniciar sesión se le pedirá cambiarla.
               </p>
             </div>
 
             <div className="mt-5">
               <label className="mb-2 block text-sm font-medium text-gray-700">
-                Nueva contraseÃ±a temporal
+                Nueva contraseña temporal
               </label>
               <input
                 className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100"
                 type="password"
                 value={passwordTemporalReset}
                 onChange={(e) => setPasswordTemporalReset(e.target.value)}
-                placeholder="MÃ­nimo 6 caracteres"
+                placeholder="Mínimo 6 caracteres"
                 required
               />
             </div>

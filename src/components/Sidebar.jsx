@@ -12,7 +12,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const links = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'supervisor'] },
+  { to: '/', label: 'Panel', icon: LayoutDashboard, roles: ['admin', 'supervisor'] },
   { to: '/inventario', label: 'Inventario', icon: Boxes, roles: ['admin', 'supervisor'] },
   { to: '/pos', label: 'Punto de Venta', icon: ShoppingCart, roles: ['admin', 'supervisor', 'cajero'] },
   { to: '/ventas', label: 'Ventas', icon: ReceiptText, roles: ['admin', 'supervisor'] },
