@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
- import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+ import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom';
  import { AuthProvider } from './context/AuthContext';
  import { RealtimeProvider } from './context/RealtimeContext';
  import ProtectedRoute from './components/ProtectedRoute';
@@ -14,10 +14,11 @@ const Ventas = lazy(() => import('./pages/Ventas'));
 const Reportes = lazy(() => import('./pages/Reportes'));
 const Usuarios = lazy(() => import('./pages/Usuarios'));
 const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
+const Router = window.location.protocol === 'file:' ? HashRouter : BrowserRouter;
  
  export default function App() {
    return (
-     <BrowserRouter>
+     <Router>
        <AuthProvider>
          <RealtimeProvider>
           <Suspense fallback={<Loader />}>
@@ -92,6 +93,6 @@ const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
           </Suspense>
          </RealtimeProvider>
        </AuthProvider>
-     </BrowserRouter>
+     </Router>
    );
   }
