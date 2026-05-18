@@ -54,11 +54,11 @@ export default function Sidebar({ open = false, onClose = () => {} }) {
       ) : null}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-slate-800 bg-slate-950 text-white transition-transform duration-300 ease-out
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-72 flex-col border-r border-slate-800 bg-slate-950 text-white transition-transform duration-300 ease-out
         ${open ? 'translate-x-0' : '-translate-x-full'}
         lg:z-40 lg:translate-x-0`}
       >
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 pt-5 pb-4 lg:hidden">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-5 py-3 lg:hidden">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
               Menú
@@ -76,27 +76,27 @@ export default function Sidebar({ open = false, onClose = () => {} }) {
           </button>
         </div>
 
-        <div className="border-b border-slate-800 px-5 pt-6 pb-4 lg:pt-6">
+        <div className="shrink-0 border-b border-slate-800 px-5 py-4 lg:py-5 [@media(max-height:760px)]:py-3">
           <div className="flex flex-col items-center text-center">
             <img
               src="/logo.png"
               alt="Logo"
-              className="h-[120px] w-[120px] object-contain sm:h-[140px] sm:w-[140px] lg:h-[170px] lg:w-[170px]"
+              className="h-[96px] w-[96px] object-contain sm:h-[108px] sm:w-[108px] lg:h-[118px] lg:w-[118px] [@media(max-height:760px)]:h-[78px] [@media(max-height:760px)]:w-[78px]"
             />
 
-            <div className="mt-3">
-              <h2 className="text-base font-semibold leading-tight text-white lg:text-lg">
+            <div className="mt-2 [@media(max-height:760px)]:mt-1">
+              <h2 className="text-sm font-semibold leading-tight text-white lg:text-base">
                 {usuario?.nombre || 'Usuario'}
               </h2>
 
-              <p className="mt-2 inline-flex items-center rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-200">
+              <p className="mt-1.5 inline-flex items-center rounded-full bg-slate-800 px-3 py-1 text-xs font-medium text-slate-200 [@media(max-height:760px)]:mt-1">
                 {rolTexto}
               </p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-2 overflow-y-auto px-4 py-5">
+        <nav className="flex flex-1 flex-col justify-center gap-1.5 px-4 py-4 [@media(max-height:760px)]:gap-1 [@media(max-height:760px)]:py-3">
           {linksFiltrados.map((item) => {
             const Icon = item.icon;
             const active = location.pathname === item.to;
@@ -106,14 +106,14 @@ export default function Sidebar({ open = false, onClose = () => {} }) {
                 key={item.to}
                 to={item.to}
                 onClick={handleLinkClick}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-3 transition ${
+                className={`flex min-h-0 items-center gap-3 rounded-xl px-4 py-2.5 transition [@media(max-height:760px)]:py-2 ${
                   active
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-slate-200 hover:bg-slate-900'
                 }`}
               >
-                <Icon size={20} />
-                <span className="text-[15px] sm:text-[16px] lg:text-[17px]">
+                <Icon size={19} className="shrink-0" />
+                <span className="text-[15px] font-medium leading-tight">
                   {item.label}
                 </span>
               </Link>
