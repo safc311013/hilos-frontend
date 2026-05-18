@@ -7,6 +7,7 @@ import {
   BarChart3,
   Users,
   FileText,
+  Printer,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +20,7 @@ const links = [
   { to: '/reportes', label: 'Reportes', icon: BarChart3, roles: ['admin', 'supervisor'] },
   { to: '/usuarios', label: 'Usuarios', icon: Users, roles: ['admin'] },
   { to: '/cotizaciones', label: 'Cotizaciones', icon: FileText, roles: ['admin', 'supervisor'] },
+  { to: '/impresora', label: 'Impresora', icon: Printer, roles: ['admin', 'supervisor', 'cajero'] },
 ];
 
 export default function Sidebar({ open = false, onClose = () => {} }) {

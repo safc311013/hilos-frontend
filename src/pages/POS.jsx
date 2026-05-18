@@ -7,6 +7,7 @@ import { api } from '../config/api';
 import { useRealtime } from '../context/RealtimeContext';
 import usePermisos from '../hooks/usePermisos';
 import { PERMISOS } from '../utils/permisos';
+import { imprimirTicketConfigurado } from '../utils/impresoraTickets';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
@@ -1221,16 +1222,12 @@ const agregarProductoDesdeModalScanner = () => {
   const imprimirTicket80mm = (ticketAImprimir = ticketVenta) => {
     if (!ticketAImprimir) return;
 
-    const ventana = window.open('', '_blank', 'width=420,height=720');
+    imprimirTicketConfigurado({
+      ticket: ticketAImprimir,
+      formatearMoneda,
+      onError: setError,
+    });
 
-    if (!ventana) {
-      setError('No se pudo abrir la ventana de impresión. Revisa el bloqueador de ventanas.');
-      return;
-    }
-
-    ventana.document.open();
-    ventana.document.write(construirHtmlTicket80mm(ticketAImprimir));
-    ventana.document.close();
   };
 
   const descargarTicketPDF = async (ticketADescargar = ticketVenta) => {
@@ -2727,3 +2724,4 @@ const agregarProductoDesdeModalScanner = () => {
     </Layout>
   );
 }
+

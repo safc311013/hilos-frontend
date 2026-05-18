@@ -14,6 +14,7 @@ const Ventas = lazy(() => import('./pages/Ventas'));
 const Reportes = lazy(() => import('./pages/Reportes'));
 const Usuarios = lazy(() => import('./pages/Usuarios'));
 const Cotizaciones = lazy(() => import('./pages/Cotizaciones'));
+const ConfiguracionImpresora = lazy(() => import('./pages/ConfiguracionImpresora'));
 const Router = window.location.protocol === 'file:' ? HashRouter : BrowserRouter;
  
  export default function App() {
@@ -84,6 +85,15 @@ const Router = window.location.protocol === 'file:' ? HashRouter : BrowserRouter
                 element={
                   <ProtectedRoute roles={['admin', 'supervisor']}>
                     <Cotizaciones />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/impresora"
+                element={
+                  <ProtectedRoute roles={['admin', 'supervisor', 'cajero']}>
+                    <ConfiguracionImpresora />
                   </ProtectedRoute>
                 }
               />

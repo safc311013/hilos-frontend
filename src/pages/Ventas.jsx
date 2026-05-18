@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import Loader from '../components/Loader';
 import { api } from '../config/api';
 import { useRealtime } from '../context/RealtimeContext';
+import { imprimirTicketConfigurado } from '../utils/impresoraTickets';
 import {
   Search,
   Receipt,
@@ -448,13 +449,11 @@ export default function Ventas() {
   const imprimirTicket80mm = () => {
     if (!ticketActual) return;
 
-    const ventana = window.open('', '_blank', 'width=420,height=720');
-
-    if (!ventana) return;
-
-    ventana.document.open();
-    ventana.document.write(construirHtmlTicket80mm(ticketActual));
-    ventana.document.close();
+    imprimirTicketConfigurado({
+      ticket: ticketActual,
+      formatearMoneda,
+      onError: (mensaje) => window.alert(mensaje),
+    });
   };
 
   const descargarTicketPDF = async () => {
