@@ -582,9 +582,7 @@ export default function Inventario() {
   const [productosPendientesImportacion, setProductosPendientesImportacion] = useState(
     []
   );
-  const [inventarioImportacion, setInventarioImportacion] = useState(
-    INVENTARIOS.TIENDA
-  );
+  const [inventarioImportacion, setInventarioImportacion] = useState('');
   const [mostrarOpcionesExportacion, setMostrarOpcionesExportacion] = useState(false);
   const [inventarioExportacion, setInventarioExportacion] = useState(
     INVENTARIOS.TIENDA
@@ -1159,7 +1157,7 @@ export default function Inventario() {
     setMostrarPreviewImportacion(false);
     setResumenImportacion(initialResumenImportacion);
     setProductosPendientesImportacion([]);
-    setInventarioImportacion(INVENTARIOS.TIENDA);
+    setInventarioImportacion('');
   };
 
   const cerrarPreviewImportacion = () => {
@@ -1637,10 +1635,16 @@ export default function Inventario() {
   const abrirSelectorPdf = () => {
     setErrorAccion('');
     setMensajeAccion('');
+    setInventarioImportacion('');
     setMostrarGuiaImportacion(true);
   };
 
   const seleccionarPdfImportacion = () => {
+    if (!inventarioImportacion) {
+      setErrorAccion('Selecciona si el PDF se cargara a Tienda o a Taxco.');
+      return;
+    }
+
     setMostrarGuiaImportacion(false);
     pdfInputRef.current?.click();
   };
@@ -1803,6 +1807,10 @@ export default function Inventario() {
 
   const confirmarImportacionPdf = async () => {
     if (!productosPendientesImportacion.length) return;
+    if (!inventarioImportacion) {
+      setErrorAccion('Selecciona si la importacion se cargara a Tienda o a Taxco.');
+      return;
+    }
 
     try {
       setImportandoPdf(true);
@@ -2934,6 +2942,27 @@ export default function Inventario() {
               </div>
             </div>
 
+            <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-4">
+              <label className="mb-2 block text-sm font-semibold text-red-900">
+                A que inventario quieres cargar este PDF
+              </label>
+              <select
+                className="h-11 w-full rounded-2xl border border-red-200 bg-white px-4 text-sm font-semibold text-gray-800 shadow-sm outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                value={inventarioImportacion}
+                onChange={(e) =>
+                  setInventarioImportacion(normalizarInventario(e.target.value))
+                }
+                disabled={importandoPdf}
+              >
+                <option value="">Selecciona destino</option>
+                <option value={INVENTARIOS.TIENDA}>Inventario de Tienda</option>
+                <option value={INVENTARIOS.TAXCO}>Inventario de Taxco</option>
+              </select>
+              <p className="mt-2 text-xs text-red-700">
+                Si el producto ya existe, el stock del PDF se sumara solo al inventario seleccionado.
+              </p>
+            </div>
+
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
@@ -2957,11 +2986,13 @@ export default function Inventario() {
               <button
                 type="button"
                 onClick={seleccionarPdfImportacion}
-                disabled={importandoPdf}
+                disabled={importandoPdf || !inventarioImportacion}
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
               >
                 <FileUp size={17} />
-                Seleccionar PDF
+                {inventarioImportacion
+                  ? `Seleccionar PDF para ${INVENTARIO_LABELS[inventarioImportacion]}`
+                  : 'Seleccionar PDF'}
               </button>
             </div>
           </div>
@@ -3001,13 +3032,20 @@ export default function Inventario() {
                       }
                       disabled={importandoPdf}
                     >
+                      <option value="" disabled>
+                        Selecciona destino
+                      </option>
                       <option value={INVENTARIOS.TIENDA}>Inventario de Tienda</option>
                       <option value={INVENTARIOS.TAXCO}>Inventario de Taxco</option>
                     </select>
                   </div>
 
                   <p className="mt-1 text-xs text-gray-400">
-                    Los productos existentes no se duplicarán: solo se sumará el stock.
+                    Los productos existentes no se duplicarán: solo se sumará el stock en{' '}
+                    <span className="font-semibold text-gray-600">
+                      {INVENTARIO_LABELS[inventarioImportacion] || 'el inventario seleccionado'}
+                    </span>
+                    .
                   </p>
                 </div>
 
@@ -3242,7 +3280,11 @@ export default function Inventario() {
                 <button
                   type="button"
                   onClick={confirmarImportacionPdf}
-                  disabled={importandoPdf || !productosPendientesImportacion.length}
+                  disabled={
+                    importandoPdf ||
+                    !productosPendientesImportacion.length ||
+                    !inventarioImportacion
+                  }
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {importandoPdf ? (
