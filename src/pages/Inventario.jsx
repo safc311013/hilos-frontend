@@ -2692,8 +2692,109 @@ export default function Inventario() {
               })}
             </div>
 
-            <div className="hidden max-h-[70vh] overflow-auto rounded-2xl border border-gray-200 lg:block">
-              <table className="min-w-[1120px] w-full text-left">
+            <div className="hidden max-h-[70vh] overflow-y-auto rounded-2xl border border-gray-200 lg:block 2xl:hidden">
+              <table className="w-full table-fixed text-left">
+                <thead className="sticky top-0 z-10 bg-white shadow-sm">
+                  <tr className="border-b border-gray-200 text-sm text-gray-500">
+                    <SortableHeader label="Producto" sortKey="nombre" />
+                    <SortableHeader label="Precio" sortKey="precio" align="right" />
+                    <SortableHeader label="Stock" sortKey="stock" align="right" />
+                    <th className="py-3 pr-4">Estado</th>
+                    <th className="py-3 pr-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {productos.map((producto) => {
+                    const stock = obtenerStockTotal(producto);
+
+                    return (
+                      <tr
+                        key={producto._id}
+                        className={`border-b border-gray-100 transition hover:bg-gray-50 ${
+                          stock <= 1 ? 'bg-red-50/70' : stock <= 3 ? 'bg-amber-50/60' : ''
+                        }`}
+                      >
+                        <td className="w-[44%] py-3 pr-4">
+                          <div className="flex min-w-0 items-center gap-3">
+                            {renderImagenProducto(producto, 'h-11 w-11')}
+
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold text-gray-900">
+                                  {producto.codigo}
+                                </span>
+                                <span
+                                  className={`inline-flex max-w-[150px] items-center truncate rounded-full px-2.5 py-1 text-xs font-medium ${getCategoriaStyle(
+                                    producto.categoria
+                                  )}`}
+                                >
+                                  {producto.categoria || 'General'}
+                                </span>
+                              </div>
+                              <p className="mt-1 line-clamp-2 text-sm font-medium leading-5 text-gray-800">
+                                {producto.nombre}
+                              </p>
+                              <p className="mt-1 text-xs text-gray-500">
+                                Costo: {formatearMoneda(producto.costoArtesano)}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="w-[13%] py-3 pr-4 text-right font-semibold text-gray-900">
+                          {formatearMoneda(producto.precio)}
+                        </td>
+
+                        <td className="w-[14%] py-3 pr-4 text-right">
+                          <p className="font-semibold text-gray-900">{stock}</p>
+                          <p className="text-xs text-gray-500">
+                            T {obtenerStockTienda(producto)} / Tx {obtenerStockTaxco(producto)}
+                          </p>
+                        </td>
+
+                        <td className="w-[13%] py-3 pr-4">
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStockStyle(
+                              stock
+                            )}`}
+                          >
+                            {getStockLabel(stock)}
+                          </span>
+                        </td>
+
+                        <td className="w-[16%] py-3 pr-4">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 xl:w-auto xl:px-3"
+                              onClick={() => editar(producto)}
+                              title="Editar"
+                            >
+                              <Pencil size={15} />
+                              <span className="hidden xl:inline">Editar</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 text-white shadow-sm transition hover:bg-red-700 xl:w-auto xl:px-3"
+                              onClick={() => abrirModalEliminar(producto)}
+                              title="Eliminar"
+                            >
+                              <Trash2 size={15} />
+                              <span className="hidden xl:inline">Eliminar</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="hidden max-h-[70vh] overflow-y-auto rounded-2xl border border-gray-200 2xl:block">
+              <table className="w-full text-left">
                 <thead className="sticky top-0 z-10 bg-white shadow-sm">
                   <tr className="border-b border-gray-200 text-sm text-gray-500">
                     <th className="py-3 pr-4">Imagen</th>
