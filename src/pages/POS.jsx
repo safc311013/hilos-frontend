@@ -249,6 +249,7 @@ export default function POS() {
   const [error, setError] = useState('');
   const [mensajeExito, setMensajeExito] = useState('');
   const [ticketVenta, setTicketVenta] = useState(null);
+  const [ultimoTicketVenta, setUltimoTicketVenta] = useState(null);
   const [procesandoVenta, setProcesandoVenta] = useState(false);
   const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
   const [cotizacionActiva, setCotizacionActiva] = useState(null);
@@ -279,6 +280,17 @@ export default function POS() {
 
     return () => clearTimeout(timeout);
   }, [mensajeExito]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('ultimoTicketVentaPOS');
+      if (raw) {
+        setUltimoTicketVenta(JSON.parse(raw));
+      }
+    } catch {
+      setUltimoTicketVenta(null);
+    }
+  }, []);
 
   useEffect(() => {
     if (ticketVenta || mostrarScanner || productoConsultado) {
@@ -1188,8 +1200,26 @@ const agregarProductoDesdeModalScanner = () => {
     `;
   };
 
-  const imprimirTicket80mm = () => {
-    if (!ticketVenta) return;
+  const guardarUltimoTicket = (ticket) => {
+    setUltimoTicketVenta(ticket);
+    try {
+      localStorage.setItem('ultimoTicketVentaPOS', JSON.stringify(ticket));
+    } catch {
+      // No guardar el respaldo local no debe bloquear la venta.
+    }
+  };
+
+  const reimprimirUltimoTicket = () => {
+    if (!ultimoTicketVenta) {
+      setError('No hay un ticket reciente para reimprimir.');
+      return;
+    }
+
+    setTicketVenta(ultimoTicketVenta);
+  };
+
+  const imprimirTicket80mm = (ticketAImprimir = ticketVenta) => {
+    if (!ticketAImprimir) return;
 
     const ventana = window.open('', '_blank', 'width=420,height=720');
 
@@ -1199,12 +1229,12 @@ const agregarProductoDesdeModalScanner = () => {
     }
 
     ventana.document.open();
-    ventana.document.write(construirHtmlTicket80mm(ticketVenta));
+    ventana.document.write(construirHtmlTicket80mm(ticketAImprimir));
     ventana.document.close();
   };
 
-  const descargarTicketPDF = async () => {
-    if (!ticketVenta) return;
+  const descargarTicketPDF = async (ticketADescargar = ticketVenta) => {
+    if (!ticketADescargar) return;
 
     let logoDataUrl = null;
 
@@ -1220,7 +1250,7 @@ const agregarProductoDesdeModalScanner = () => {
     const estimarAltura = () => {
       let altura = 78;
 
-      ticketVenta.productos.forEach((item) => {
+      ticketADescargar.productos.forEach((item) => {
         const nombreLineas = Math.max(1, Math.ceil(String(item.nombre || '').length / 24));
         altura += nombreLineas * 4.5 + 7;
 
@@ -1266,17 +1296,17 @@ const agregarProductoDesdeModalScanner = () => {
       y += 5;
     };
 
-    imprimirDato('Ticket', ticketVenta.numeroTicket);
-    imprimirDato('Usuario', ticketVenta.usuario);
-    imprimirDato('Fecha', ticketVenta.fecha);
-    imprimirDato('Hora', ticketVenta.hora);
-    imprimirDato('Pago', ticketVenta.metodoPago);
+    imprimirDato('Ticket', ticketADescargar.numeroTicket);
+    imprimirDato('Usuario', ticketADescargar.usuario);
+    imprimirDato('Fecha', ticketADescargar.fecha);
+    imprimirDato('Hora', ticketADescargar.hora);
+    imprimirDato('Pago', ticketADescargar.metodoPago);
 
     y += 1;
     doc.line(6, y, pageWidth - 6, y);
     y += 5;
 
-    ticketVenta.productos.forEach((item) => {
+    ticketADescargar.productos.forEach((item) => {
       const nombreLineas = doc.splitTextToSize(item.nombre, pageWidth - 12);
 
       doc.setFont('helvetica', 'bold');
@@ -1316,14 +1346,14 @@ const agregarProductoDesdeModalScanner = () => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.text('TOTAL', 6, y);
-    doc.text(formatearMoneda(ticketVenta.total), pageWidth - 6, y, { align: 'right' });
+    doc.text(formatearMoneda(ticketADescargar.total), pageWidth - 6, y, { align: 'right' });
     y += 8;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.text('Gracias por tu compra', pageWidth / 2, y, { align: 'center' });
 
-    doc.save(`ticket_${ticketVenta.numeroTicket}.pdf`);
+    doc.save(`ticket_${ticketADescargar.numeroTicket}.pdf`);
   };
 
   const exportarCotizacionPDF = async () => {
@@ -1585,6 +1615,7 @@ const agregarProductoDesdeModalScanner = () => {
       });
 
       setTicketVenta(ticket);
+      guardarUltimoTicket(ticket);
       setCarrito([]);
       carritoRef.current = [];
       setCotizacionActiva(null);
@@ -2098,6 +2129,15 @@ const agregarProductoDesdeModalScanner = () => {
                     disabled={procesandoVenta}
                   >
                     {procesandoVenta ? 'Procesando venta...' : 'Finalizar venta'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="mt-3 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={reimprimirUltimoTicket}
+                    disabled={!ultimoTicketVenta || procesandoVenta}
+                  >
+                    Reimprimir ultimo ticket
                   </button>
                 </div>
               </>

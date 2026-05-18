@@ -23,6 +23,7 @@ import {
   FileSpreadsheet,
   Download,
   ClipboardList,
+  ClipboardCheck,
   Eye,
   CheckCircle2,
   RefreshCcw,
@@ -541,6 +542,25 @@ const extraerProductosDesdePdf = async (file, categoriasConocidas = []) => {
   };
 };
 
+const construirMensajeFormatoPdf = ({ invalidas = [], archivo = '' } = {}) => {
+  const ejemplos = invalidas.slice(0, 3);
+  const detalleLineas = ejemplos.length
+    ? ` Lineas detectadas pero no validas: ${ejemplos.join(' | ')}${
+        invalidas.length > 3 ? ' | ...' : ''
+      }`
+    : '';
+
+  return [
+    `No se encontraron productos validos en ${archivo || 'el PDF'}.`,
+    'Verifica que el archivo tenga texto seleccionable, no solo una imagen escaneada.',
+    'Usa exactamente estas columnas: Codigo, Categoria, Nombre, Costo artesano, Precio venta y Stock.',
+    'Cada fila debe terminar con Costo artesano, Precio venta y Stock numerico.',
+    detalleLineas,
+  ]
+    .filter(Boolean)
+    .join(' ');
+};
+
 export default function Inventario() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -573,6 +593,7 @@ export default function Inventario() {
   const [imagenArchivo, setImagenArchivo] = useState(null);
   const [previewImagen, setPreviewImagen] = useState('');
   const [importandoPdf, setImportandoPdf] = useState(false);
+  const [pasoImportacionPdf, setPasoImportacionPdf] = useState('');
   const [exportandoExcel, setExportandoExcel] = useState(false);
   const [mostrarGuiaImportacion, setMostrarGuiaImportacion] = useState(false);
   const [mostrarPreviewImportacion, setMostrarPreviewImportacion] = useState(false);
@@ -598,9 +619,17 @@ export default function Inventario() {
     useState(false);
   const [errorEdicionScanner, setErrorEdicionScanner] = useState('');
   const [codigoPendienteRegistro, setCodigoPendienteRegistro] = useState('');
+  const [mostrarConteoFisico, setMostrarConteoFisico] = useState(false);
+  const [inventarioConteo, setInventarioConteo] = useState(INVENTARIOS.TIENDA);
+  const [conteoFisico, setConteoFisico] = useState([]);
+  const [codigoManualConteo, setCodigoManualConteo] = useState('');
+  const [errorConteo, setErrorConteo] = useState('');
+  const [consultandoConteo, setConsultandoConteo] = useState(false);
+  const [mostrarCamaraConteo, setMostrarCamaraConteo] = useState(false);
 
   const pdfInputRef = useRef(null);
   const ultimoCodigoEscaneadoRef = useRef('');
+  const ultimoCodigoConteoRef = useRef('');
 
   const cargarCategorias = async () => {
     try {
@@ -869,6 +898,30 @@ export default function Inventario() {
 
     return stockActual + Number(cantidad || 0);
   };
+
+  const obtenerStockParaConteo = (producto = {}, inventario = inventarioConteo) => {
+    if (inventario === INVENTARIOS.TAXCO) return obtenerStockTaxco(producto);
+    if (inventario === INVENTARIOS.TIENDA) return obtenerStockTienda(producto);
+    return obtenerStockTotal(producto);
+  };
+
+  const conteoFisicoResumen = useMemo(() => {
+    return conteoFisico.reduce(
+      (acc, item) => {
+        const diferencia = Number(item.cantidadContada || 0) - Number(item.stockSistema || 0);
+        acc.totalContado += Number(item.cantidadContada || 0);
+        acc.totalSistema += Number(item.stockSistema || 0);
+        if (diferencia !== 0) acc.conDiferencia += 1;
+        return acc;
+      },
+      {
+        productos: conteoFisico.length,
+        totalContado: 0,
+        totalSistema: 0,
+        conDiferencia: 0,
+      }
+    );
+  }, [conteoFisico]);
 
   if (!puede(PERMISOS.GESTIONAR_INVENTARIO)) {
     return (
@@ -1374,6 +1427,127 @@ export default function Inventario() {
     setMostrarFormulario(true);
   };
 
+  const abrirConteoFisico = () => {
+    setErrorAccion('');
+    setMensajeAccion('');
+    setErrorConteo('');
+    setCodigoManualConteo('');
+    setMostrarCamaraConteo(false);
+    ultimoCodigoConteoRef.current = '';
+    setMostrarConteoFisico(true);
+  };
+
+  const cerrarConteoFisico = () => {
+    if (consultandoConteo) return;
+    setMostrarConteoFisico(false);
+    setMostrarCamaraConteo(false);
+    setErrorConteo('');
+    setCodigoManualConteo('');
+    ultimoCodigoConteoRef.current = '';
+  };
+
+  const limpiarConteoFisico = () => {
+    setConteoFisico([]);
+    setErrorConteo('');
+    setCodigoManualConteo('');
+    ultimoCodigoConteoRef.current = '';
+  };
+
+  const registrarProductoConteo = (producto) => {
+    if (!producto) return;
+
+    const codigo = String(producto.codigo || '').trim().toUpperCase();
+    const stockSistema = obtenerStockParaConteo(producto);
+
+    setConteoFisico((prev) => {
+      const existente = prev.find((item) => item.codigo === codigo);
+
+      if (existente) {
+        return prev.map((item) =>
+          item.codigo === codigo
+            ? {
+                ...item,
+                cantidadContada: Number(item.cantidadContada || 0) + 1,
+                stockSistema,
+              }
+            : item
+        );
+      }
+
+      return [
+        {
+          id: producto._id || codigo,
+          codigo,
+          nombre: producto.nombre || 'Producto sin nombre',
+          categoria: producto.categoria || 'General',
+          stockSistema,
+          stockTaxco: obtenerStockTaxco(producto),
+          stockTienda: obtenerStockTienda(producto),
+          cantidadContada: 1,
+        },
+        ...prev,
+      ];
+    });
+
+    setErrorConteo('');
+  };
+
+  const consultarProductoConteo = async (rawValue) => {
+    const codigo = normalizarCodigoEscaneado(rawValue);
+    if (!codigo || consultandoConteo) return;
+    if (ultimoCodigoConteoRef.current === codigo) return;
+
+    ultimoCodigoConteoRef.current = codigo;
+    setConsultandoConteo(true);
+    setErrorConteo('');
+
+    try {
+      const producto = await buscarProductoExistentePorCodigo(codigo);
+
+      if (!producto) {
+        setErrorConteo(`No se encontro un producto con el codigo ${codigo}.`);
+        ultimoCodigoConteoRef.current = '';
+        return;
+      }
+
+      registrarProductoConteo(producto);
+      setCodigoManualConteo('');
+      setTimeout(() => {
+        ultimoCodigoConteoRef.current = '';
+      }, 900);
+    } catch (error) {
+      setErrorConteo(
+        error.response?.data?.mensaje || 'No se pudo consultar el producto para conteo'
+      );
+      ultimoCodigoConteoRef.current = '';
+    } finally {
+      setConsultandoConteo(false);
+    }
+  };
+
+  const registrarConteoManual = (event) => {
+    event.preventDefault();
+    void consultarProductoConteo(codigoManualConteo);
+  };
+
+  const actualizarCantidadConteo = (codigo, cantidad) => {
+    const cantidadNormalizada = Math.max(Number(cantidad || 0), 0);
+    setConteoFisico((prev) =>
+      prev.map((item) =>
+        item.codigo === codigo
+          ? {
+              ...item,
+              cantidadContada: cantidadNormalizada,
+            }
+          : item
+      )
+    );
+  };
+
+  const quitarProductoConteo = (codigo) => {
+    setConteoFisico((prev) => prev.filter((item) => item.codigo !== codigo));
+  };
+
   const consultarProductoEscaneado = async (rawValue) => {
     const codigo = normalizarCodigoEscaneado(rawValue);
 
@@ -1748,19 +1922,25 @@ export default function Inventario() {
         file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
       if (!esPdf) {
-        throw new Error('Solo se permiten archivos PDF');
+        throw new Error(
+          `El archivo "${file.name}" no es PDF. Exporta tu plantilla como PDF e intenta de nuevo.`
+        );
       }
 
       if (file.size > PDF_MAX_BYTES) {
-        throw new Error('El PDF no debe superar los 10 MB');
+        throw new Error(
+          `El PDF pesa ${(file.size / 1024 / 1024).toFixed(1)} MB. El maximo permitido es 10 MB.`
+        );
       }
 
       setImportandoPdf(true);
+      setPasoImportacionPdf('Leyendo texto del PDF...');
 
       const { productos: productosExtraidos, invalidas } =
         await extraerProductosDesdePdf(file, categoriasDisponibles);
 
       if (!productosExtraidos.length) {
+        throw new Error(construirMensajeFormatoPdf({ invalidas, archivo: file.name }));
         const detalle = invalidas.length
           ? ` Líneas detectadas pero no válidas: ${invalidas.slice(0, 3).join(' | ')}${
               invalidas.length > 3 ? ' | ...' : ''
@@ -1773,6 +1953,7 @@ export default function Inventario() {
         );
       }
 
+      setPasoImportacionPdf('Comparando con el inventario actual...');
       const analisis = await analizarProductosImportacion(productosExtraidos);
 
       const pendientes = analisis.detalles.filter(
@@ -1785,6 +1966,7 @@ export default function Inventario() {
         );
       }
 
+      setPasoImportacionPdf('Preparando vista previa...');
       setProductosPendientesImportacion(pendientes);
       setResumenImportacion({
         archivo: file.name,
@@ -1799,6 +1981,7 @@ export default function Inventario() {
       );
     } finally {
       setImportandoPdf(false);
+      setPasoImportacionPdf('');
       if (e.target) {
         e.target.value = '';
       }
@@ -1813,6 +1996,7 @@ export default function Inventario() {
     }
 
     try {
+      setPasoImportacionPdf('Importando productos...');
       setImportandoPdf(true);
       setErrorAccion('');
       setMensajeAccion('');
@@ -1823,6 +2007,7 @@ export default function Inventario() {
 
       for (const detalle of productosPendientesImportacion) {
         try {
+          setPasoImportacionPdf(`Importando ${detalle.codigo || 'producto'}...`);
           const resultado = await importarProductoDesdePdf(
             detalle,
             inventarioImportacion
@@ -1878,6 +2063,7 @@ export default function Inventario() {
       setErrorAccion(error.message || 'No se pudo completar la importación');
     } finally {
       setImportandoPdf(false);
+      setPasoImportacionPdf('');
     }
   };
 
@@ -2250,6 +2436,16 @@ export default function Inventario() {
               >
                 <Search size={17} />
                 Escanear código
+              </button>
+
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-violet-200 bg-violet-50 px-4 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={abrirConteoFisico}
+                disabled={loading || importandoPdf || exportandoExcel}
+              >
+                <ClipboardCheck size={17} />
+                Conteo fisico
               </button>
             </div>
 
@@ -2864,6 +3060,25 @@ export default function Inventario() {
         </div>
       ) : null}
 
+      {importandoPdf && !mostrarPreviewImportacion ? (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-700">
+              <RefreshCcw size={24} className="animate-spin" />
+            </div>
+            <h3 className="mt-4 text-xl font-bold text-gray-900">
+              Analizando inventario
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              {pasoImportacionPdf || 'Preparando importacion...'}
+            </p>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-gray-100">
+              <div className="h-full w-2/3 animate-pulse rounded-full bg-red-600" />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {mostrarGuiaImportacion ? (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div
@@ -3370,6 +3585,257 @@ export default function Inventario() {
                 <FileSpreadsheet size={17} />
                 {exportandoExcel ? 'Exportando...' : 'Exportar'}
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {mostrarConteoFisico ? (
+        <div className="fixed inset-0 z-[78] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarConteoFisico} />
+
+          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl">
+            <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
+                    <ClipboardCheck size={14} />
+                    Conteo fisico
+                  </div>
+                  <h3 className="mt-3 text-xl font-bold text-gray-900 sm:text-2xl">
+                    Comparar conteo fisico contra sistema
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Escanea o captura codigos para contar piezas y ver diferencias.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <select
+                    className="h-11 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                    value={inventarioConteo}
+                    onChange={(e) => {
+                      const destino = normalizarInventario(e.target.value);
+                      setInventarioConteo(destino);
+                      setConteoFisico((prev) =>
+                        prev.map((item) => ({
+                          ...item,
+                          stockSistema:
+                            destino === INVENTARIOS.TAXCO
+                              ? Number(item.stockTaxco || item.stockSistema || 0)
+                              : Number(item.stockTienda || item.stockSistema || 0),
+                        }))
+                      );
+                    }}
+                    disabled={consultandoConteo}
+                  >
+                    <option value={INVENTARIOS.TIENDA}>Inventario de Tienda</option>
+                    <option value={INVENTARIOS.TAXCO}>Inventario de Taxco</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200 disabled:opacity-60"
+                    onClick={cerrarConteoFisico}
+                    disabled={consultandoConteo}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,360px)_1fr]">
+                <div className="space-y-4">
+                  <form onSubmit={registrarConteoManual} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                    <label className="mb-2 block text-sm font-semibold text-gray-700">
+                      Codigo del producto
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        className="h-11 min-w-0 flex-1 rounded-2xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                        value={codigoManualConteo}
+                        onChange={(e) => setCodigoManualConteo(e.target.value)}
+                        placeholder="Escanea o escribe codigo"
+                        disabled={consultandoConteo}
+                      />
+                      <button
+                        type="submit"
+                        className="inline-flex h-11 items-center justify-center rounded-2xl bg-violet-600 px-4 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60"
+                        disabled={consultandoConteo || !codigoManualConteo.trim()}
+                      >
+                        Agregar
+                      </button>
+                    </div>
+                  </form>
+
+                  <button
+                    type="button"
+                    onClick={() => setMostrarCamaraConteo((prev) => !prev)}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                  >
+                    <Search size={17} />
+                    {mostrarCamaraConteo ? 'Ocultar camara' : 'Usar camara'}
+                  </button>
+
+                  {mostrarCamaraConteo ? (
+                    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
+                      <Suspense fallback={<div className="p-6 text-center text-sm text-white">Cargando escaner...</div>}>
+                        <QrScanner
+                          onScan={(detectedCodes) => {
+                            const code = detectedCodes?.[0]?.rawValue;
+                            if (code) {
+                              void consultarProductoConteo(code);
+                            }
+                          }}
+                          onError={(scannerError) => {
+                            setErrorConteo(
+                              scannerError?.message || 'No se pudo acceder a la camara'
+                            );
+                          }}
+                          formats={BARCODE_FORMATS}
+                          constraints={{ facingMode: 'environment' }}
+                          components={{ finder: true, torch: true, zoom: true }}
+                          paused={consultandoConteo}
+                          scanDelay={900}
+                          allowMultiple={false}
+                          styles={{
+                            container: { width: '100%' },
+                            video: {
+                              width: '100%',
+                              height: 'auto',
+                              objectFit: 'cover',
+                            },
+                          }}
+                        />
+                      </Suspense>
+                    </div>
+                  ) : null}
+
+                  {errorConteo ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {errorConteo}
+                    </div>
+                  ) : null}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-violet-50 px-4 py-3">
+                      <p className="text-xs text-violet-600">Productos</p>
+                      <p className="mt-1 text-2xl font-bold text-violet-800">
+                        {conteoFisicoResumen.productos}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-amber-50 px-4 py-3">
+                      <p className="text-xs text-amber-600">Diferencias</p>
+                      <p className="mt-1 text-2xl font-bold text-amber-800">
+                        {conteoFisicoResumen.conDiferencia}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-gray-200">
+                  {conteoFisico.length ? (
+                    <div className="max-h-[58vh] overflow-auto">
+                      <table className="min-w-[780px] w-full text-left">
+                        <thead className="sticky top-0 z-10 bg-white shadow-sm">
+                          <tr className="text-sm text-gray-500">
+                            <th className="px-4 py-3">Codigo</th>
+                            <th className="px-4 py-3">Producto</th>
+                            <th className="px-4 py-3 text-right">Sistema</th>
+                            <th className="px-4 py-3 text-right">Contado</th>
+                            <th className="px-4 py-3 text-right">Diferencia</th>
+                            <th className="px-4 py-3 text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 bg-white">
+                          {conteoFisico.map((item) => {
+                            const diferencia =
+                              Number(item.cantidadContada || 0) - Number(item.stockSistema || 0);
+                            return (
+                              <tr key={item.codigo} className="text-sm text-gray-700">
+                                <td className="px-4 py-3 font-semibold text-gray-900">
+                                  {item.codigo}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <p className="font-medium text-gray-900">{item.nombre}</p>
+                                  <p className="text-xs text-gray-500">{item.categoria}</p>
+                                </td>
+                                <td className="px-4 py-3 text-right font-semibold">
+                                  {item.stockSistema}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    className="h-10 w-24 rounded-xl border border-gray-200 px-3 text-right text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                                    value={item.cantidadContada}
+                                    onChange={(e) =>
+                                      actualizarCantidadConteo(item.codigo, e.target.value)
+                                    }
+                                  />
+                                </td>
+                                <td
+                                  className={`px-4 py-3 text-right font-bold ${
+                                    diferencia === 0
+                                      ? 'text-emerald-700'
+                                      : diferencia > 0
+                                      ? 'text-sky-700'
+                                      : 'text-red-700'
+                                  }`}
+                                >
+                                  {diferencia > 0 ? `+${diferencia}` : diferencia}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => quitarProductoConteo(item.codigo)}
+                                    className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="px-6 py-16 text-center">
+                      <ClipboardCheck className="mx-auto text-gray-300" size={42} />
+                      <p className="mt-3 text-sm font-semibold text-gray-700">
+                        Aun no hay productos contados
+                      </p>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Escanea o escribe codigos para empezar el conteo.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 px-5 py-4 sm:px-6">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={cerrarConteoFisico}
+                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  onClick={limpiarConteoFisico}
+                  disabled={!conteoFisico.length}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
+                >
+                  <RefreshCcw size={16} />
+                  Limpiar conteo
+                </button>
+              </div>
             </div>
           </div>
         </div>
