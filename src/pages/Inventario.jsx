@@ -21,6 +21,8 @@ import {
   Image as ImageIcon,
   FileUp,
   FileSpreadsheet,
+  Download,
+  ClipboardList,
   Eye,
   CheckCircle2,
   RefreshCcw,
@@ -572,6 +574,7 @@ export default function Inventario() {
   const [previewImagen, setPreviewImagen] = useState('');
   const [importandoPdf, setImportandoPdf] = useState(false);
   const [exportandoExcel, setExportandoExcel] = useState(false);
+  const [mostrarGuiaImportacion, setMostrarGuiaImportacion] = useState(false);
   const [mostrarPreviewImportacion, setMostrarPreviewImportacion] = useState(false);
   const [resumenImportacion, setResumenImportacion] = useState(
     initialResumenImportacion
@@ -1634,7 +1637,99 @@ export default function Inventario() {
   const abrirSelectorPdf = () => {
     setErrorAccion('');
     setMensajeAccion('');
+    setMostrarGuiaImportacion(true);
+  };
+
+  const seleccionarPdfImportacion = () => {
+    setMostrarGuiaImportacion(false);
     pdfInputRef.current?.click();
+  };
+
+  const descargarPlantillaImportacionPdf = async () => {
+    try {
+      setErrorAccion('');
+      setMensajeAccion('');
+
+      const [{ default: jsPDF }, autoTableModule] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+      ]);
+      const autoTable = autoTableModule.default;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+
+      const columnas = [
+        'Codigo',
+        'Categoria',
+        'Nombre',
+        'Costo artesano',
+        'Precio venta',
+        'Stock',
+      ];
+      const filasEjemplo = [
+        ['HL-001', 'Hilos', 'Hilo algodon rojo 100 g', 45, 79, 12],
+        ['LN-002', 'Lana', 'Lana merino azul 50 g', 62.5, 115, 8],
+        ['AC-003', 'Accesorios', 'Aguja circular 4 mm', 30, 55, 5],
+      ];
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('Plantilla para importar inventario', 14, 18);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(
+        'Usa exactamente estos encabezados y una fila por producto. El sistema leera Codigo, Categoria, Nombre, Costo artesano, Precio venta y Stock.',
+        14,
+        26
+      );
+      doc.text(
+        'Puedes reemplazar los ejemplos por tus productos, guardar/exportar como PDF y luego importarlo desde Inventario.',
+        14,
+        31
+      );
+
+      autoTable(doc, {
+        startY: 40,
+        head: [columnas],
+        body: filasEjemplo,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 10,
+          cellPadding: 3,
+          overflow: 'linebreak',
+          valign: 'middle',
+        },
+        headStyles: {
+          fillColor: [17, 24, 39],
+          textColor: [255, 255, 255],
+          halign: 'center',
+          fontStyle: 'bold',
+        },
+        columnStyles: {
+          0: { cellWidth: 28 },
+          1: { cellWidth: 34 },
+          2: { cellWidth: 82 },
+          3: { cellWidth: 32, halign: 'right' },
+          4: { cellWidth: 32, halign: 'right' },
+          5: { cellWidth: 24, halign: 'right' },
+        },
+      });
+
+      const finalY = doc.lastAutoTable?.finalY || 76;
+      doc.setFontSize(8);
+      doc.setTextColor(75, 85, 99);
+      doc.text(
+        'Reglas: Codigo no debe repetirse en distintas filas. Stock debe ser numero entero. Costos y precios aceptan punto decimal.',
+        14,
+        finalY + 10
+      );
+
+      doc.save('plantilla_importacion_inventario.pdf');
+      setMensajeAccion('Plantilla descargada. Llena el PDF con ese formato antes de importarlo.');
+    } catch (error) {
+      setErrorAccion(error.message || 'No se pudo descargar la plantilla de importacion');
+    }
   };
 
   const handlePdfChange = async (e) => {
@@ -2126,7 +2221,7 @@ export default function Inventario() {
                 disabled={importandoPdf || exportandoExcel}
               >
                 <FileUp size={17} />
-                {importandoPdf ? 'Analizando PDF...' : 'Importar PDF'}
+                {importandoPdf ? 'Analizando PDF...' : 'Importar inventario'}
               </button>
 
               <button
@@ -2757,6 +2852,118 @@ export default function Inventario() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {mostrarGuiaImportacion ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div
+            className="absolute inset-0"
+            onClick={() => !importandoPdf && setMostrarGuiaImportacion(false)}
+          />
+
+          <div className="relative w-full max-w-3xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+                  <ClipboardList size={14} />
+                  Formato ideal
+                </div>
+
+                <h3 className="mt-3 text-xl font-bold text-gray-900 sm:text-2xl">
+                  Importar inventario sin errores
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  El PDF debe tener una tabla con estos encabezados exactos y una fila por producto.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200 disabled:opacity-60"
+                onClick={() => setMostrarGuiaImportacion(false)}
+                disabled={importandoPdf}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-gray-200">
+              <div className="min-w-[720px]">
+              <div className="grid grid-cols-[1.1fr_1.2fr_2fr_1fr_1fr_0.8fr] bg-gray-900 text-xs font-semibold uppercase text-white">
+                <div className="px-3 py-3">Codigo</div>
+                <div className="px-3 py-3">Categoria</div>
+                <div className="px-3 py-3">Nombre</div>
+                <div className="px-3 py-3 text-right">Costo artesano</div>
+                <div className="px-3 py-3 text-right">Precio venta</div>
+                <div className="px-3 py-3 text-right">Stock</div>
+              </div>
+
+              {[
+                ['HL-001', 'Hilos', 'Hilo algodon rojo 100 g', '$45.00', '$79.00', '12'],
+                ['LN-002', 'Lana', 'Lana merino azul 50 g', '$62.50', '$115.00', '8'],
+              ].map((fila) => (
+                <div
+                  key={fila[0]}
+                  className="grid grid-cols-[1.1fr_1.2fr_2fr_1fr_1fr_0.8fr] border-t border-gray-200 text-sm text-gray-700"
+                >
+                  <div className="px-3 py-3 font-semibold text-gray-900">{fila[0]}</div>
+                  <div className="px-3 py-3">{fila[1]}</div>
+                  <div className="px-3 py-3">{fila[2]}</div>
+                  <div className="px-3 py-3 text-right">{fila[3]}</div>
+                  <div className="px-3 py-3 text-right">{fila[4]}</div>
+                  <div className="px-3 py-3 text-right">{fila[5]}</div>
+                </div>
+              ))}
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 gap-3 text-sm text-gray-600 sm:grid-cols-3">
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="font-semibold text-gray-900">Codigo</p>
+                <p className="mt-1">Debe ser unico para identificar el producto.</p>
+              </div>
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="font-semibold text-gray-900">Precios</p>
+                <p className="mt-1">Aceptan punto decimal. Evita texto dentro del numero.</p>
+              </div>
+              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                <p className="font-semibold text-gray-900">Stock</p>
+                <p className="mt-1">Usa numeros enteros. Ese stock se sumara al inventario elegido.</p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setMostrarGuiaImportacion(false)}
+                disabled={importandoPdf}
+                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={descargarPlantillaImportacionPdf}
+                disabled={importandoPdf}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+              >
+                <Download size={17} />
+                Descargar plantilla PDF
+              </button>
+
+              <button
+                type="button"
+                onClick={seleccionarPdfImportacion}
+                disabled={importandoPdf}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+              >
+                <FileUp size={17} />
+                Seleccionar PDF
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
