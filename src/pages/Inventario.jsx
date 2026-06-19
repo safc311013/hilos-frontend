@@ -561,6 +561,52 @@ const construirMensajeFormatoPdf = ({ invalidas = [], archivo = '' } = {}) => {
     .join(' ');
 };
 
+const esEncabezadoCostos = (text = '') => {
+  const normalizado = normalizarTexto(text);
+  return normalizado.includes('codigo') && normalizado.includes('costo');
+};
+
+const extraerCostosDesdePdf = async (file) => {
+  const pdfjsLib = await getPdfLib();
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const filas = [];
+  const invalidas = [];
+
+  for (let pagina = 1; pagina <= pdf.numPages; pagina += 1) {
+    const page = await pdf.getPage(pagina);
+    const textContent = await page.getTextContent({
+      normalizeWhitespace: true,
+      disableCombineTextItems: false,
+    });
+    const lineas = agruparItemsPorLinea(textContent.items || []);
+
+    lineas.forEach((linea) => {
+      if (esEncabezadoCostos(linea.text)) return;
+
+      const texto = normalizarEspacios(linea.text);
+      const match = texto.match(/^(\S+)\s+[$€]?\s*(-?\d[\d.,]*)\s*$/);
+
+      if (!match) {
+        if (/\d/.test(texto)) invalidas.push(`Pág. ${pagina}: ${texto}`);
+        return;
+      }
+
+      const codigo = String(match[1] || '').trim().toUpperCase();
+      const costoArtesano = normalizarNumero(match[2]);
+
+      if (!codigo || !Number.isFinite(costoArtesano) || costoArtesano < 0) {
+        invalidas.push(`Pág. ${pagina}: ${texto}`);
+        return;
+      }
+
+      filas.push({ codigo, costoArtesano });
+    });
+  }
+
+  return { filas, invalidas };
+};
+
 export default function Inventario() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -596,6 +642,11 @@ export default function Inventario() {
   const [pasoImportacionPdf, setPasoImportacionPdf] = useState('');
   const [exportandoExcel, setExportandoExcel] = useState(false);
   const [mostrarGuiaImportacion, setMostrarGuiaImportacion] = useState(false);
+  const [mostrarGuiaCostos, setMostrarGuiaCostos] = useState(false);
+  const [mostrarPreviewCostos, setMostrarPreviewCostos] = useState(false);
+  const [procesandoCostos, setProcesandoCostos] = useState(false);
+  const [archivoCostos, setArchivoCostos] = useState('');
+  const [detallesCostos, setDetallesCostos] = useState([]);
   const [mostrarPreviewImportacion, setMostrarPreviewImportacion] = useState(false);
   const [resumenImportacion, setResumenImportacion] = useState(
     initialResumenImportacion
@@ -628,6 +679,7 @@ export default function Inventario() {
   const [mostrarCamaraConteo, setMostrarCamaraConteo] = useState(false);
 
   const pdfInputRef = useRef(null);
+  const costosInputRef = useRef(null);
   const ultimoCodigoEscaneadoRef = useRef('');
   const ultimoCodigoConteoRef = useRef('');
 
@@ -1910,6 +1962,182 @@ export default function Inventario() {
     }
   };
 
+  const abrirActualizacionCostos = () => {
+    if (usuario?.rol !== 'admin') return;
+    setErrorAccion('');
+    setMensajeAccion('');
+    setMostrarGuiaCostos(true);
+  };
+
+  const descargarPlantillaCostosPdf = async () => {
+    try {
+      setProcesandoCostos(true);
+      setErrorAccion('');
+      const [{ default: jsPDF }, autoTableModule, respuesta] = await Promise.all([
+        import('jspdf'),
+        import('jspdf-autotable'),
+        api.get('/productos'),
+      ]);
+      const productosActuales = Array.isArray(respuesta.data) ? respuesta.data : [];
+      const autoTable = autoTableModule.default;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.text('Actualizacion de costos de artesano', 14, 18);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(
+        'Modifica solamente la columna Costo artesano. No cambies los codigos ni los encabezados.',
+        14,
+        26
+      );
+
+      autoTable(doc, {
+        startY: 34,
+        head: [['Codigo', 'Costo artesano']],
+        body: productosActuales
+          .sort((a, b) => String(a.codigo).localeCompare(String(b.codigo)))
+          .map((producto) => [producto.codigo, Number(producto.costoArtesano || 0)]),
+        theme: 'grid',
+        styles: { font: 'helvetica', fontSize: 10, cellPadding: 3 },
+        headStyles: {
+          fillColor: [17, 24, 39],
+          textColor: [255, 255, 255],
+          halign: 'center',
+          fontStyle: 'bold',
+        },
+        columnStyles: {
+          0: { cellWidth: 85 },
+          1: { cellWidth: 70, halign: 'right' },
+        },
+      });
+
+      doc.save('plantilla_actualizacion_costos_artesano.pdf');
+      setMensajeAccion(`Plantilla generada con ${productosActuales.length} producto(s).`);
+    } catch (error) {
+      setErrorAccion(
+        error.response?.data?.mensaje || 'No se pudo generar la plantilla de costos'
+      );
+    } finally {
+      setProcesandoCostos(false);
+    }
+  };
+
+  const seleccionarPdfCostos = () => {
+    setMostrarGuiaCostos(false);
+    costosInputRef.current?.click();
+  };
+
+  const handleCostosPdfChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const esPdf =
+        file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (!esPdf) throw new Error('Selecciona un archivo PDF válido.');
+      if (file.size > PDF_MAX_BYTES) throw new Error('El PDF no puede pesar más de 10 MB.');
+
+      setProcesandoCostos(true);
+      setErrorAccion('');
+      setMensajeAccion('');
+
+      const [{ filas, invalidas }, respuesta] = await Promise.all([
+        extraerCostosDesdePdf(file),
+        api.get('/productos'),
+      ]);
+
+      if (!filas.length) {
+        throw new Error(
+          'No se encontraron filas válidas. Usa las columnas Código y Costo artesano.'
+        );
+      }
+
+      const productosActuales = Array.isArray(respuesta.data) ? respuesta.data : [];
+      const porCodigo = new Map(
+        productosActuales.map((producto) => [
+          String(producto.codigo || '').trim().toUpperCase(),
+          producto,
+        ])
+      );
+      const repeticiones = filas.reduce((mapa, fila) => {
+        mapa.set(fila.codigo, (mapa.get(fila.codigo) || 0) + 1);
+        return mapa;
+      }, new Map());
+
+      const detalles = filas.map((fila) => {
+        const existente = porCodigo.get(fila.codigo);
+        if ((repeticiones.get(fila.codigo) || 0) > 1) {
+          return { ...fila, tipo: 'error', mensaje: 'Código repetido en el PDF' };
+        }
+        if (!existente) {
+          return { ...fila, tipo: 'error', mensaje: 'El código no existe' };
+        }
+
+        const costoAnterior = Number(existente.costoArtesano || 0);
+        return {
+          ...fila,
+          nombre: existente.nombre,
+          costoAnterior,
+          tipo: costoAnterior === fila.costoArtesano ? 'sinCambio' : 'actualizar',
+        };
+      });
+
+      if (invalidas.length) {
+        detalles.push(
+          ...invalidas.slice(0, 20).map((mensaje, index) => ({
+            codigo: `Fila no válida ${index + 1}`,
+            tipo: 'error',
+            mensaje,
+          }))
+        );
+      }
+
+      setArchivoCostos(file.name);
+      setDetallesCostos(detalles);
+      setMostrarPreviewCostos(true);
+    } catch (error) {
+      setErrorAccion(error.response?.data?.mensaje || error.message || 'No se pudo leer el PDF');
+    } finally {
+      setProcesandoCostos(false);
+      event.target.value = '';
+    }
+  };
+
+  const cerrarPreviewCostos = () => {
+    if (procesandoCostos) return;
+    setMostrarPreviewCostos(false);
+    setArchivoCostos('');
+    setDetallesCostos([]);
+  };
+
+  const confirmarActualizacionCostos = async () => {
+    const costos = detallesCostos
+      .filter((detalle) => detalle.tipo === 'actualizar')
+      .map(({ codigo, costoArtesano }) => ({ codigo, costoArtesano }));
+    if (!costos.length) return;
+
+    try {
+      setProcesandoCostos(true);
+      setErrorAccion('');
+      const { data } = await api.post('/productos/costos/importar', { costos });
+      await cargarProductos();
+      setMostrarPreviewCostos(false);
+      setArchivoCostos('');
+      setDetallesCostos([]);
+      setMensajeAccion(
+        `Costos actualizados: ${data.actualizados}. Sin cambios: ${data.sinCambios}.`
+      );
+    } catch (error) {
+      setErrorAccion(
+        error.response?.data?.mensaje || 'No se pudieron actualizar los costos'
+      );
+    } finally {
+      setProcesandoCostos(false);
+    }
+  };
+
   const handlePdfChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -2359,6 +2587,13 @@ export default function Inventario() {
           className="hidden"
           onChange={handlePdfChange}
         />
+        <input
+          ref={costosInputRef}
+          type="file"
+          accept="application/pdf"
+          className="hidden"
+          onChange={handleCostosPdfChange}
+        />
 
         <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-[260px_minmax(0,1fr)] xl:items-start xl:gap-6">
           <div className="min-w-0">
@@ -2417,6 +2652,18 @@ export default function Inventario() {
                 <FileUp size={17} />
                 {importandoPdf ? 'Analizando PDF...' : 'Importar inventario'}
               </button>
+
+              {usuario?.rol === 'admin' ? (
+                <button
+                  type="button"
+                  className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={abrirActualizacionCostos}
+                  disabled={procesandoCostos || importandoPdf || exportandoExcel}
+                >
+                  <FileSpreadsheet size={17} />
+                  {procesandoCostos ? 'Procesando costos...' : 'Actualizar costos'}
+                </button>
+              ) : null}
 
               <button
                 type="button"
@@ -3175,6 +3422,152 @@ export default function Inventario() {
             </p>
             <div className="mt-5 h-2 overflow-hidden rounded-full bg-gray-100">
               <div className="h-full w-2/3 animate-pulse rounded-full bg-red-600" />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {usuario?.rol === 'admin' && mostrarGuiaCostos ? (
+        <div className="fixed inset-0 z-[76] flex items-center justify-center bg-black/50 p-4">
+          <div className="absolute inset-0" onClick={() => !procesandoCostos && setMostrarGuiaCostos(false)} />
+          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4">
+              <div>
+                <p className="text-xs font-semibold uppercase text-amber-700">Solo administradores</p>
+                <h3 className="mt-1 text-xl font-bold text-gray-900">Actualizar costos de artesano</h3>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                onClick={() => setMostrarGuiaCostos(false)}
+                disabled={procesandoCostos}
+                aria-label="Cerrar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4 px-5 py-5 text-sm text-gray-600">
+              <p>
+                Descarga la plantilla, modifica únicamente <strong>Costo artesano</strong>
+                y expórtala nuevamente como PDF. El código identifica el producto.
+              </p>
+              <div className="border-l-4 border-amber-400 bg-amber-50 px-4 py-3 text-amber-900">
+                Esta operación no modifica nombre, categoría, precio, stock, inventario ni imagen.
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                onClick={descargarPlantillaCostosPdf}
+                disabled={procesandoCostos}
+              >
+                <Download size={17} />
+                Descargar plantilla
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-600 px-4 font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+                onClick={seleccionarPdfCostos}
+                disabled={procesandoCostos}
+              >
+                <FileUp size={17} />
+                Seleccionar PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {usuario?.rol === 'admin' && mostrarPreviewCostos ? (
+        <div className="fixed inset-0 z-[77] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+          <div className="absolute inset-0" onClick={cerrarPreviewCostos} />
+          <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4">
+              <div>
+                <p className="text-xs font-semibold uppercase text-amber-700">Vista previa de costos</p>
+                <h3 className="mt-1 text-xl font-bold text-gray-900">Confirma los cambios</h3>
+                <p className="mt-1 text-sm text-gray-500">Archivo: {archivoCostos}</p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200"
+                onClick={cerrarPreviewCostos}
+                disabled={procesandoCostos}
+                aria-label="Cerrar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-auto">
+              <table className="min-w-[720px] w-full text-left text-sm">
+                <thead className="sticky top-0 bg-gray-50 text-gray-600 shadow-sm">
+                  <tr>
+                    <th className="px-5 py-3">Código</th>
+                    <th className="px-5 py-3">Producto</th>
+                    <th className="px-5 py-3 text-right">Costo actual</th>
+                    <th className="px-5 py-3 text-right">Costo nuevo</th>
+                    <th className="px-5 py-3">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detallesCostos.map((detalle, index) => (
+                    <tr key={`${detalle.codigo}-${index}`} className="border-b border-gray-100">
+                      <td className="px-5 py-3 font-semibold text-gray-800">{detalle.codigo}</td>
+                      <td className="px-5 py-3 text-gray-700">{detalle.nombre || detalle.mensaje || '-'}</td>
+                      <td className="px-5 py-3 text-right text-gray-600">
+                        {detalle.costoAnterior == null ? '-' : formatearMoneda(detalle.costoAnterior)}
+                      </td>
+                      <td className="px-5 py-3 text-right font-semibold text-gray-800">
+                        {detalle.costoArtesano == null ? '-' : formatearMoneda(detalle.costoArtesano)}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={`font-semibold ${
+                          detalle.tipo === 'actualizar'
+                            ? 'text-amber-700'
+                            : detalle.tipo === 'sinCambio'
+                              ? 'text-gray-500'
+                              : 'text-red-700'
+                        }`}>
+                          {detalle.tipo === 'actualizar'
+                            ? 'Actualizar'
+                            : detalle.tipo === 'sinCambio'
+                              ? 'Sin cambios'
+                              : 'Error'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex flex-col gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-gray-600">
+                Se actualizarán <strong>{detallesCostos.filter((item) => item.tipo === 'actualizar').length}</strong> costo(s).
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  className="h-11 rounded-xl border border-gray-200 px-4 font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                  onClick={cerrarPreviewCostos}
+                  disabled={procesandoCostos}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-600 px-5 font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+                  onClick={confirmarActualizacionCostos}
+                  disabled={procesandoCostos || !detallesCostos.some((item) => item.tipo === 'actualizar')}
+                >
+                  {procesandoCostos ? <RefreshCcw size={17} className="animate-spin" /> : <CheckCircle2 size={17} />}
+                  {procesandoCostos ? 'Actualizando...' : 'Confirmar costos'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
