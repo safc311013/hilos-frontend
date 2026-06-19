@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 
 const PRODUCTOS_POR_PAGINA = 12;
+const MEDIA_QUERY_CATALOGO = '(min-width: 640px)';
 const INVENTARIOS = {
   TAXCO: 'taxco',
   TIENDA: 'tienda',
@@ -238,6 +239,9 @@ export default function POS() {
   const ultimoCodigoEscaneadoRef = useRef('');
 
   const [productos, setProductos] = useState([]);
+  const [mostrarCatalogo, setMostrarCatalogo] = useState(() =>
+    typeof window === 'undefined' ? true : window.matchMedia(MEDIA_QUERY_CATALOGO).matches
+  );
   const [carrito, setCarrito] = useState([]);
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [busqueda, setBusqueda] = useState('');
@@ -267,6 +271,24 @@ export default function POS() {
   const [errorScanner, setErrorScanner] = useState('');
 
   const esModoCotizacion = modoPantalla === MODOS_PANTALLA.COTIZACION;
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MEDIA_QUERY_CATALOGO);
+    const actualizarVisibilidadCatalogo = (event) => {
+      setMostrarCatalogo(event.matches);
+
+      if (!event.matches) {
+        setProductos([]);
+        setErrorCarga('');
+        setCargandoCatalogo(false);
+      }
+    };
+
+    setMostrarCatalogo(mediaQuery.matches);
+    mediaQuery.addEventListener('change', actualizarVisibilidadCatalogo);
+
+    return () => mediaQuery.removeEventListener('change', actualizarVisibilidadCatalogo);
+  }, []);
 
   useEffect(() => {
     carritoRef.current = carrito;
@@ -478,6 +500,11 @@ const agregarProductoDesdeModalScanner = () => {
     page = paginaActual,
     q = busquedaAplicada,
   } = {}) => {
+    if (!mostrarCatalogo) {
+      setCargandoCatalogo(false);
+      return;
+    }
+
     try {
       setCargandoCatalogo(true);
       setErrorCarga('');
@@ -598,9 +625,9 @@ const agregarProductoDesdeModalScanner = () => {
   }, [busqueda]);
 
   useEffect(() => {
-    if (!puede(PERMISOS.REGISTRAR_VENTAS)) return;
+    if (!puede(PERMISOS.REGISTRAR_VENTAS) || !mostrarCatalogo) return;
     cargarProductos({ page: paginaActual, q: busquedaAplicada });
-  }, [usuario, paginaActual, busquedaAplicada]);
+  }, [usuario, paginaActual, busquedaAplicada, mostrarCatalogo]);
 
   useEffect(() => {
     if (lastEvent?.tipo !== 'productos' || !puede(PERMISOS.REGISTRAR_VENTAS)) {
@@ -610,7 +637,9 @@ const agregarProductoDesdeModalScanner = () => {
     const refrescarPOS = async () => {
       try {
         await Promise.all([
-          cargarProductos({ page: paginaActual, q: busquedaAplicada }),
+          mostrarCatalogo
+            ? cargarProductos({ page: paginaActual, q: busquedaAplicada })
+            : Promise.resolve(),
           sincronizarCarritoConStockActual(),
         ]);
       } catch (errorRealtime) {
@@ -619,7 +648,7 @@ const agregarProductoDesdeModalScanner = () => {
     };
 
     refrescarPOS();
-  }, [lastEvent, usuario, paginaActual, busquedaAplicada]);
+  }, [lastEvent, usuario, paginaActual, busquedaAplicada, mostrarCatalogo]);
 
   useEffect(() => {
     if (focoInicialAplicadoRef.current) return;
@@ -799,6 +828,30 @@ const agregarProductoDesdeModalScanner = () => {
       setMensajeExito('');
 
       const textoNormalizado = termino.toUpperCase();
+
+      if (!mostrarCatalogo) {
+        try {
+          const { data } = await api.get(
+            `/productos/codigo/${encodeURIComponent(textoNormalizado)}`
+          );
+
+          agregarProducto(data);
+          setBusqueda('');
+          setBusquedaAplicada('');
+          setPaginaActual(1);
+          enfocarBusqueda();
+          return;
+        } catch (errorCodigo) {
+          if (errorCodigo?.response?.status === 404) {
+            setError('No se encontró un producto con ese código.');
+            enfocarBusqueda();
+            return;
+          }
+
+          throw errorCodigo;
+        }
+      }
+
       const esCodigoCompleto = /^HEN[A-Z0-9]{4}$/i.test(textoNormalizado);
 
       if (esCodigoCompleto) {
@@ -1694,7 +1747,9 @@ const agregarProductoDesdeModalScanner = () => {
                 <input
                   ref={inputBusquedaRef}
                   className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                  placeholder="Escribe código HEN0000 o nombre"
+                  placeholder={
+                    mostrarCatalogo ? 'Escribe código HEN0000 o nombre' : 'Escribe código HEN0000'
+                  }
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   onKeyDown={handleBusquedaKeyDown}
@@ -1702,8 +1757,9 @@ const agregarProductoDesdeModalScanner = () => {
               </div>
 
               <p className="mt-2 text-xs text-gray-500">
-                Escribe el código completo con formato HEN0000 o el nombre del producto y
-                presiona Enter. Si hay varias coincidencias, selecciónalo del catálogo.
+                {mostrarCatalogo
+                  ? 'Escribe el código completo con formato HEN0000 o el nombre del producto y presiona Enter. Si hay varias coincidencias, selecciónalo del catálogo.'
+                  : 'Escribe el código completo con formato HEN0000 y presiona Enter, o usa el escáner.'}
               </p>
             </div>
           </div>
@@ -2183,7 +2239,8 @@ const agregarProductoDesdeModalScanner = () => {
             )}
           </section>
 
-          <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+          {mostrarCatalogo ? (
+            <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h3 className="text-lg font-bold text-gray-800 sm:text-xl">
@@ -2311,7 +2368,8 @@ const agregarProductoDesdeModalScanner = () => {
                 </div>
               </>
             )}
-          </section>
+            </section>
+          ) : null}
         </div>
       </div>
 
