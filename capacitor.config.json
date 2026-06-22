@@ -1,0 +1,8 @@
+{
+  "appId": "com.hilos.posmobile",
+  "appName": "Hilos en Nogada",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Hilos en Nogada</string>
+    <string name="title_activity_main">Hilos en Nogada</string>
+    <string name="package_name">com.hilos.posmobile</string>
+    <string name="custom_url_scheme">com.hilos.posmobile</string>
+</resources>

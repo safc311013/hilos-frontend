@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
-import { CheckCircle2, Printer, RotateCcw, Smartphone, Monitor, Wifi } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, Copy, Printer, RotateCcw, Smartphone, Monitor, Wifi } from 'lucide-react';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
+import { api } from '../config/api';
+import { esAplicacionMovilNativa } from '../utils/impresoraNativa';
 import {
   CONFIG_IMPRESORA_DEFAULT,
   cargarConfiguracionImpresora,
@@ -49,14 +51,23 @@ const ticketPrueba = {
 };
 
 export default function ConfiguracionImpresora() {
+  const appMovilNativa = esAplicacionMovilNativa();
   const [configuracion, setConfiguracion] = useState(() => cargarConfiguracionImpresora());
   const [mensaje, setMensaje] = useState('');
   const [probandoConexion, setProbandoConexion] = useState(false);
+  const [direccionMovil, setDireccionMovil] = useState('');
 
   const configNormalizada = useMemo(
     () => normalizarConfiguracionImpresora(configuracion),
     [configuracion]
   );
+
+  useEffect(() => {
+    api
+      .get('/desktop/info')
+      .then(({ data }) => setDireccionMovil(data?.direccionesLan?.[0] || ''))
+      .catch(() => setDireccionMovil(''));
+  }, []);
 
   const actualizarCampo = (campo, valor) => {
     setConfiguracion((actual) => ({
@@ -78,13 +89,19 @@ export default function ConfiguracionImpresora() {
     setMensaje('Configuracion restaurada.');
   };
 
-  const imprimirPrueba = () => {
-    guardar();
-    imprimirTicketConfigurado({
-      ticket: ticketPrueba,
-      formatearMoneda,
-      onError: setMensaje,
-    });
+  const imprimirPrueba = async () => {
+    const configGuardada = guardarConfiguracionImpresora(configuracion);
+    setConfiguracion(configGuardada);
+    setMensaje('Enviando ticket de prueba...');
+    try {
+      const resultado = await imprimirTicketConfigurado({
+        ticket: ticketPrueba,
+        formatearMoneda,
+      });
+      if (resultado?.mensaje) setMensaje(resultado.mensaje);
+    } catch (error) {
+      setMensaje(error.message);
+    }
   };
 
   const probarConexion = async () => {
@@ -97,6 +114,15 @@ export default function ConfiguracionImpresora() {
       setMensaje(error.message);
     } finally {
       setProbandoConexion(false);
+    }
+  };
+
+  const copiarDireccionMovil = async () => {
+    try {
+      await navigator.clipboard.writeText(direccionMovil);
+      setMensaje('Direccion para telefono copiada.');
+    } catch {
+      setMensaje('No se pudo copiar. Selecciona la direccion manualmente.');
     }
   };
 
@@ -407,8 +433,43 @@ export default function ConfiguracionImpresora() {
           </div>
 
           <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            La conexion directa por IP funciona en la aplicacion de escritorio. En celular o
-            navegador se utiliza la impresora configurada en el sistema.
+            <p className="font-semibold">Imprimir desde un telefono</p>
+            {appMovilNativa ? (
+              <p className="mt-2">
+                Esta app imprime directamente a la TSP143IIILAN. Solo conecta el telefono y la
+                impresora a la red de la sede, guarda su IP y usa el boton Probar. No necesita
+                una computadora encendida.
+              </p>
+            ) : direccionMovil ? (
+              <>
+                <p className="mt-2">
+                  Deja abierta la aplicacion de escritorio y abre esta direccion en el telefono,
+                  conectado a la misma red Wi-Fi:
+                </p>
+                <div className="mt-3 flex items-center gap-2 rounded-md border border-amber-300 bg-white px-3 py-2">
+                  <span className="min-w-0 flex-1 select-all break-all font-mono text-xs text-gray-800">
+                    {direccionMovil}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={copiarDireccionMovil}
+                    className="rounded p-1.5 text-amber-800 hover:bg-amber-100"
+                    title="Copiar direccion"
+                  >
+                    <Copy size={17} />
+                  </button>
+                </div>
+                <p className="mt-2 text-xs">
+                  Al entrar desde esa direccion, el telefono enviara los tickets a esta
+                  computadora y ella los mandara a la impresora por IP.
+                </p>
+              </>
+            ) : (
+              <p className="mt-2">
+                Abre esta pantalla desde la aplicacion de escritorio para obtener la direccion
+                local que debes usar en el telefono.
+              </p>
+            )}
           </div>
         </aside>
       </div>

@@ -1,3 +1,10 @@
+import { api } from '../config/api';
+import {
+  esAplicacionMovilNativa,
+  imprimirConImpresoraNativa,
+  probarImpresoraNativa,
+} from './impresoraNativa';
+
 export const IMPRESORA_TICKETS_STORAGE_KEY = 'configuracionImpresoraTickets';
 
 export const CONFIG_IMPRESORA_DEFAULT = {
@@ -115,14 +122,22 @@ export const construirTextoTicket = ({ ticket, formatearMoneda, configuracion })
 
 export const probarImpresoraIp = async (configuracion) => {
   const config = normalizarConfiguracionImpresora(configuracion);
-  const respuesta = await fetch('/api/desktop/printer/test', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ip: config.direccionIp, puerto: config.puerto }),
-  });
-  const resultado = await respuesta.json().catch(() => ({}));
-  if (!respuesta.ok) throw new Error(resultado.mensaje || 'No se pudo conectar con la impresora.');
-  return resultado;
+  if (esAplicacionMovilNativa()) {
+    return probarImpresoraNativa(config);
+  }
+  try {
+    const { data } = await api.post('/impresora-red/probar', {
+      ip: config.direccionIp,
+      puerto: config.puerto,
+    });
+    return data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.mensaje ||
+        error.message ||
+        'No se pudo conectar con la impresora.'
+    );
+  }
 };
 
 const escapeHtml = (texto) => {
@@ -330,7 +345,7 @@ export const construirHtmlTicket = ({
   `;
 };
 
-export const imprimirTicketConfigurado = ({
+export const imprimirTicketConfigurado = async ({
   ticket,
   formatearMoneda,
   onError,
@@ -340,29 +355,38 @@ export const imprimirTicketConfigurado = ({
 
   const config = cargarConfiguracionImpresora();
   if (config.tipoConexion === 'ip') {
-    fetch('/api/desktop/printer/print', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    const texto = construirTextoTicket({ ticket, formatearMoneda, configuracion: config });
+    try {
+      if (esAplicacionMovilNativa()) {
+        return await imprimirConImpresoraNativa({ configuracion: config, texto });
+      }
+      const { data } = await api.post('/impresora-red/imprimir', {
         ip: config.direccionIp,
         puerto: config.puerto,
         copias: config.copias,
-        texto: construirTextoTicket({ ticket, formatearMoneda, configuracion: config }),
-      }),
-    })
-      .then(async (respuesta) => {
-        const resultado = await respuesta.json().catch(() => ({}));
-        if (!respuesta.ok) throw new Error(resultado.mensaje || 'No se pudo imprimir por red.');
-      })
-      .catch((error) => onError?.(error.message));
-    return;
+        texto,
+      });
+      return data;
+    } catch (error) {
+      const mensaje =
+        error.response?.data?.mensaje || error.message || 'No se pudo imprimir por red.';
+      if (onError) {
+        onError(mensaje);
+        return null;
+      }
+      throw new Error(mensaje);
+    }
   }
 
   const ventana = window.open('', '_blank', 'width=420,height=720');
 
   if (!ventana) {
-    onError?.('No se pudo abrir la ventana de impresion. Revisa el bloqueador de ventanas.');
-    return;
+    const mensaje = 'No se pudo abrir la ventana de impresion. Revisa el bloqueador de ventanas.';
+    if (onError) {
+      onError(mensaje);
+      return null;
+    }
+    throw new Error(mensaje);
   }
 
   ventana.document.open();
@@ -374,4 +398,5 @@ export const imprimirTicketConfigurado = ({
     })
   );
   ventana.document.close();
+  return { mensaje: 'Ventana de impresion abierta.' };
 };
