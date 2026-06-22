@@ -2,6 +2,9 @@ export const IMPRESORA_TICKETS_STORAGE_KEY = 'configuracionImpresoraTickets';
 
 export const CONFIG_IMPRESORA_DEFAULT = {
   perfil: 'pc',
+  tipoConexion: 'sistema',
+  direccionIp: '',
+  puerto: 9100,
   nombre: '',
   anchoMm: 80,
   margenMm: 6,
@@ -33,6 +36,7 @@ export const normalizarConfiguracionImpresora = (configuracion = {}) => {
   const anchoMm = Number(configuracion.anchoMm || CONFIG_IMPRESORA_DEFAULT.anchoMm);
   const margenMm = Number(configuracion.margenMm ?? CONFIG_IMPRESORA_DEFAULT.margenMm);
   const copias = Number(configuracion.copias || CONFIG_IMPRESORA_DEFAULT.copias);
+  const puerto = Number(configuracion.puerto || CONFIG_IMPRESORA_DEFAULT.puerto);
 
   return {
     ...CONFIG_IMPRESORA_DEFAULT,
@@ -40,6 +44,9 @@ export const normalizarConfiguracionImpresora = (configuracion = {}) => {
     anchoMm: [58, 80].includes(anchoMm) ? anchoMm : CONFIG_IMPRESORA_DEFAULT.anchoMm,
     margenMm: Math.min(Math.max(margenMm, 2), 10),
     copias: Math.min(Math.max(copias, 1), 3),
+    tipoConexion: configuracion.tipoConexion === 'ip' ? 'ip' : 'sistema',
+    direccionIp: String(configuracion.direccionIp || '').trim(),
+    puerto: Number.isInteger(puerto) && puerto >= 1 && puerto <= 65535 ? puerto : 9100,
     mostrarLogo: Boolean(configuracion.mostrarLogo ?? CONFIG_IMPRESORA_DEFAULT.mostrarLogo),
     imprimirAutomaticamente: Boolean(
       configuracion.imprimirAutomaticamente ??
@@ -47,6 +54,75 @@ export const normalizarConfiguracionImpresora = (configuracion = {}) => {
     ),
     pieTicket: String(configuracion.pieTicket || CONFIG_IMPRESORA_DEFAULT.pieTicket).trim(),
   };
+};
+
+const textoSeguroImpresora = (texto) =>
+  String(texto ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\x20-\x7E\n]/g, '');
+
+const ajustarLinea = (izquierda, derecha, columnas) => {
+  const izq = textoSeguroImpresora(izquierda);
+  const der = textoSeguroImpresora(derecha);
+  const espacio = Math.max(columnas - izq.length - der.length, 1);
+  return `${izq.slice(0, columnas - der.length - 1)}${' '.repeat(espacio)}${der}`;
+};
+
+export const construirTextoTicket = ({ ticket, formatearMoneda, configuracion }) => {
+  const config = normalizarConfiguracionImpresora(configuracion);
+  const columnas = config.anchoMm === 58 ? 32 : 48;
+  const separador = '-'.repeat(columnas);
+  const lineas = [
+    'HILOS EN NOGADA',
+    'Ticket de venta',
+    config.nombre,
+    separador,
+    ajustarLinea('Num. ticket', ticket.numeroTicket, columnas),
+    ajustarLinea('Usuario', ticket.usuario, columnas),
+    ajustarLinea('Fecha', ticket.fecha, columnas),
+    ajustarLinea('Hora', ticket.hora, columnas),
+    ajustarLinea('Pago', ticket.metodoPago, columnas),
+    separador,
+  ];
+
+  (ticket.productos || []).forEach((item) => {
+    lineas.push(textoSeguroImpresora(item.nombre).slice(0, columnas));
+    lineas.push(
+      ajustarLinea(
+        `${item.cantidad} x ${formatearMoneda(item.precioUnitario)}`,
+        formatearMoneda(item.subtotal),
+        columnas
+      )
+    );
+    if (Number(item.montoDescuento || 0) > 0) {
+      lineas.push(
+        ajustarLinea('Descuento', `- ${formatearMoneda(item.montoDescuento)}`, columnas)
+      );
+    }
+  });
+
+  lineas.push(
+    separador,
+    ajustarLinea('TOTAL', formatearMoneda(ticket.total), columnas),
+    separador,
+    config.pieTicket,
+    '',
+    ''
+  );
+  return textoSeguroImpresora(lineas.filter((linea) => linea !== undefined).join('\n'));
+};
+
+export const probarImpresoraIp = async (configuracion) => {
+  const config = normalizarConfiguracionImpresora(configuracion);
+  const respuesta = await fetch('/api/desktop/printer/test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ip: config.direccionIp, puerto: config.puerto }),
+  });
+  const resultado = await respuesta.json().catch(() => ({}));
+  if (!respuesta.ok) throw new Error(resultado.mensaje || 'No se pudo conectar con la impresora.');
+  return resultado;
 };
 
 const escapeHtml = (texto) => {
@@ -261,6 +337,26 @@ export const imprimirTicketConfigurado = ({
   autoPrint = true,
 }) => {
   if (!ticket) return;
+
+  const config = cargarConfiguracionImpresora();
+  if (config.tipoConexion === 'ip') {
+    fetch('/api/desktop/printer/print', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ip: config.direccionIp,
+        puerto: config.puerto,
+        copias: config.copias,
+        texto: construirTextoTicket({ ticket, formatearMoneda, configuracion: config }),
+      }),
+    })
+      .then(async (respuesta) => {
+        const resultado = await respuesta.json().catch(() => ({}));
+        if (!respuesta.ok) throw new Error(resultado.mensaje || 'No se pudo imprimir por red.');
+      })
+      .catch((error) => onError?.(error.message));
+    return;
+  }
 
   const ventana = window.open('', '_blank', 'width=420,height=720');
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Printer, RotateCcw, Smartphone, Monitor } from 'lucide-react';
+import { CheckCircle2, Printer, RotateCcw, Smartphone, Monitor, Wifi } from 'lucide-react';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
 import {
@@ -8,6 +8,7 @@ import {
   guardarConfiguracionImpresora,
   imprimirTicketConfigurado,
   normalizarConfiguracionImpresora,
+  probarImpresoraIp,
 } from '../utils/impresoraTickets';
 
 const formatearMoneda = (valor) => {
@@ -50,6 +51,7 @@ const ticketPrueba = {
 export default function ConfiguracionImpresora() {
   const [configuracion, setConfiguracion] = useState(() => cargarConfiguracionImpresora());
   const [mensaje, setMensaje] = useState('');
+  const [probandoConexion, setProbandoConexion] = useState(false);
 
   const configNormalizada = useMemo(
     () => normalizarConfiguracionImpresora(configuracion),
@@ -85,6 +87,19 @@ export default function ConfiguracionImpresora() {
     });
   };
 
+  const probarConexion = async () => {
+    setProbandoConexion(true);
+    setMensaje('');
+    try {
+      const resultado = await probarImpresoraIp(configuracion);
+      setMensaje(resultado.mensaje);
+    } catch (error) {
+      setMensaje(error.message);
+    } finally {
+      setProbandoConexion(false);
+    }
+  };
+
   return (
     <Layout>
       <Header title="Impresora de tickets" />
@@ -111,6 +126,87 @@ export default function ConfiguracionImpresora() {
           ) : null}
 
           <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="space-y-2 lg:col-span-2">
+              <label className="text-sm font-semibold text-gray-700">Tipo de conexion</label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => actualizarCampo('tipoConexion', 'sistema')}
+                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition ${
+                    configNormalizada.tipoConexion === 'sistema'
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
+                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Printer size={20} />
+                  <span>
+                    <span className="block text-sm font-semibold">Impresora del sistema</span>
+                    <span className="block text-xs font-normal text-gray-500">USB o dialogo de impresion</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => actualizarCampo('tipoConexion', 'ip')}
+                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition ${
+                    configNormalizada.tipoConexion === 'ip'
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
+                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Wifi size={20} />
+                  <span>
+                    <span className="block text-sm font-semibold">Direccion IP</span>
+                    <span className="block text-xs font-normal text-gray-500">Impresora conectada a la red</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {configNormalizada.tipoConexion === 'ip' ? (
+              <div className="grid grid-cols-1 gap-4 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4 sm:grid-cols-[minmax(0,1fr)_140px_auto] lg:col-span-2">
+                <div className="space-y-2">
+                  <label htmlFor="direccionIp" className="text-sm font-semibold text-gray-700">
+                    Direccion IP
+                  </label>
+                  <input
+                    id="direccionIp"
+                    type="text"
+                    inputMode="decimal"
+                    value={configuracion.direccionIp}
+                    onChange={(event) => actualizarCampo('direccionIp', event.target.value)}
+                    placeholder="192.168.1.100"
+                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="puerto" className="text-sm font-semibold text-gray-700">
+                    Puerto
+                  </label>
+                  <input
+                    id="puerto"
+                    type="number"
+                    min="1"
+                    max="65535"
+                    value={configuracion.puerto}
+                    onChange={(event) => actualizarCampo('puerto', event.target.value)}
+                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={probarConexion}
+                  disabled={probandoConexion || !configNormalizada.direccionIp}
+                  className="mt-auto inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-indigo-300 bg-white px-4 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Wifi size={17} />
+                  {probandoConexion ? 'Probando...' : 'Probar'}
+                </button>
+                <p className="text-xs text-gray-500 sm:col-span-3">
+                  El puerto habitual de impresoras termicas de red es 9100. La computadora y la impresora deben estar en la misma red.
+                </p>
+              </div>
+            ) : null}
+
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700">Dispositivo</label>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -151,7 +247,7 @@ export default function ConfiguracionImpresora() {
                 type="text"
                 value={configuracion.nombre}
                 onChange={(event) => actualizarCampo('nombre', event.target.value)}
-                placeholder="Ej. Caja principal, Bluetooth 80mm"
+                placeholder="Ej. Caja principal, impresora 80 mm"
                 className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
               />
             </div>
@@ -281,6 +377,14 @@ export default function ConfiguracionImpresora() {
 
           <div className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between gap-3 border-b border-gray-100 pb-2">
+              <span className="text-gray-500">Conexion</span>
+              <span className="font-semibold text-gray-900">
+                {configNormalizada.tipoConexion === 'ip'
+                  ? `${configNormalizada.direccionIp || 'Sin IP'}:${configNormalizada.puerto}`
+                  : 'Sistema'}
+              </span>
+            </div>
+            <div className="flex justify-between gap-3 border-b border-gray-100 pb-2">
               <span className="text-gray-500">Perfil</span>
               <span className="font-semibold capitalize text-gray-900">
                 {configNormalizada.perfil}
@@ -303,9 +407,8 @@ export default function ConfiguracionImpresora() {
           </div>
 
           <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            En PC y celular la seleccion final de impresora la muestra el sistema. Para
-            impresoras Bluetooth en celular, primero vincula la impresora desde ajustes del
-            telefono.
+            La conexion directa por IP funciona en la aplicacion de escritorio. En celular o
+            navegador se utiliza la impresora configurada en el sistema.
           </div>
         </aside>
       </div>
