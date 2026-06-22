@@ -274,6 +274,7 @@ export default function POS() {
   const [mostrarScanner, setMostrarScanner] = useState(false);
   const [productoConsultado, setProductoConsultado] = useState(null);
   const [consultandoCodigo, setConsultandoCodigo] = useState(false);
+  const [buscandoProducto, setBuscandoProducto] = useState(false);
   const [errorScanner, setErrorScanner] = useState('');
 
   const esModoCotizacion = modoPantalla === MODOS_PANTALLA.COTIZACION;
@@ -465,7 +466,15 @@ const agregarProductoDesdeModalScanner = () => {
       }
 
       setMostrarScanner(false);
-      setProductoConsultado(data);
+
+      if (!mostrarCatalogo) {
+        agregarProducto(data, '1');
+        ultimoCodigoEscaneadoRef.current = '';
+        setMensajeExito(`${data.nombre} se agregó al carrito.`);
+        enfocarBusqueda();
+      } else {
+        setProductoConsultado(data);
+      }
     } catch (errorConsulta) {
       if (errorConsulta?.response?.status === 404) {
         setErrorScanner(`No se encontró un producto con el código ${codigo}`);
@@ -771,7 +780,7 @@ const agregarProductoDesdeModalScanner = () => {
     enfocarBusqueda();
   };
 
-  const agregarProducto = (producto) => {
+  const agregarProducto = (producto, cantidadInicial = '') => {
     setError('');
     setMensajeExito('');
 
@@ -822,7 +831,7 @@ const agregarProductoDesdeModalScanner = () => {
           stockTienda: Number(producto.stockTienda ?? 0),
           inventarioOrigen,
           stockDisponible,
-          cantidad: '',
+          cantidad: cantidadInicial,
           descuento: '',
           pieza: '',
           imagenUrl: producto.imagenUrl || '',
@@ -834,9 +843,10 @@ const agregarProductoDesdeModalScanner = () => {
   const buscarYAgregarRapido = async () => {
     const termino = String(busqueda || '').trim();
 
-    if (!termino) return;
+    if (!termino || buscandoProducto) return;
 
     try {
+      setBuscandoProducto(true);
       setError('');
       setMensajeExito('');
 
@@ -848,10 +858,15 @@ const agregarProductoDesdeModalScanner = () => {
             `/productos/codigo/${encodeURIComponent(textoNormalizado)}`
           );
 
-          agregarProducto(data);
+          if (!data?._id) {
+            throw new Error('La respuesta del producto no es válida.');
+          }
+
+          agregarProducto(data, '1');
           setBusqueda('');
           setBusquedaAplicada('');
           setPaginaActual(1);
+          setMensajeExito(`${data.nombre} se agregó al carrito.`);
           enfocarBusqueda();
           return;
         } catch (errorCodigo) {
@@ -940,14 +955,17 @@ const agregarProductoDesdeModalScanner = () => {
       enfocarBusqueda();
     } catch (errorBusqueda) {
       setError(
-        errorBusqueda.response?.data?.mensaje || 'No se pudo buscar el producto'
+        errorBusqueda.response?.data?.mensaje ||
+          errorBusqueda.message ||
+          'No se pudo buscar el producto'
       );
       enfocarBusqueda();
+    } finally {
+      setBuscandoProducto(false);
     }
   };
 
-  const handleBusquedaKeyDown = async (e) => {
-    if (e.key !== 'Enter') return;
+  const handleBusquedaSubmit = async (e) => {
     e.preventDefault();
     await buscarYAgregarRapido();
   };
@@ -1752,22 +1770,35 @@ const agregarProductoDesdeModalScanner = () => {
             </div>
 
             <div className="w-full xl:w-[380px]">
-              <div className="relative">
-                <Search
-                  size={18}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  ref={inputBusquedaRef}
-                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
-                  placeholder={
-                    mostrarCatalogo ? 'Escribe código HEN0000 o nombre' : 'Escribe código HEN0000'
-                  }
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  onKeyDown={handleBusquedaKeyDown}
-                />
-              </div>
+              <form className="flex flex-col gap-2 sm:block" onSubmit={handleBusquedaSubmit}>
+                <div className="relative flex-1">
+                  <Search
+                    size={18}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    ref={inputBusquedaRef}
+                    className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    placeholder={
+                      mostrarCatalogo ? 'Escribe código HEN0000 o nombre' : 'Escribe código HEN0000'
+                    }
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                  />
+                </div>
+
+                {!mostrarCatalogo ? (
+                  <button
+                    type="submit"
+                    disabled={!busqueda.trim() || buscandoProducto}
+                    className="h-12 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {buscandoProducto ? 'Buscando...' : 'Agregar producto'}
+                  </button>
+                ) : null}
+              </form>
 
               <p className="mt-2 text-xs text-gray-500">
                 {mostrarCatalogo
