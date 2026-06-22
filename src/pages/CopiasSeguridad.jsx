@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Archive, CheckCircle2, Download, History, Image, Package, ShieldCheck } from 'lucide-react';
+import {
+  AlertTriangle,
+  Archive,
+  CheckCircle2,
+  Download,
+  History,
+  Image,
+  Package,
+  RotateCcw,
+  ShieldCheck,
+  Upload,
+} from 'lucide-react';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
 import { api } from '../config/api';
@@ -28,21 +39,25 @@ export default function CopiasSeguridad() {
   const [resumen, setResumen] = useState(null);
   const [cargandoResumen, setCargandoResumen] = useState(true);
   const [descargando, setDescargando] = useState(false);
+  const [restaurando, setRestaurando] = useState(false);
+  const [archivoRespaldo, setArchivoRespaldo] = useState(null);
+  const [resumenArchivo, setResumenArchivo] = useState(null);
+  const [confirmacion, setConfirmacion] = useState('');
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
 
-  useEffect(() => {
-    const cargarResumen = async () => {
-      try {
-        const { data } = await api.get('/backups/inventario/resumen');
-        setResumen(data);
-      } catch (errorCarga) {
-        setError(errorCarga.response?.data?.mensaje || 'No se pudo consultar el inventario');
-      } finally {
-        setCargandoResumen(false);
-      }
-    };
+  const cargarResumen = async () => {
+    try {
+      const { data } = await api.get('/backups/inventario/resumen');
+      setResumen(data);
+    } catch (errorCarga) {
+      setError(errorCarga.response?.data?.mensaje || 'No se pudo consultar el inventario');
+    } finally {
+      setCargandoResumen(false);
+    }
+  };
 
+  useEffect(() => {
     cargarResumen();
   }, []);
 
@@ -71,6 +86,79 @@ export default function CopiasSeguridad() {
       setError(detalle || 'No se pudo crear la copia de seguridad');
     } finally {
       setDescargando(false);
+    }
+  };
+
+  const seleccionarRespaldo = async (event) => {
+    const archivo = event.target.files?.[0] || null;
+    setArchivoRespaldo(null);
+    setResumenArchivo(null);
+    setConfirmacion('');
+    setError('');
+    setExito('');
+
+    if (!archivo) return;
+    if (!archivo.name.toLowerCase().endsWith('.json')) {
+      setError('Selecciona un archivo de copia de seguridad con extensión .json');
+      return;
+    }
+    if (archivo.size > 250 * 1024 * 1024) {
+      setError('El archivo supera el límite de 250 MB');
+      return;
+    }
+
+    try {
+      const contenido = JSON.parse(await archivo.text());
+      if (
+        contenido.formato !== 'hilos-inventario-backup' ||
+        contenido.version !== 1 ||
+        !Array.isArray(contenido.productos) ||
+        !Array.isArray(contenido.historialProductos)
+      ) {
+        throw new Error('El archivo no es una copia de seguridad compatible');
+      }
+
+      setArchivoRespaldo(archivo);
+      setResumenArchivo({
+        nombre: archivo.name,
+        creadoEn: contenido.creadoEn,
+        productos: contenido.productos.length,
+        fotos: contenido.productos.filter((item) => Boolean(item?.foto)).length,
+        historial: contenido.historialProductos.length,
+      });
+    } catch (errorArchivo) {
+      setError(errorArchivo.message || 'No se pudo leer el archivo seleccionado');
+      event.target.value = '';
+    }
+  };
+
+  const restaurarRespaldo = async () => {
+    if (!archivoRespaldo || confirmacion !== 'RESTAURAR') return;
+
+    setRestaurando(true);
+    setError('');
+    setExito('');
+
+    try {
+      const formulario = new FormData();
+      formulario.append('respaldo', archivoRespaldo);
+      const { data } = await api.post('/backups/inventario/restaurar', formulario, {
+        timeout: 0,
+      });
+
+      setExito(
+        `${data.mensaje}: ${data.resumen.productos} productos y ${data.resumen.fotosRestauradas} fotos.`
+      );
+      setArchivoRespaldo(null);
+      setResumenArchivo(null);
+      setConfirmacion('');
+      setCargandoResumen(true);
+      await cargarResumen();
+    } catch (errorRestauracion) {
+      const detalle = await obtenerMensajeError(errorRestauracion);
+      setError(detalle || 'No se pudo restaurar la copia de seguridad');
+    } finally {
+      setRestaurando(false);
     }
   };
 
@@ -153,6 +241,90 @@ export default function CopiasSeguridad() {
               </button>
             </div>
           </div>
+        </section>
+
+        <section className="rounded-xl border border-amber-200 bg-white p-5 shadow-sm sm:p-7">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <RotateCcw size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Restaurar una copia</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
+                Sube un respaldo creado por esta aplicación para reemplazar el inventario, sus fotos y su historial por los datos guardados en ese archivo.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-5 text-center">
+            <Upload className="mx-auto text-gray-400" size={30} />
+            <label className="mt-3 inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-100">
+              Seleccionar copia JSON
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={seleccionarRespaldo}
+                disabled={restaurando}
+                className="sr-only"
+              />
+            </label>
+            <p className="mt-2 text-xs text-gray-500">Tamaño máximo: 250 MB</p>
+          </div>
+
+          {resumenArchivo ? (
+            <div className="mt-5 space-y-5">
+              <div className="rounded-xl border border-gray-200 p-4">
+                <p className="break-all text-sm font-semibold text-gray-900">{resumenArchivo.nombre}</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Creada: {resumenArchivo.creadoEn ? new Date(resumenArchivo.creadoEn).toLocaleString('es-MX') : 'Sin fecha'}
+                </p>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-lg font-bold text-gray-900">{resumenArchivo.productos}</p>
+                    <p className="text-xs text-gray-500">Productos</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-lg font-bold text-gray-900">{resumenArchivo.fotos}</p>
+                    <p className="text-xs text-gray-500">Fotos</p>
+                  </div>
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-lg font-bold text-gray-900">{resumenArchivo.historial}</p>
+                    <p className="text-xs text-gray-500">Cambios</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-4">
+                <div className="flex items-start gap-3 text-amber-900">
+                  <AlertTriangle className="mt-0.5 shrink-0" size={21} />
+                  <div>
+                    <p className="font-bold">Esta acción reemplazará el inventario actual</p>
+                    <p className="mt-1 text-sm leading-5">
+                      Escribe <strong>RESTAURAR</strong> para confirmar que revisaste el archivo.
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  value={confirmacion}
+                  onChange={(event) => setConfirmacion(event.target.value.toUpperCase())}
+                  placeholder="RESTAURAR"
+                  disabled={restaurando}
+                  className="mt-4 h-11 w-full rounded-lg border border-amber-300 bg-white px-3 text-sm font-semibold uppercase outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={restaurarRespaldo}
+                disabled={restaurando || confirmacion !== 'RESTAURAR'}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-amber-600 px-5 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-amber-300 sm:w-auto"
+              >
+                <RotateCcw size={18} className={restaurando ? 'animate-spin' : ''} />
+                {restaurando ? 'Restaurando inventario…' : 'Restaurar copia de seguridad'}
+              </button>
+            </div>
+          ) : null}
         </section>
       </div>
     </Layout>
