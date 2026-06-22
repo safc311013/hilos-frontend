@@ -27,6 +27,14 @@ import {
 
 const PRODUCTOS_POR_PAGINA = 12;
 const MEDIA_QUERY_CATALOGO = '(min-width: 640px)';
+
+const consultarVisibilidadCatalogo = () => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return true;
+  }
+
+  return window.matchMedia(MEDIA_QUERY_CATALOGO).matches;
+};
 const INVENTARIOS = {
   TAXCO: 'taxco',
   TIENDA: 'tienda',
@@ -239,9 +247,7 @@ export default function POS() {
   const ultimoCodigoEscaneadoRef = useRef('');
 
   const [productos, setProductos] = useState([]);
-  const [mostrarCatalogo, setMostrarCatalogo] = useState(() =>
-    typeof window === 'undefined' ? true : window.matchMedia(MEDIA_QUERY_CATALOGO).matches
-  );
+  const [mostrarCatalogo, setMostrarCatalogo] = useState(consultarVisibilidadCatalogo);
   const [carrito, setCarrito] = useState([]);
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [busqueda, setBusqueda] = useState('');
@@ -273,6 +279,8 @@ export default function POS() {
   const esModoCotizacion = modoPantalla === MODOS_PANTALLA.COTIZACION;
 
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined;
+
     const mediaQuery = window.matchMedia(MEDIA_QUERY_CATALOGO);
     const actualizarVisibilidadCatalogo = (event) => {
       setMostrarCatalogo(event.matches);
@@ -285,9 +293,14 @@ export default function POS() {
     };
 
     setMostrarCatalogo(mediaQuery.matches);
-    mediaQuery.addEventListener('change', actualizarVisibilidadCatalogo);
 
-    return () => mediaQuery.removeEventListener('change', actualizarVisibilidadCatalogo);
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', actualizarVisibilidadCatalogo);
+      return () => mediaQuery.removeEventListener('change', actualizarVisibilidadCatalogo);
+    }
+
+    mediaQuery.addListener?.(actualizarVisibilidadCatalogo);
+    return () => mediaQuery.removeListener?.(actualizarVisibilidadCatalogo);
   }, []);
 
   useEffect(() => {
