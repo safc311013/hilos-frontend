@@ -8,6 +8,7 @@ import {
   Users,
   FileText,
   Printer,
+  DatabaseBackup,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +22,7 @@ const links = [
   { to: '/usuarios', label: 'Usuarios', icon: Users, roles: ['admin'] },
   { to: '/cotizaciones', label: 'Cotizaciones', icon: FileText, roles: ['admin', 'supervisor'] },
   { to: '/impresora', label: 'Impresora', icon: Printer, roles: ['admin', 'supervisor', 'cajero'] },
+  { to: '/copias-seguridad', label: 'Copias de seguridad', icon: DatabaseBackup, roles: ['admin'] },
 ];
 
 export default function Sidebar({ open = false, onClose = () => {} }) {
