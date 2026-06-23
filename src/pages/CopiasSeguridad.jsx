@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
-import { api } from '../config/api';
+import { api, API_URL } from '../config/api';
 
 const obtenerMensajeError = async (error) => {
   const data = error.response?.data;
@@ -67,6 +67,39 @@ export default function CopiasSeguridad() {
     setExito('');
 
     try {
+      if (typeof window.showSaveFilePicker === 'function') {
+        const nombreSugerido = `respaldo-inventario-${new Date()
+          .toISOString()
+          .replace(/[:.]/g, '-')}.json`;
+        const destino = await window.showSaveFilePicker({
+          suggestedName: nombreSugerido,
+          types: [
+            {
+              description: 'Copia de seguridad de Hilos',
+              accept: { 'application/json': ['.json'] },
+            },
+          ],
+        });
+        const token = localStorage.getItem('token');
+        const respuesta = await fetch(`${API_URL}/backups/inventario/descargar`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (!respuesta.ok) {
+          const detalle = await respuesta.json().catch(() => ({}));
+          throw new Error(detalle.error || detalle.mensaje || 'No se pudo crear la copia');
+        }
+
+        if (!respuesta.body) {
+          throw new Error('El navegador no permite descargar el respaldo por partes');
+        }
+
+        const archivoDestino = await destino.createWritable();
+        await respuesta.body.pipeTo(archivoDestino);
+        setExito(`Copia creada correctamente: ${destino.name || nombreSugerido}`);
+        return;
+      }
+
       const respuesta = await api.get('/backups/inventario/descargar', {
         responseType: 'blob',
         timeout: 0,
@@ -82,6 +115,7 @@ export default function CopiasSeguridad() {
       URL.revokeObjectURL(url);
       setExito(`Copia creada correctamente: ${nombreArchivo}`);
     } catch (errorDescarga) {
+      if (errorDescarga.name === 'AbortError') return;
       const detalle = await obtenerMensajeError(errorDescarga);
       setError(detalle || 'No se pudo crear la copia de seguridad');
     } finally {
@@ -102,11 +136,6 @@ export default function CopiasSeguridad() {
       setError('Selecciona un archivo de copia de seguridad con extensión .json');
       return;
     }
-    if (archivo.size > 1024 * 1024 * 1024) {
-      setError('El archivo supera el límite de 1 GB');
-      return;
-    }
-
     try {
       // El resumen está al inicio del respaldo. Leer solo este fragmento evita
       // cargar archivos de cientos de MB completos en la memoria del navegador.
@@ -146,10 +175,13 @@ export default function CopiasSeguridad() {
     setExito('');
 
     try {
-      const formulario = new FormData();
-      formulario.append('respaldo', archivoRespaldo);
-      const { data } = await api.post('/backups/inventario/restaurar', formulario, {
+      const { data } = await api.post('/backups/inventario/restaurar', archivoRespaldo, {
         timeout: 0,
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-Respaldo-Productos': String(resumenArchivo.productos),
+          'X-Respaldo-Historial': String(resumenArchivo.historial),
+        },
       });
 
       setExito(
@@ -257,7 +289,7 @@ export default function CopiasSeguridad() {
             <div>
               <h2 className="text-xl font-bold text-gray-900">Restaurar una copia</h2>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-gray-500">
-                Sube un respaldo creado por esta aplicación para reemplazar el inventario, sus fotos y su historial por los datos guardados en ese archivo.
+                Selecciona un respaldo local para reemplazar el inventario, sus fotos y su historial. El archivo se procesa como un flujo y no se almacena en el servidor.
               </p>
             </div>
           </div>
@@ -274,7 +306,9 @@ export default function CopiasSeguridad() {
                 className="sr-only"
               />
             </label>
-            <p className="mt-2 text-xs text-gray-500">Tamaño máximo: 1 GB</p>
+            <p className="mt-2 text-xs text-gray-500">
+              Sin límite fijo; requiere espacio temporal suficiente en el equipo o servidor.
+            </p>
           </div>
 
           {resumenArchivo ? (
