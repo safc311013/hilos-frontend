@@ -102,29 +102,35 @@ export default function CopiasSeguridad() {
       setError('Selecciona un archivo de copia de seguridad con extensión .json');
       return;
     }
-    if (archivo.size > 250 * 1024 * 1024) {
-      setError('El archivo supera el límite de 250 MB');
+    if (archivo.size > 1024 * 1024 * 1024) {
+      setError('El archivo supera el límite de 1 GB');
       return;
     }
 
     try {
-      const contenido = JSON.parse(await archivo.text());
+      // El resumen está al inicio del respaldo. Leer solo este fragmento evita
+      // cargar archivos de cientos de MB completos en la memoria del navegador.
+      const encabezado = await archivo.slice(0, 1024 * 1024).text();
       if (
-        contenido.formato !== 'hilos-inventario-backup' ||
-        contenido.version !== 1 ||
-        !Array.isArray(contenido.productos) ||
-        !Array.isArray(contenido.historialProductos)
+        !encabezado.includes('"formato":"hilos-inventario-backup"') ||
+        !encabezado.includes('"version":1')
       ) {
         throw new Error('El archivo no es una copia de seguridad compatible');
       }
 
+      const obtenerNumeroResumen = (campo) => {
+        const coincidencia = encabezado.match(new RegExp(`"${campo}":(\\d+)`));
+        return coincidencia ? Number(coincidencia[1]) : 0;
+      };
+      const fechaEncontrada = encabezado.match(/"creadoEn":"([^"]+)"/);
+
       setArchivoRespaldo(archivo);
       setResumenArchivo({
         nombre: archivo.name,
-        creadoEn: contenido.creadoEn,
-        productos: contenido.productos.length,
-        fotos: contenido.productos.filter((item) => Boolean(item?.foto)).length,
-        historial: contenido.historialProductos.length,
+        creadoEn: fechaEncontrada?.[1] || '',
+        productos: obtenerNumeroResumen('productos'),
+        fotos: obtenerNumeroResumen('fotosIncluidas'),
+        historial: obtenerNumeroResumen('registrosHistorial'),
       });
     } catch (errorArchivo) {
       setError(errorArchivo.message || 'No se pudo leer el archivo seleccionado');
@@ -268,7 +274,7 @@ export default function CopiasSeguridad() {
                 className="sr-only"
               />
             </label>
-            <p className="mt-2 text-xs text-gray-500">Tamaño máximo: 250 MB</p>
+            <p className="mt-2 text-xs text-gray-500">Tamaño máximo: 1 GB</p>
           </div>
 
           {resumenArchivo ? (
