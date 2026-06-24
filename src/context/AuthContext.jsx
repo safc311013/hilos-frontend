@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
+  const [avisoSesion, setAvisoSesion] = useState('');
 
   useEffect(() => {
     const usuarioGuardado = localStorage.getItem('usuario');
@@ -59,6 +60,7 @@ export const AuthProvider = ({ children }) => {
 
     setToken(data.token);
     setUsuario(usuarioNormalizado);
+    setAvisoSesion('');
 
     return {
       token: data.token,
@@ -94,6 +96,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    setAvisoSesion('');
     try {
       await api.post('/auth/logout');
     } catch (error) {
@@ -104,7 +107,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const expulsar = () => limpiarSesionLocal();
+    const expulsar = (event) => {
+      setAvisoSesion(
+        event.detail?.mensaje || 'Tu sesión venció. Inicia sesión nuevamente para continuar.'
+      );
+      limpiarSesionLocal();
+    };
     window.addEventListener('auth:expulsado', expulsar);
     return () => window.removeEventListener('auth:expulsado', expulsar);
   }, []);
@@ -118,8 +126,10 @@ export const AuthProvider = ({ children }) => {
       login,
       cambiarPassword,
       logout,
+      avisoSesion,
+      limpiarAvisoSesion: () => setAvisoSesion(''),
     }),
-    [usuario, token, loading]
+    [usuario, token, loading, avisoSesion]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

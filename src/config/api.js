@@ -21,10 +21,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const ruta = String(error.config?.url || '');
     const teniaToken = Boolean(localStorage.getItem('token'));
-    if (error.response?.status === 401 && teniaToken && !ruta.includes('/auth/login')) {
-      window.dispatchEvent(new CustomEvent('auth:expulsado'));
+    const codigo = error.response?.data?.codigo;
+    const codigosExpulsion = ['SESION_VENCIDA', 'SESION_INVALIDA', 'USUARIO_INACTIVO'];
+    if (error.response?.status === 401 && teniaToken && codigosExpulsion.includes(codigo)) {
+      const mensaje = codigo === 'USUARIO_INACTIVO'
+        ? 'Tu cuenta fue desactivada. Comunícate con un administrador.'
+        : 'Tu sesión venció. Inicia sesión nuevamente para continuar.';
+      window.dispatchEvent(new CustomEvent('auth:expulsado', { detail: { mensaje } }));
     }
     return Promise.reject(error);
   }

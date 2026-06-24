@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
-  const { login, cambiarPassword, usuario } = useAuth();
+  const { login, cambiarPassword, usuario, avisoSesion, limpiarAvisoSesion } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -119,6 +119,21 @@ export default function Login() {
 
               {!modoCambioPassword ? (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {avisoSesion ? (
+                  <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100" role="alert">
+                    <div className="flex items-start justify-between gap-3">
+                      <p>{avisoSesion}</p>
+                      <button
+                        type="button"
+                        onClick={limpiarAvisoSesion}
+                        className="shrink-0 font-semibold text-amber-200 hover:text-white"
+                        aria-label="Cerrar aviso"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-200">
                     Correo electrónico
