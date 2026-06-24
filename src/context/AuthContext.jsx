@@ -49,7 +49,8 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
+    const plataforma = navigator.userAgent.includes('Electron') ? 'desktop' : 'web';
+    const { data } = await api.post('/auth/login', { email, password, plataforma });
 
     const usuarioNormalizado = normalizarUsuario(data.usuario);
 
@@ -85,12 +86,28 @@ export const AuthProvider = ({ children }) => {
     return usuarioNormalizado;
   };
 
-  const logout = () => {
+  const limpiarSesionLocal = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
     setToken(null);
     setUsuario(null);
   };
+
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('No se pudo registrar el cierre de sesión', error);
+    } finally {
+      limpiarSesionLocal();
+    }
+  };
+
+  useEffect(() => {
+    const expulsar = () => limpiarSesionLocal();
+    window.addEventListener('auth:expulsado', expulsar);
+    return () => window.removeEventListener('auth:expulsado', expulsar);
+  }, []);
 
   const value = useMemo(
     () => ({

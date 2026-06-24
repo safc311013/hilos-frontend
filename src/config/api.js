@@ -18,4 +18,16 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const ruta = String(error.config?.url || '');
+    const teniaToken = Boolean(localStorage.getItem('token'));
+    if (error.response?.status === 401 && teniaToken && !ruta.includes('/auth/login')) {
+      window.dispatchEvent(new CustomEvent('auth:expulsado'));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export { API_URL };

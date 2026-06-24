@@ -5,6 +5,7 @@ import { api } from '../config/api';
 import { useRealtime } from '../context/RealtimeContext';
 import usePermisos from '../hooks/usePermisos';
 import { PERMISOS } from '../utils/permisos';
+import HistorialSesiones from '../components/HistorialSesiones';
 
 const initialForm = {
   nombre: '',
@@ -655,6 +656,8 @@ export default function Usuarios() {
             </div>
           </div>
         </div>
+
+        <HistorialSesiones usuarios={usuarios} />
       </div>
 
       {modalFormulario && (
