@@ -14,6 +14,24 @@ const normalizarUsuario = (usuario) => {
   };
 };
 
+const obtenerIpPublicaCliente = async () => {
+  const consultar = async (url) => {
+    const respuesta = await fetch(url, { cache: 'no-store' });
+    if (!respuesta.ok) return '';
+    const data = await respuesta.json();
+    return String(data.ip || '').trim();
+  };
+
+  try {
+    return await Promise.race([
+      consultar('https://api.ipify.org?format=json'),
+      new Promise((resolve) => setTimeout(() => resolve(''), 2500)),
+    ]);
+  } catch {
+    return '';
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -51,7 +69,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const plataforma = navigator.userAgent.includes('Electron') ? 'desktop' : 'web';
-    const { data } = await api.post('/auth/login', { email, password, plataforma });
+    const ipPublicaCliente = await obtenerIpPublicaCliente();
+    const { data } = await api.post('/auth/login', {
+      email,
+      password,
+      plataforma,
+      ipPublicaCliente,
+    });
 
     const usuarioNormalizado = normalizarUsuario(data.usuario);
 

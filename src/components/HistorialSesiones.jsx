@@ -93,7 +93,8 @@ export default function HistorialSesiones({ usuarios }) {
         Horas: Number((minutos / 60).toFixed(2)),
         Resultado: estado,
         Plataforma: sesion.plataforma,
-        IP: sesion.ip || 'No disponible',
+        'IP pública': sesion.ipPublicaCliente || sesion.ip || 'No disponible',
+        'IP vista por servidor': sesion.ipServidor || sesion.ip || 'No disponible',
         Detalle: sesion.detalleCierre || '',
       };
     });
@@ -111,6 +112,7 @@ export default function HistorialSesiones({ usuarios }) {
       { wch: 20 },
       { wch: 14 },
       { wch: 18 },
+      { wch: 22 },
       { wch: 50 },
     ];
 
@@ -195,7 +197,11 @@ export default function HistorialSesiones({ usuarios }) {
                     <td className="whitespace-nowrap px-6 py-4 text-gray-700">{formatearFecha(sesion.inicioAt)}</td>
                     <td className="whitespace-nowrap px-6 py-4"><p className="text-gray-700">{formatearFecha(sesion.finAt)}</p><p className="text-xs text-gray-500">{duracion(sesion.inicioAt, sesion.finAt)}</p></td>
                     <td className="px-6 py-4"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${estado.clase}`}>{estado.texto}</span>{sesion.detalleCierre ? <p className="mt-2 max-w-xs text-xs text-gray-500">{sesion.detalleCierre}</p> : null}</td>
-                    <td className="px-6 py-4"><p className="capitalize text-gray-700">{sesion.plataforma}</p><p className="text-xs text-gray-500">IP: {sesion.ip || 'No disponible'}</p></td>
+                    <td className="px-6 py-4">
+                      <p className="capitalize text-gray-700">{sesion.plataforma}</p>
+                      <p className="text-xs text-gray-500">IP pública: {sesion.ipPublicaCliente || sesion.ip || 'No disponible'}</p>
+                      <p className="text-xs text-gray-400">Servidor: {sesion.ipServidor || sesion.ip || 'No disponible'}</p>
+                    </td>
                   </tr>
                 );
               })}
