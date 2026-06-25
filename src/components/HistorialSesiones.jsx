@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { History, RefreshCw } from 'lucide-react';
+import { Download, History, RefreshCw } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { api } from '../config/api';
 
 const MOTIVOS = {
@@ -15,18 +16,26 @@ const formatearFecha = (fecha) =>
     ? new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(fecha))
     : '—';
 
-const duracion = (inicio, fin) => {
-  if (!inicio) return '—';
+const minutosSesion = (inicio, fin) => {
+  if (!inicio) return 0;
   const ms = Math.max(0, new Date(fin || Date.now()) - new Date(inicio));
-  const minutos = Math.floor(ms / 60000);
+  return Math.floor(ms / 60000);
+};
+
+const duracion = (inicio, fin) => {
+  const minutos = minutosSesion(inicio, fin);
   const horas = Math.floor(minutos / 60);
   return horas > 0 ? `${horas} h ${minutos % 60} min` : `${minutos} min`;
 };
+
+const fechaParaExcel = (fecha) => (fecha ? new Date(fecha).toLocaleString('es-MX') : '');
 
 export default function HistorialSesiones({ usuarios }) {
   const [sesiones, setSesiones] = useState([]);
   const [usuarioId, setUsuarioId] = useState('');
   const [motivo, setMotivo] = useState('todas');
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
 
@@ -35,7 +44,13 @@ export default function HistorialSesiones({ usuarios }) {
       setCargando(true);
       setError('');
       const { data } = await api.get('/usuarios/historial-sesiones', {
-        params: { usuarioId: usuarioId || undefined, motivo, limite: 200 },
+        params: {
+          usuarioId: usuarioId || undefined,
+          motivo,
+          desde: desde || undefined,
+          hasta: hasta || undefined,
+          limite: 1000,
+        },
       });
       setSesiones(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -47,13 +62,66 @@ export default function HistorialSesiones({ usuarios }) {
 
   useEffect(() => {
     cargar();
-  }, [usuarioId, motivo]);
+  }, [usuarioId, motivo, desde, hasta]);
 
   const resumen = useMemo(() => ({
     accesos: sesiones.length,
     voluntarias: sesiones.filter((s) => s.motivoCierre === 'salida_voluntaria').length,
     expulsiones: sesiones.filter((s) => ['token_expirado', 'usuario_inactivo', 'error_autenticacion'].includes(s.motivoCierre)).length,
+    minutos: sesiones.reduce((total, sesion) => total + minutosSesion(sesion.inicioAt, sesion.finAt), 0),
   }), [sesiones]);
+
+  const totalHoras = Math.floor(resumen.minutos / 60);
+  const totalMinutos = resumen.minutos % 60;
+
+  const exportarExcel = () => {
+    if (sesiones.length === 0) return;
+
+    const filas = sesiones.map((sesion) => {
+      const clave = sesion.estado === 'activa' ? 'activa' : sesion.motivoCierre;
+      const estado = MOTIVOS[clave]?.texto || 'Cerrada';
+      const minutos = minutosSesion(sesion.inicioAt, sesion.finAt);
+
+      return {
+        Usuario: sesion.nombreUsuario,
+        Correo: sesion.emailUsuario,
+        Rol: sesion.rolUsuario,
+        Inicio: fechaParaExcel(sesion.inicioAt),
+        Cierre: fechaParaExcel(sesion.finAt),
+        Duración: duracion(sesion.inicioAt, sesion.finAt),
+        Minutos: minutos,
+        Horas: Number((minutos / 60).toFixed(2)),
+        Resultado: estado,
+        Plataforma: sesion.plataforma,
+        IP: sesion.ip || 'No disponible',
+        Detalle: sesion.detalleCierre || '',
+      };
+    });
+
+    const hoja = XLSX.utils.json_to_sheet(filas);
+    hoja['!cols'] = [
+      { wch: 24 },
+      { wch: 30 },
+      { wch: 14 },
+      { wch: 22 },
+      { wch: 22 },
+      { wch: 16 },
+      { wch: 10 },
+      { wch: 10 },
+      { wch: 20 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 50 },
+    ];
+
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, 'Historial sesiones');
+
+    const usuario = usuarios.find((item) => item._id === usuarioId);
+    const nombreUsuario = usuario ? usuario.nombre.replace(/[^\w-]+/g, '_') : 'todos';
+    const rango = `${desde || 'inicio'}_${hasta || 'hoy'}`;
+    XLSX.writeFile(libro, `historial_sesiones_${nombreUsuario}_${rango}.xlsx`);
+  };
 
   return (
     <section className="overflow-hidden rounded-[30px] border border-gray-200 bg-white shadow-sm">
@@ -62,16 +130,21 @@ export default function HistorialSesiones({ usuarios }) {
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-slate-900 p-3 text-white"><History size={21} /></div>
             <div>
-              <p className="text-sm font-medium text-gray-500">Auditoría de acceso</p>
+              <p className="text-sm font-medium text-gray-500">Auditoría de acceso y horarios</p>
               <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">Historial de sesiones</h3>
             </div>
           </div>
-          <button type="button" onClick={cargar} disabled={cargando} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60">
-            <RefreshCw size={16} className={cargando ? 'animate-spin' : ''} /> Actualizar
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button type="button" onClick={exportarExcel} disabled={sesiones.length === 0} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">
+              <Download size={16} /> Exportar Excel
+            </button>
+            <button type="button" onClick={cargar} disabled={cargando} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60">
+              <RefreshCw size={16} className={cargando ? 'animate-spin' : ''} /> Actualizar
+            </button>
+          </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
           <select value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 lg:col-span-2">
             <option value="">Todos los usuarios</option>
             {usuarios.map((item) => <option key={item._id} value={item._id}>{item.nombre}</option>)}
@@ -84,9 +157,22 @@ export default function HistorialSesiones({ usuarios }) {
             <option value="usuario_inactivo">Cuentas desactivadas</option>
             <option value="error_autenticacion">Errores de autenticación</option>
           </select>
-          <div className="rounded-2xl bg-gray-50 px-4 py-2 text-xs text-gray-600">
+          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" aria-label="Fecha desde" />
+          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" aria-label="Fecha hasta" />
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
             <b className="block text-lg text-gray-900">{resumen.accesos}</b>
-            {resumen.voluntarias} voluntarias · {resumen.expulsiones} expulsiones
+            sesiones encontradas
+          </div>
+          <div className="rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+            <b className="block text-lg text-gray-900">{totalHoras} h {totalMinutos} min</b>
+            tiempo total del filtro
+          </div>
+          <div className="rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+            <b className="block text-lg text-gray-900">{resumen.voluntarias} / {resumen.expulsiones}</b>
+            voluntarias / expulsiones
           </div>
         </div>
       </div>
