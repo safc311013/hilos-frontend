@@ -212,7 +212,7 @@ export default function CopiasSeguridad() {
 
       <div className="mx-auto max-w-5xl space-y-5">
         <section className="overflow-hidden rounded-xl border border-indigo-200 bg-white shadow-sm">
-          <div className="bg-gradient-to-r from-slate-950 to-indigo-950 px-5 py-6 text-white sm:px-7">
+          <div className="bg-slate-900 px-5 py-6 text-white sm:px-7">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/10">
                 <Archive size={25} />
@@ -272,7 +272,7 @@ export default function CopiasSeguridad() {
                 type="button"
                 onClick={descargarRespaldo}
                 disabled={descargando || cargandoResumen}
-                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 <Download size={18} />
                 {descargando ? 'Creando respaldo…' : 'Descargar copia'}

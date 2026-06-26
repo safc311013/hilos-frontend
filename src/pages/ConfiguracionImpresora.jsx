@@ -160,7 +160,7 @@ export default function ConfiguracionImpresora() {
                   onClick={() => actualizarCampo('tipoConexion', 'sistema')}
                   className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition ${
                     configNormalizada.tipoConexion === 'sistema'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
+                      ? 'border-slate-900 bg-indigo-50 text-indigo-900'
                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -175,7 +175,7 @@ export default function ConfiguracionImpresora() {
                   onClick={() => actualizarCampo('tipoConexion', 'ip')}
                   className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition ${
                     configNormalizada.tipoConexion === 'ip'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
+                      ? 'border-slate-900 bg-indigo-50 text-indigo-900'
                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -201,7 +201,7 @@ export default function ConfiguracionImpresora() {
                     value={configuracion.direccionIp}
                     onChange={(event) => actualizarCampo('direccionIp', event.target.value)}
                     placeholder="192.168.1.100"
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   />
                 </div>
                 <div className="space-y-2">
@@ -215,7 +215,7 @@ export default function ConfiguracionImpresora() {
                     max="65535"
                     value={configuracion.puerto}
                     onChange={(event) => actualizarCampo('puerto', event.target.value)}
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   />
                 </div>
                 <button
@@ -241,7 +241,7 @@ export default function ConfiguracionImpresora() {
                   onClick={() => actualizarCampo('perfil', 'pc')}
                   className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition ${
                     configNormalizada.perfil === 'pc'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
+                      ? 'border-slate-900 bg-indigo-50 text-indigo-900'
                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -254,7 +254,7 @@ export default function ConfiguracionImpresora() {
                   onClick={() => actualizarCampo('perfil', 'celular')}
                   className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition ${
                     configNormalizada.perfil === 'celular'
-                      ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
+                      ? 'border-slate-900 bg-indigo-50 text-indigo-900'
                       : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -274,7 +274,7 @@ export default function ConfiguracionImpresora() {
                 value={configuracion.nombre}
                 onChange={(event) => actualizarCampo('nombre', event.target.value)}
                 placeholder="Ej. Caja principal, impresora 80 mm"
-                className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
               />
             </div>
 
@@ -288,7 +288,7 @@ export default function ConfiguracionImpresora() {
                     onClick={() => actualizarCampo('anchoMm', ancho)}
                     className={`h-11 rounded-lg border text-sm font-semibold transition ${
                       configNormalizada.anchoMm === ancho
-                        ? 'border-indigo-500 bg-indigo-600 text-white'
+                        ? 'border-slate-900 bg-slate-900 text-white'
                         : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -309,7 +309,7 @@ export default function ConfiguracionImpresora() {
                 max="3"
                 value={configuracion.copias}
                 onChange={(event) => actualizarCampo('copias', event.target.value)}
-                className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
               />
             </div>
 
@@ -364,7 +364,7 @@ export default function ConfiguracionImpresora() {
                 type="text"
                 value={configuracion.pieTicket}
                 onChange={(event) => actualizarCampo('pieTicket', event.target.value)}
-                className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                className="h-11 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
               />
             </div>
           </div>
@@ -391,7 +391,7 @@ export default function ConfiguracionImpresora() {
             <button
               type="button"
               onClick={guardar}
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Guardar configuración
             </button>

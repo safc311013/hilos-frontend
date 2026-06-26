@@ -1844,14 +1844,14 @@ export default function Inventario() {
           loading="lazy"
           decoding="async"
           fetchPriority="low"
-          className={`${className} rounded-2xl border border-gray-200 bg-white object-cover`}
+          className={`${className} rounded-xl border border-gray-200 bg-white object-cover`}
         />
       );
     }
 
     return (
       <div
-        className={`${className} flex items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-gray-400`}
+        className={`${className} flex items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-gray-400`}
       >
         <ImageIcon size={18} />
       </div>
@@ -2579,7 +2579,7 @@ export default function Inventario() {
     <Layout>
       <Header title="Inventario" />
 
-      <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 lg:p-7">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 lg:p-7">
         <input
           ref={pdfInputRef}
           type="file"
@@ -2616,7 +2616,7 @@ export default function Inventario() {
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 <input
-                  className="h-11 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   placeholder="Buscar por código, categoría o nombre"
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
@@ -2625,7 +2625,7 @@ export default function Inventario() {
 
               <div className="relative w-full sm:w-[240px] lg:w-[250px]">
                 <select
-                  className="h-11 w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 pr-10 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-10 text-sm text-gray-700 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   value={categoriaFiltro}
                   onChange={(e) => setCategoriaFiltro(e.target.value)}
                 >
@@ -2645,7 +2645,7 @@ export default function Inventario() {
 
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 shadow-sm transition hover:bg-red-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 shadow-sm transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={abrirSelectorPdf}
                 disabled={importandoPdf || exportandoExcel}
               >
@@ -2656,7 +2656,7 @@ export default function Inventario() {
               {usuario?.rol === 'admin' ? (
                 <button
                   type="button"
-                  className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                   onClick={abrirActualizacionCostos}
                   disabled={procesandoCostos || importandoPdf || exportandoExcel}
                 >
@@ -2667,7 +2667,7 @@ export default function Inventario() {
 
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={abrirOpcionesExportacion}
                 disabled={exportandoExcel || loading || importandoPdf}
               >
@@ -2677,7 +2677,7 @@ export default function Inventario() {
 
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={abrirScanner}
                 disabled={loading || importandoPdf || exportandoExcel}
               >
@@ -2687,7 +2687,7 @@ export default function Inventario() {
 
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-violet-200 bg-violet-50 px-4 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-violet-200 bg-violet-50 px-4 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={abrirConteoFisico}
                 disabled={loading || importandoPdf || exportandoExcel}
               >
@@ -2699,7 +2699,7 @@ export default function Inventario() {
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative w-full sm:w-[250px] lg:w-[260px]">
                 <select
-                  className="h-11 w-full appearance-none rounded-2xl border border-gray-200 bg-white px-4 pr-10 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  className="h-11 w-full appearance-none rounded-xl border border-gray-200 bg-white px-4 pr-10 text-sm text-gray-700 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   value={sortConfig.key}
                   onChange={(e) =>
                     setSortConfig((prev) => ({
@@ -2729,7 +2729,7 @@ export default function Inventario() {
                     direction: prev.direction === 'asc' ? 'desc' : 'asc',
                   }))
                 }
-                className="inline-flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="inline-flex h-11 min-w-[200px] items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
               >
                 {sortConfig.direction === 'asc' ? (
                   <>
@@ -2747,7 +2747,7 @@ export default function Inventario() {
               <div className="w-full md:ml-auto md:w-auto">
                 <button
                   type="button"
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 hover:shadow-md active:scale-[0.99] md:w-auto"
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 md:w-auto"
                   onClick={abrirNuevoProducto}
                 >
                   <Plus size={17} />
@@ -2759,7 +2759,7 @@ export default function Inventario() {
         </div>
 
         {soloStockBajo ? (
-          <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-5 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-amber-800">
                 Filtro activo: stock bajo
@@ -2781,19 +2781,19 @@ export default function Inventario() {
         ) : null}
 
         {errorCarga ? (
-          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorCarga}
           </div>
         ) : null}
 
         {errorAccion ? (
-          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorAccion}
           </div>
         ) : null}
 
         {mensajeAccion ? (
-          <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {mensajeAccion}
           </div>
         ) : null}
@@ -2829,7 +2829,7 @@ export default function Inventario() {
         {loading ? (
           <Loader />
         ) : totalProductos === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 py-16 text-center">
+          <div className="rounded-xl border border-dashed border-gray-300 py-16 text-center">
             <p className="text-lg font-medium text-gray-700">
               No se encontraron productos
             </p>
@@ -2846,7 +2846,7 @@ export default function Inventario() {
                 return (
                   <div
                     key={producto._id}
-                    className={`rounded-3xl border p-4 shadow-sm ${
+                    className={`rounded-xl border p-4 shadow-sm ${
                       stock <= 1
                         ? 'border-red-200 bg-red-50/70'
                         : stock <= 3
@@ -2890,21 +2890,21 @@ export default function Inventario() {
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="rounded-2xl bg-gray-50 px-3 py-3">
+                      <div className="rounded-xl bg-gray-50 px-3 py-3">
                         <p className="text-[11px] text-gray-500">Costo artesano</p>
                         <p className="mt-1 text-sm font-semibold text-gray-800">
                           {formatearMoneda(producto.costoArtesano)}
                         </p>
                       </div>
 
-                      <div className="rounded-2xl bg-gray-50 px-3 py-3">
+                      <div className="rounded-xl bg-gray-50 px-3 py-3">
                         <p className="text-[11px] text-gray-500">Precio venta</p>
                         <p className="mt-1 text-sm font-semibold text-gray-800">
                           {formatearMoneda(producto.precio)}
                         </p>
                       </div>
 
-                      <div className="col-span-2 rounded-2xl bg-gray-50 px-3 py-3">
+                      <div className="col-span-2 rounded-xl bg-gray-50 px-3 py-3">
                         <p className="text-[11px] text-gray-500">Stock total</p>
                         <p className="mt-1 text-sm font-semibold text-gray-800">
                           {stock}
@@ -2918,7 +2918,7 @@ export default function Inventario() {
                     <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <button
                         type="button"
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                         onClick={() => editar(producto)}
                       >
                         <Pencil size={15} />
@@ -2927,7 +2927,7 @@ export default function Inventario() {
 
                       <button
                         type="button"
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-600 px-4 text-sm font-medium text-white transition hover:bg-red-700"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-medium text-white transition hover:bg-red-700"
                         onClick={() => abrirModalEliminar(producto)}
                       >
                         <Trash2 size={15} />
@@ -2939,7 +2939,7 @@ export default function Inventario() {
               })}
             </div>
 
-            <div className="hidden max-h-[70vh] overflow-y-auto rounded-2xl border border-gray-200 lg:block 2xl:hidden">
+            <div className="hidden max-h-[70vh] overflow-y-auto rounded-xl border border-gray-200 lg:block 2xl:hidden">
               <table className="w-full table-fixed text-left">
                 <thead className="sticky top-0 z-10 bg-white shadow-sm">
                   <tr className="border-b border-gray-200 text-sm text-gray-500">
@@ -3040,7 +3040,7 @@ export default function Inventario() {
               </table>
             </div>
 
-            <div className="hidden max-h-[70vh] overflow-y-auto rounded-2xl border border-gray-200 2xl:block">
+            <div className="hidden max-h-[70vh] overflow-y-auto rounded-xl border border-gray-200 2xl:block">
               <table className="w-full text-left">
                 <thead className="sticky top-0 z-10 bg-white shadow-sm">
                   <tr className="border-b border-gray-200 text-sm text-gray-500">
@@ -3151,7 +3151,7 @@ export default function Inventario() {
                   type="button"
                   onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
                   disabled={paginaActual === 1}
-                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Anterior
                 </button>
@@ -3164,7 +3164,7 @@ export default function Inventario() {
                       onClick={() => setPaginaActual(pagina)}
                       className={`inline-flex h-11 min-w-[44px] items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
                         pagina === paginaActual
-                          ? 'bg-indigo-600 text-white shadow-sm'
+                          ? 'bg-slate-900 text-white shadow-sm'
                           : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >
@@ -3179,7 +3179,7 @@ export default function Inventario() {
                     setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))
                   }
                   disabled={paginaActual === totalPaginas}
-                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Siguiente
                 </button>
@@ -3193,7 +3193,7 @@ export default function Inventario() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarFormulario} />
 
-          <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-8">
+          <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6 md:p-8">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
@@ -3218,7 +3218,7 @@ export default function Inventario() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {errorFormulario ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {errorFormulario}
                 </div>
               ) : null}
@@ -3366,7 +3366,7 @@ export default function Inventario() {
                   {previewImagen || form.imagenUrl ? (
                     <button
                       type="button"
-                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                       onClick={limpiarImagenSeleccionada}
                     >
                       Quitar imagen
@@ -3376,12 +3376,12 @@ export default function Inventario() {
               </div>
 
               {previewImagen || form.imagenUrl ? (
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                   <p className="mb-3 text-sm font-medium text-gray-700">Vista previa</p>
                   <img
                     src={previewImagen || form.imagenUrl}
                     alt="Vista previa del producto"
-                    className="h-28 w-28 rounded-2xl border border-gray-200 bg-white object-cover"
+                    className="h-28 w-28 rounded-xl border border-gray-200 bg-white object-cover"
                   />
                 </div>
               ) : null}
@@ -3410,8 +3410,8 @@ export default function Inventario() {
 
       {importandoPdf && !mostrarPreviewImportacion ? (
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-2xl">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-700">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 text-center shadow-lg">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-red-50 text-red-700">
               <RefreshCcw size={24} className="animate-spin" />
             </div>
             <h3 className="mt-4 text-xl font-bold text-gray-900">
@@ -3430,7 +3430,7 @@ export default function Inventario() {
       {usuario?.rol === 'admin' && mostrarGuiaCostos ? (
         <div className="fixed inset-0 z-[76] flex items-center justify-center bg-black/50 p-4">
           <div className="absolute inset-0" onClick={() => !procesandoCostos && setMostrarGuiaCostos(false)} />
-          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+          <div className="relative w-full max-w-xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
             <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase text-amber-700">Solo administradores</p>
@@ -3484,7 +3484,7 @@ export default function Inventario() {
       {usuario?.rol === 'admin' && mostrarPreviewCostos ? (
         <div className="fixed inset-0 z-[77] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarPreviewCostos} />
-          <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+          <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
             <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase text-amber-700">Vista previa de costos</p>
@@ -3580,7 +3580,7 @@ export default function Inventario() {
             onClick={() => !importandoPdf && setMostrarGuiaImportacion(false)}
           />
 
-          <div className="relative w-full max-w-3xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+          <div className="relative w-full max-w-3xl rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
@@ -3606,7 +3606,7 @@ export default function Inventario() {
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-gray-200">
+            <div className="overflow-x-auto rounded-xl border border-gray-200">
               <div className="min-w-[720px]">
               <div className="grid grid-cols-[1.1fr_1.2fr_2fr_1fr_1fr_0.8fr] bg-gray-900 text-xs font-semibold uppercase text-white">
                 <div className="px-3 py-3">Código</div>
@@ -3637,26 +3637,26 @@ export default function Inventario() {
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-3 text-sm text-gray-600 sm:grid-cols-3">
-              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+              <div className="rounded-xl bg-gray-50 px-4 py-3">
                 <p className="font-semibold text-gray-900">Código</p>
                 <p className="mt-1">Debe ser único para identificar el producto.</p>
               </div>
-              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+              <div className="rounded-xl bg-gray-50 px-4 py-3">
                 <p className="font-semibold text-gray-900">Precios</p>
                 <p className="mt-1">Aceptan punto decimal. Evita texto dentro del número.</p>
               </div>
-              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+              <div className="rounded-xl bg-gray-50 px-4 py-3">
                 <p className="font-semibold text-gray-900">Stock</p>
                 <p className="mt-1">Usa números enteros. Ese stock se sumará al inventario elegido.</p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-4">
+            <div className="mt-5 rounded-xl border border-red-100 bg-red-50 px-4 py-4">
               <label className="mb-2 block text-sm font-semibold text-red-900">
                 A qué inventario quieres cargar este PDF
               </label>
               <select
-                className="h-11 w-full rounded-2xl border border-red-200 bg-white px-4 text-sm font-semibold text-gray-800 shadow-sm outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                className="h-11 w-full rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-gray-800 shadow-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
                 value={inventarioImportacion}
                 onChange={(e) =>
                   setInventarioImportacion(normalizarInventario(e.target.value))
@@ -3677,7 +3677,7 @@ export default function Inventario() {
                 type="button"
                 onClick={() => setMostrarGuiaImportacion(false)}
                 disabled={importandoPdf}
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -3686,7 +3686,7 @@ export default function Inventario() {
                 type="button"
                 onClick={descargarPlantillaImportacionPdf}
                 disabled={importandoPdf}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
               >
                 <Download size={17} />
                 Descargar plantilla PDF
@@ -3696,7 +3696,7 @@ export default function Inventario() {
                 type="button"
                 onClick={seleccionarPdfImportacion}
                 disabled={importandoPdf || !inventarioImportacion}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
               >
                 <FileUp size={17} />
                 {inventarioImportacion
@@ -3712,7 +3712,7 @@ export default function Inventario() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarPreviewImportacion} />
 
-          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl">
+          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
             <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -3734,7 +3734,7 @@ export default function Inventario() {
                       Cargar productos en
                     </label>
                     <select
-                      className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                      className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                       value={inventarioImportacion}
                       onChange={(e) =>
                         setInventarioImportacion(normalizarInventario(e.target.value))
@@ -3771,7 +3771,7 @@ export default function Inventario() {
 
             <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                     Detectados
                   </p>
@@ -3780,7 +3780,7 @@ export default function Inventario() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-emerald-600">
                     Nuevos
                   </p>
@@ -3789,7 +3789,7 @@ export default function Inventario() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-amber-600">
                     Actualizar stock
                   </p>
@@ -3798,7 +3798,7 @@ export default function Inventario() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-red-600">
                     Errores
                   </p>
@@ -3810,7 +3810,7 @@ export default function Inventario() {
 
               <div className="space-y-6">
                 {productosNuevosImportacion.length > 0 ? (
-                  <div className="overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50/30">
+                  <div className="overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50/30">
                     <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-3">
                       <h4 className="text-sm font-bold text-emerald-800">
                         Productos nuevos ({productosNuevosImportacion.length})
@@ -3869,7 +3869,7 @@ export default function Inventario() {
                 ) : null}
 
                 {productosActualizarStockImportacion.length > 0 ? (
-                  <div className="overflow-hidden rounded-2xl border border-amber-200 bg-amber-50/30">
+                  <div className="overflow-hidden rounded-xl border border-amber-200 bg-amber-50/30">
                     <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
                       <h4 className="text-sm font-bold text-amber-800">
                         Productos que solo aumentarán stock ({productosActualizarStockImportacion.length})
@@ -3940,7 +3940,7 @@ export default function Inventario() {
                 ) : null}
 
                 {productosErrorImportacion.length > 0 ? (
-                  <div className="overflow-hidden rounded-2xl border border-red-200 bg-red-50/30">
+                  <div className="overflow-hidden rounded-xl border border-red-200 bg-red-50/30">
                     <div className="border-b border-red-200 bg-red-50 px-4 py-3">
                       <h4 className="text-sm font-bold text-red-800">
                         Registros con error ({productosErrorImportacion.length})
@@ -3966,7 +3966,7 @@ export default function Inventario() {
                 ) : null}
               </div>
 
-              <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
                 Se importarán <strong>{productosPendientesImportacion.length}</strong>{' '}
                 producto(s): <strong>{productosNuevosImportacion.length}</strong> nuevos y{' '}
                 <strong>{productosActualizarStockImportacion.length}</strong> con aumento de
@@ -3981,7 +3981,7 @@ export default function Inventario() {
                   type="button"
                   onClick={cerrarPreviewImportacion}
                   disabled={importandoPdf}
-                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Cancelar
                 </button>
@@ -3994,7 +3994,7 @@ export default function Inventario() {
                     !productosPendientesImportacion.length ||
                     !inventarioImportacion
                   }
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {importandoPdf ? (
                     <>
@@ -4021,7 +4021,7 @@ export default function Inventario() {
             onClick={() => !exportandoExcel && setMostrarOpcionesExportacion(false)}
           />
 
-          <div className="relative w-full max-w-md rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
@@ -4046,7 +4046,7 @@ export default function Inventario() {
               Inventario
             </label>
             <select
-              className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className="h-11 w-full rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
               value={inventarioExportacion}
               onChange={(e) =>
                 setInventarioExportacion(normalizarInventario(e.target.value))
@@ -4062,7 +4062,7 @@ export default function Inventario() {
                 type="button"
                 onClick={() => setMostrarOpcionesExportacion(false)}
                 disabled={exportandoExcel}
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -4074,7 +4074,7 @@ export default function Inventario() {
                   setMostrarOpcionesExportacion(false);
                 }}
                 disabled={exportandoExcel}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
               >
                 <FileSpreadsheet size={17} />
                 {exportandoExcel ? 'Exportando...' : 'Exportar'}
@@ -4088,7 +4088,7 @@ export default function Inventario() {
         <div className="fixed inset-0 z-[78] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarConteoFisico} />
 
-          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl">
+          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
             <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -4106,7 +4106,7 @@ export default function Inventario() {
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <select
-                    className="h-11 rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                    className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                     value={inventarioConteo}
                     onChange={(e) => {
                       const destino = normalizarInventario(e.target.value);
@@ -4142,13 +4142,13 @@ export default function Inventario() {
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,360px)_1fr]">
                 <div className="space-y-4">
-                  <form onSubmit={registrarConteoManual} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <form onSubmit={registrarConteoManual} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <label className="mb-2 block text-sm font-semibold text-gray-700">
                       Código del producto
                     </label>
                     <div className="flex gap-2">
                       <input
-                        className="h-11 min-w-0 flex-1 rounded-2xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                        className="h-11 min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                         value={codigoManualConteo}
                         onChange={(e) => setCodigoManualConteo(e.target.value)}
                         placeholder="Escanea o escribe código"
@@ -4156,7 +4156,7 @@ export default function Inventario() {
                       />
                       <button
                         type="submit"
-                        className="inline-flex h-11 items-center justify-center rounded-2xl bg-violet-600 px-4 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60"
+                        className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-900 disabled:opacity-60"
                         disabled={consultandoConteo || !codigoManualConteo.trim()}
                       >
                         Agregar
@@ -4167,14 +4167,14 @@ export default function Inventario() {
                   <button
                     type="button"
                     onClick={() => setMostrarCamaraConteo((prev) => !prev)}
-                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
                   >
                     <Search size={17} />
                     {mostrarCamaraConteo ? 'Ocultar cámara' : 'Usar cámara'}
                   </button>
 
                   {mostrarCamaraConteo ? (
-                    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-black">
                       <Suspense fallback={<div className="p-6 text-center text-sm text-white">Cargando escáner...</div>}>
                         <QrScanner
                           onScan={(detectedCodes) => {
@@ -4208,19 +4208,19 @@ export default function Inventario() {
                   ) : null}
 
                   {errorConteo ? (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                       {errorConteo}
                     </div>
                   ) : null}
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-violet-50 px-4 py-3">
+                    <div className="rounded-xl bg-violet-50 px-4 py-3">
                       <p className="text-xs text-violet-600">Productos</p>
                       <p className="mt-1 text-2xl font-bold text-violet-800">
                         {conteoFisicoResumen.productos}
                       </p>
                     </div>
-                    <div className="rounded-2xl bg-amber-50 px-4 py-3">
+                    <div className="rounded-xl bg-amber-50 px-4 py-3">
                       <p className="text-xs text-amber-600">Diferencias</p>
                       <p className="mt-1 text-2xl font-bold text-amber-800">
                         {conteoFisicoResumen.conDiferencia}
@@ -4229,7 +4229,7 @@ export default function Inventario() {
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-2xl border border-gray-200">
+                <div className="overflow-hidden rounded-xl border border-gray-200">
                   {conteoFisico.length ? (
                     <div className="max-h-[58vh] overflow-auto">
                       <table className="min-w-[780px] w-full text-left">
@@ -4263,7 +4263,7 @@ export default function Inventario() {
                                   <input
                                     type="number"
                                     min="0"
-                                    className="h-10 w-24 rounded-xl border border-gray-200 px-3 text-right text-sm outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
+                                    className="h-10 w-24 rounded-xl border border-gray-200 px-3 text-right text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                                     value={item.cantidadContada}
                                     onChange={(e) =>
                                       actualizarCantidadConteo(item.codigo, e.target.value)
@@ -4316,7 +4316,7 @@ export default function Inventario() {
                 <button
                   type="button"
                   onClick={cerrarConteoFisico}
-                  className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                 >
                   Cerrar
                 </button>
@@ -4324,7 +4324,7 @@ export default function Inventario() {
                   type="button"
                   onClick={limpiarConteoFisico}
                   disabled={!conteoFisico.length}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-5 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-60"
                 >
                   <RefreshCcw size={16} />
                   Limpiar conteo
@@ -4339,7 +4339,7 @@ export default function Inventario() {
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarScanner} />
 
-          <div className="relative w-full max-w-xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+          <div className="relative w-full max-w-xl rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">
@@ -4360,12 +4360,12 @@ export default function Inventario() {
             </div>
 
             {errorScanner ? (
-              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {errorScanner}
               </div>
             ) : null}
 
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-black">
               <Suspense fallback={<div className="p-6 text-center text-sm text-white">Cargando escáner…</div>}>
                 <QrScanner
                   onScan={(detectedCodes) => {
@@ -4424,9 +4424,9 @@ export default function Inventario() {
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarPreguntaRegistroScanner} />
 
-          <div className="relative w-full max-w-md rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
             <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
                 <Plus size={20} />
               </div>
 
@@ -4440,7 +4440,7 @@ export default function Inventario() {
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl bg-gray-50 p-4">
+            <div className="mt-5 rounded-xl bg-gray-50 p-4">
               <p className="text-xs text-gray-500">Código escaneado</p>
               <p className="mt-1 break-all font-semibold text-gray-800">
                 {codigoPendienteRegistro}
@@ -4451,7 +4451,7 @@ export default function Inventario() {
               <button
                 type="button"
                 onClick={cerrarPreguntaRegistroScanner}
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
               >
                 Seguir escaneando
               </button>
@@ -4459,7 +4459,7 @@ export default function Inventario() {
               <button
                 type="button"
                 onClick={registrarCodigoEscaneado}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 <Plus size={16} />
                 Sí, registrarlo
@@ -4474,7 +4474,7 @@ export default function Inventario() {
           <div className="absolute inset-0" onClick={cerrarModalConsulta} />
 
           <div
-  className={`relative w-full overflow-y-auto rounded-3xl border border-gray-200 bg-white shadow-2xl ${
+  className={`relative w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg ${
     modoEdicionScanner
       ? 'max-h-[88vh] max-w-2xl p-4 sm:p-5'
       : 'max-h-[80vh] max-w-xl p-4 sm:p-5'
@@ -4512,7 +4512,7 @@ export default function Inventario() {
             </div>
 
             {errorEdicionScanner ? (
-              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {errorEdicionScanner}
               </div>
             ) : null}
@@ -4555,21 +4555,21 @@ export default function Inventario() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                    <div className="rounded-xl bg-gray-50 px-4 py-3">
                       <p className="text-[11px] text-gray-500">Costo artesano</p>
                       <p className="mt-1 text-sm font-semibold text-gray-800">
                         {formatearMoneda(productoConsultado.costoArtesano)}
                       </p>
                     </div>
 
-                    <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                    <div className="rounded-xl bg-gray-50 px-4 py-3">
                       <p className="text-[11px] text-gray-500">Precio venta</p>
                       <p className="mt-1 text-sm font-semibold text-gray-800">
                         {formatearMoneda(productoConsultado.precio)}
                       </p>
                     </div>
 
-                    <div className="rounded-2xl bg-gray-50 px-4 py-3 sm:col-span-2">
+                    <div className="rounded-xl bg-gray-50 px-4 py-3 sm:col-span-2">
                       <p className="text-[11px] text-gray-500">Stock total</p>
                       <p className="mt-1 text-sm font-semibold text-gray-800">
                         {obtenerStockTotal(productoConsultado)}
@@ -4685,7 +4685,7 @@ export default function Inventario() {
                 <>
                   <button
                     type="button"
-                    className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                     onClick={abrirScanner}
                   >
                     Volver a escanear
@@ -4693,7 +4693,7 @@ export default function Inventario() {
 
                   <button
                     type="button"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
                     onClick={iniciarEdicionScanner}
                   >
                     <Pencil size={16} />
@@ -4704,7 +4704,7 @@ export default function Inventario() {
                 <>
                   <button
                     type="button"
-                    className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                     onClick={cancelarEdicionScanner}
                     disabled={guardandoCambiosScanner}
                   >
@@ -4713,7 +4713,7 @@ export default function Inventario() {
 
                   <button
                     type="button"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={solicitarConfirmacionScanner}
                     disabled={guardandoCambiosScanner}
                   >
@@ -4731,9 +4731,9 @@ export default function Inventario() {
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarConfirmacionScanner} />
 
-          <div className="relative w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+          <div className="relative w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
             <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                 <AlertTriangle size={20} />
               </div>
 
@@ -4747,7 +4747,7 @@ export default function Inventario() {
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 rounded-2xl bg-gray-50 p-4 text-sm sm:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-3 rounded-xl bg-gray-50 p-4 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-xs text-gray-500">Código</p>
                 <p className="mt-1 font-semibold text-gray-800">{formScanner.codigo}</p>
@@ -4793,7 +4793,7 @@ export default function Inventario() {
                 type="button"
                 onClick={cerrarConfirmacionScanner}
                 disabled={guardandoCambiosScanner}
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -4802,7 +4802,7 @@ export default function Inventario() {
                 type="button"
                 onClick={confirmarCambiosScanner}
                 disabled={guardandoCambiosScanner}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {guardandoCambiosScanner ? (
                   <>
@@ -4825,9 +4825,9 @@ export default function Inventario() {
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarModalEliminar} />
 
-          <div className="relative w-full max-w-md rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
                 <AlertTriangle size={26} />
               </div>
 
@@ -4841,7 +4841,7 @@ export default function Inventario() {
               </div>
             </div>
 
-            <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-4">
+            <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-4">
               <p className="text-sm text-red-700">
                 ¿Seguro que quieres eliminar <strong>{productoAEliminar.nombre}</strong>?
               </p>
@@ -4856,7 +4856,7 @@ export default function Inventario() {
                 type="button"
                 onClick={cerrarModalEliminar}
                 disabled={eliminandoProducto}
-                className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Cancelar
               </button>
@@ -4865,7 +4865,7 @@ export default function Inventario() {
                 type="button"
                 onClick={confirmarEliminar}
                 disabled={eliminandoProducto}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Trash2 size={16} />
                 {eliminandoProducto ? 'Eliminando...' : 'Sí, eliminar'}

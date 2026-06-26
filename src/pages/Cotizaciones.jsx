@@ -339,14 +339,14 @@ export default function Cotizaciones() {
         <img
           src={imagenUrl}
           alt={nombre || 'Producto'}
-          className={`${className} rounded-2xl border border-gray-200 bg-white object-cover`}
+          className={`${className} rounded-xl border border-gray-200 bg-white object-cover`}
         />
       );
     }
 
     return (
       <div
-        className={`${className} flex items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-gray-400`}
+        className={`${className} flex items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-gray-400`}
       >
         <ImageIcon size={iconSize} />
       </div>
@@ -1519,7 +1519,7 @@ export default function Cotizaciones() {
           </label>
 
           <input
-            className={`w-full rounded-2xl border bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100 ${
+            className={`w-full rounded-xl border bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 ${
               itemForm.nombreProducto && !productoValido
                 ? 'border-red-300'
                 : 'border-gray-200'
@@ -1538,7 +1538,7 @@ export default function Cotizaciones() {
           />
 
           {mostrarSugerencias && textoBusquedaProducto ? (
-            <div className="absolute z-30 mt-2 max-h-72 w-full overflow-auto rounded-2xl border border-gray-200 bg-white shadow-xl">
+            <div className="absolute z-30 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-gray-200 bg-white shadow-md">
               {productosFiltrados.length > 0 ? (
                 productosFiltrados.map((producto, index) => (
                   <button
@@ -1617,7 +1617,7 @@ export default function Cotizaciones() {
         </div>
 
         {itemForm.imagenUrl ? (
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
             <div className="flex items-center gap-3">
               {renderImagenProducto(
                 itemForm.imagenUrl,
@@ -1643,7 +1643,7 @@ export default function Cotizaciones() {
               Inventario de salida
             </label>
             <select
-              className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
               value={itemForm.inventarioOrigen}
               onChange={(e) => actualizarCampoForm('inventarioOrigen', e.target.value)}
               disabled={!productoValido}
@@ -1662,7 +1662,7 @@ export default function Cotizaciones() {
             Stock disponible
           </label>
           <input
-            className="w-full rounded-2xl border border-gray-200 bg-gray-100 px-4 py-3 text-gray-500 outline-none"
+            className="w-full rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-gray-500 outline-none"
             value={itemForm.stock}
             placeholder="Se mostrará al elegir un producto"
             readOnly
@@ -1679,7 +1679,7 @@ export default function Cotizaciones() {
                   Cantidad
                 </label>
                 <input
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   type="number"
                   min="1"
                   placeholder="Cantidad"
@@ -1694,7 +1694,7 @@ export default function Cotizaciones() {
                   Precio
                 </label>
                 <input
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   type="number"
                   step="0.01"
                   min="0"
@@ -1712,7 +1712,7 @@ export default function Cotizaciones() {
                   Descuento (%)
                 </label>
                 <input
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   type="number"
                   step="0.01"
                   min="0"
@@ -1725,21 +1725,21 @@ export default function Cotizaciones() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
+              <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
                 <p className="text-xs text-gray-500">Subtotal</p>
                 <p className="mt-1 text-sm font-semibold text-gray-900">
                   ${subtotalForm.toFixed(2)}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <p className="text-xs text-amber-700">Descuento aplicado</p>
                 <p className="mt-1 text-sm font-semibold text-amber-700">
                   ${descuentoMontoForm.toFixed(2)}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                 <p className="text-xs text-emerald-700">Total del producto</p>
                 <p className="mt-1 text-sm font-semibold text-emerald-700">
                   ${totalLineaForm.toFixed(2)}
@@ -1755,7 +1755,7 @@ export default function Cotizaciones() {
                   Cantidad
                 </label>
                 <input
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   type="number"
                   min="1"
                   placeholder="Cantidad"
@@ -1770,7 +1770,7 @@ export default function Cotizaciones() {
                   Precio
                 </label>
                 <input
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   type="number"
                   step="0.01"
                   min="0"
@@ -1788,7 +1788,7 @@ export default function Cotizaciones() {
                   Incremento (%)
                 </label>
                 <input
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   type="number"
                   step="0.01"
                   min="0"
@@ -1805,7 +1805,7 @@ export default function Cotizaciones() {
                   Comisión cliente (%)
                 </label>
                 <input
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                   type="number"
                   step="0.01"
                   min="0"
@@ -1823,42 +1823,42 @@ export default function Cotizaciones() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3">
+              <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
                 <p className="text-xs text-sky-700">Valor del incremento</p>
                 <p className="mt-1 text-sm font-semibold text-sky-700">
                   ${resumenConsignacionForm.incrementoValor.toFixed(2)}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3">
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3">
                 <p className="text-xs text-indigo-700">Nuevo precio</p>
                 <p className="mt-1 text-sm font-semibold text-indigo-700">
                   ${resumenConsignacionForm.nuevoPrecio.toFixed(2)}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
                 <p className="text-xs text-amber-700">Precio redondeado</p>
                 <p className="mt-1 text-sm font-semibold text-amber-700">
                   ${resumenConsignacionForm.precioRedondeado.toFixed(2)}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3">
+              <div className="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3">
                 <p className="text-xs text-cyan-700">Valor comisión cliente</p>
                 <p className="mt-1 text-sm font-semibold text-cyan-700">
                   ${resumenConsignacionForm.valorComisionCliente.toFixed(2)}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
                 <p className="text-xs text-rose-700">Ganancia Hilos</p>
                 <p className="mt-1 text-sm font-semibold text-rose-700">
                   ${resumenConsignacionForm.gananciaHilos.toFixed(2)}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
                 <p className="text-xs text-emerald-700">
                   Total línea de consignación
                 </p>
@@ -1872,7 +1872,7 @@ export default function Cotizaciones() {
 
         <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2">
           <button
-            className="w-full rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
             type="submit"
             disabled={!productoValido}
           >
@@ -1881,7 +1881,7 @@ export default function Cotizaciones() {
 
           <button
             type="button"
-            className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
             onClick={() => {
               if (esModal) {
                 cerrarModalFormulario();
@@ -1903,13 +1903,13 @@ export default function Cotizaciones() {
 
       <div className="space-y-5 sm:space-y-6">
         {mensajeExito ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
             {mensajeExito}
           </div>
         ) : null}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-gray-500">Productos en cotización</p>
             <p className="mt-2 text-3xl font-bold text-gray-900">{items.length}</p>
             <p className="mt-2 text-sm text-gray-500">{totalPiezas} pieza(s) en total</p>
@@ -1918,7 +1918,7 @@ export default function Cotizaciones() {
           <button
             type="button"
             onClick={cambiarFormato}
-            className="rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="rounded-xl border border-sky-200 bg-sky-50 p-5 text-left shadow-sm transition "
           >
             <p className="text-sm text-sky-700">Formato activo</p>
             <p className="mt-2 text-xl font-bold text-sky-900 sm:text-2xl">
@@ -1929,7 +1929,7 @@ export default function Cotizaciones() {
             </p>
           </button>
 
-          <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
             <p className="text-sm text-gray-500">Total actual</p>
             <p className="mt-2 break-words text-3xl font-bold text-emerald-600">
               ${total.toFixed(2)}
@@ -1941,7 +1941,7 @@ export default function Cotizaciones() {
           <button
             type="button"
             onClick={abrirModalNuevoProducto}
-            className="w-full rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95"
+            className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95"
           >
             Agregar producto
           </button>
@@ -1949,7 +1949,7 @@ export default function Cotizaciones() {
 
         <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-12">
           <div className="hidden lg:block xl:col-span-4">
-            <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6 xl:sticky xl:top-6">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 xl:sticky xl:top-6">
               {renderFormularioProducto(autocompleteDesktopRef, false)}
             </div>
           </div>
@@ -1985,14 +1985,14 @@ export default function Cotizaciones() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="inline-flex items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600">
+                      <div className="inline-flex items-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600">
                         {items.length} productos
                       </div>
 
                       <button
                         type="button"
                         onClick={abrirModalNuevoProducto}
-                        className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 lg:hidden"
+                        className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 lg:hidden"
                       >
                         Agregar
                       </button>
@@ -2003,7 +2003,7 @@ export default function Cotizaciones() {
                     <button
                       type="button"
                       onClick={guardarCotizacionEnHistorial}
-                      className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:opacity-60"
+                      className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                       disabled={!items.length || guardandoCotizacion}
                     >
                       {guardandoCotizacion ? 'Guardando...' : etiquetaGuardar}
@@ -2012,7 +2012,7 @@ export default function Cotizaciones() {
                     <button
                       type="button"
                       onClick={abrirHistorialModal}
-                      className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800"
+                      className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
                       Consultar historial
                     </button>
@@ -2020,7 +2020,7 @@ export default function Cotizaciones() {
                     <button
                       type="button"
                       onClick={limpiarCotizacionActual}
-                      className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                      className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                     >
                       Nueva cotización
                     </button>
@@ -2029,7 +2029,7 @@ export default function Cotizaciones() {
                       <button
                         type="button"
                         onClick={enviarAPuntoDeVenta}
-                        className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                        className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
                         disabled={!items.length}
                       >
                         Enviar a punto de venta
@@ -2039,7 +2039,7 @@ export default function Cotizaciones() {
                     <button
                       type="button"
                       onClick={exportarPDF}
-                      className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                      className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
                       disabled={!items.length}
                     >
                       {guardandoCotizacion ? 'Preparando...' : 'Exportar PDF'}
@@ -2049,7 +2049,7 @@ export default function Cotizaciones() {
               </div>
 
               <div className="border-b border-gray-100 bg-gray-50/60 px-4 py-5 sm:px-6 sm:py-6">
-                <div className="rounded-3xl border border-gray-200 bg-white p-4 sm:p-5">
+                <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
                   <div className="mb-4">
                     <h4 className="text-base font-bold text-gray-900 sm:text-lg">
                       Datos de la cotización
@@ -2066,7 +2066,7 @@ export default function Cotizaciones() {
                       </label>
                       <input
                         type="text"
-                        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                         placeholder="Nombre del cliente"
                         value={datosCotizacion.nombreCliente}
                         onChange={(e) =>
@@ -2081,7 +2081,7 @@ export default function Cotizaciones() {
                       </label>
                       <input
                         type="date"
-                        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                         value={datosCotizacion.fechaCotizacion}
                         onChange={(e) =>
                           actualizarDatoCotizacion('fechaCotizacion', e.target.value)
@@ -2095,7 +2095,7 @@ export default function Cotizaciones() {
                       </label>
                       <input
                         type="text"
-                        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                         placeholder="Ej. 15 días"
                         value={datosCotizacion.vigencia}
                         onChange={(e) =>
@@ -2108,7 +2108,7 @@ export default function Cotizaciones() {
                       <label className="mb-2 block text-sm font-medium text-gray-700">
                         Folio
                       </label>
-                      <div className="w-full rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-900">
+                      <div className="w-full rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-900">
                         {folioActual}
                       </div>
                     </div>
@@ -2130,7 +2130,7 @@ export default function Cotizaciones() {
                       return (
                         <div
                           key={`${formatoActivo}-${item.productoId}-${index}`}
-                          className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
+                          className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                         >
                           <div className="flex items-start gap-4">
                             {renderImagenProducto(
@@ -2149,14 +2149,14 @@ export default function Cotizaciones() {
                               </p>
 
                               <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <div className="rounded-2xl bg-gray-50 px-3 py-2">
+                                <div className="rounded-xl bg-gray-50 px-3 py-2">
                                   <p className="text-xs text-gray-500">Cantidad</p>
                                   <p className="mt-1 text-sm font-semibold text-gray-900">
                                     {Number(item.cantidad || 0)}
                                   </p>
                                 </div>
 
-                                <div className="rounded-2xl bg-gray-50 px-3 py-2">
+                                <div className="rounded-xl bg-gray-50 px-3 py-2">
                                   <p className="text-xs text-gray-500">Precio</p>
                                   <p className="mt-1 text-sm font-semibold text-gray-900">
                                     ${Number(item.precioUnitario || 0).toFixed(2)}
@@ -2165,14 +2165,14 @@ export default function Cotizaciones() {
 
                                 {esFormatoVenta ? (
                                   <>
-                                    <div className="rounded-2xl bg-amber-50 px-3 py-2">
+                                    <div className="rounded-xl bg-amber-50 px-3 py-2">
                                       <p className="text-xs text-amber-700">Descuento</p>
                                       <p className="mt-1 text-sm font-semibold text-amber-700">
                                         {Number(item.descuento || 0).toFixed(2)}%
                                       </p>
                                     </div>
 
-                                    <div className="rounded-2xl bg-emerald-50 px-3 py-2">
+                                    <div className="rounded-xl bg-emerald-50 px-3 py-2">
                                       <p className="text-xs text-emerald-700">Total</p>
                                       <p className="mt-1 text-sm font-semibold text-emerald-700">
                                         ${venta.totalLinea.toFixed(2)}
@@ -2181,35 +2181,35 @@ export default function Cotizaciones() {
                                   </>
                                 ) : (
                                   <>
-                                    <div className="rounded-2xl bg-sky-50 px-3 py-2">
+                                    <div className="rounded-xl bg-sky-50 px-3 py-2">
                                       <p className="text-xs text-sky-700">Inc. %</p>
                                       <p className="mt-1 text-sm font-semibold text-sky-700">
                                         {Number(item.incrementoPorcentaje || 0).toFixed(2)}%
                                       </p>
                                     </div>
 
-                                    <div className="rounded-2xl bg-indigo-50 px-3 py-2">
+                                    <div className="rounded-xl bg-indigo-50 px-3 py-2">
                                       <p className="text-xs text-indigo-700">Nuevo precio</p>
                                       <p className="mt-1 text-sm font-semibold text-indigo-700">
                                         ${consignacion.nuevoPrecio.toFixed(2)}
                                       </p>
                                     </div>
 
-                                    <div className="rounded-2xl bg-amber-50 px-3 py-2">
+                                    <div className="rounded-xl bg-amber-50 px-3 py-2">
                                       <p className="text-xs text-amber-700">Redondeado</p>
                                       <p className="mt-1 text-sm font-semibold text-amber-700">
                                         ${consignacion.precioRedondeado.toFixed(2)}
                                       </p>
                                     </div>
 
-                                    <div className="rounded-2xl bg-cyan-50 px-3 py-2">
+                                    <div className="rounded-xl bg-cyan-50 px-3 py-2">
                                       <p className="text-xs text-cyan-700">Comisión</p>
                                       <p className="mt-1 text-sm font-semibold text-cyan-700">
                                         ${consignacion.valorComisionCliente.toFixed(2)}
                                       </p>
                                     </div>
 
-                                    <div className="rounded-2xl bg-rose-50 px-3 py-2">
+                                    <div className="rounded-xl bg-rose-50 px-3 py-2">
                                       <p className="text-xs text-rose-700">Ganancia Hilos</p>
                                       <p className="mt-1 text-sm font-semibold text-rose-700">
                                         ${consignacion.gananciaHilos.toFixed(2)}
@@ -2224,7 +2224,7 @@ export default function Cotizaciones() {
                           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                             <button
                               type="button"
-                              className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                              className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                               onClick={() => editarItemEnModal(index)}
                             >
                               Editar
@@ -2232,7 +2232,7 @@ export default function Cotizaciones() {
 
                             <button
                               type="button"
-                              className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100"
+                              className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100"
                               onClick={() => eliminarItem(index)}
                             >
                               Eliminar
@@ -2430,7 +2430,7 @@ export default function Cotizaciones() {
               ) : (
                 <div className="px-6 py-16 text-center">
                   <div className="mx-auto max-w-md">
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-sky-100 to-slate-100 text-3xl">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-xl bg-slate-100 text-3xl">
                       🧾
                     </div>
                     <h4 className="mt-5 text-xl font-bold text-gray-900">
@@ -2443,7 +2443,7 @@ export default function Cotizaciones() {
                     <button
                       type="button"
                       onClick={abrirModalNuevoProducto}
-                      className="mt-6 inline-flex rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 lg:hidden"
+                      className="mt-6 inline-flex rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 lg:hidden"
                     >
                       Agregar producto
                     </button>
@@ -2454,7 +2454,7 @@ export default function Cotizaciones() {
               <div className="border-t border-gray-100 bg-white px-4 py-4 sm:px-6">
                 {esFormatoVenta ? (
                   <div className="flex justify-end">
-                    <div className="w-full rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-right sm:w-auto">
+                    <div className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-right sm:w-auto">
                       <p className="text-sm text-emerald-700">
                         Total actual de la cotización
                       </p>
@@ -2465,21 +2465,21 @@ export default function Cotizaciones() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <div className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-4 text-right">
+                    <div className="rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 text-right">
                       <p className="text-sm text-sky-700">Ganancia total cliente</p>
                       <p className="mt-1 text-2xl font-bold text-sky-700">
                         ${totalGananciaCliente.toFixed(2)}
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-right">
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-right">
                       <p className="text-sm text-rose-700">Ganancia total Hilos</p>
                       <p className="mt-1 text-2xl font-bold text-rose-700">
                         ${totalGananciaHilos.toFixed(2)}
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-right">
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-right">
                       <p className="text-sm text-emerald-700">
                         Total actual de la cotización
                       </p>
@@ -2492,7 +2492,7 @@ export default function Cotizaciones() {
               </div>
 
               <div className="border-t border-gray-100 bg-gray-50/60 px-4 py-5 sm:px-6 sm:py-6">
-                <div className="rounded-3xl border border-gray-200 bg-white p-4 sm:p-5">
+                <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
                   <div className="mb-3">
                     <h4 className="text-base font-bold text-gray-900 sm:text-lg">
                       Notas de la cotización
@@ -2504,7 +2504,7 @@ export default function Cotizaciones() {
 
                   <textarea
                     rows={5}
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                     placeholder={
                       esFormatoVenta
                         ? 'Ejemplo: precios sujetos a cambio, tiempos de entrega, condiciones de pago...'
@@ -2530,7 +2530,7 @@ export default function Cotizaciones() {
           onClick={cerrarModalFormulario}
         >
           <div
-            className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-gray-200 bg-white shadow-2xl sm:my-4 sm:max-h-[90vh] sm:max-w-lg sm:rounded-[28px]"
+            className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-gray-200 bg-white shadow-lg sm:my-4 sm:max-h-[90vh] sm:max-w-lg sm:rounded-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-center border-b border-gray-100 px-4 py-3 sm:hidden">
@@ -2550,12 +2550,12 @@ export default function Cotizaciones() {
           onClick={() => setHistorialModalAbierto(false)}
         >
           <div
-            className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl"
+            className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
                   <History size={20} />
                 </div>
                 <div>
@@ -2590,7 +2590,7 @@ export default function Cotizaciones() {
                     />
                     <input
                       type="text"
-                      className="w-full rounded-2xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                       placeholder="Folio, cliente, producto..."
                       value={filtrosHistorial.q}
                       onChange={(e) =>
@@ -2608,7 +2608,7 @@ export default function Cotizaciones() {
                     Formato
                   </label>
                   <select
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                     value={filtrosHistorial.formato}
                     onChange={(e) =>
                       setFiltrosHistorial((prev) => ({
@@ -2628,7 +2628,7 @@ export default function Cotizaciones() {
                     Estatus
                   </label>
                   <select
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                     value={filtrosHistorial.estatus}
                     onChange={(e) =>
                       setFiltrosHistorial((prev) => ({
@@ -2648,7 +2648,7 @@ export default function Cotizaciones() {
                   <button
                     type="button"
                     onClick={() => setFiltrosHistorial(initialFiltrosHistorial)}
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                   >
                     Limpiar filtros
                   </button>
@@ -2662,7 +2662,7 @@ export default function Cotizaciones() {
                   </label>
                   <input
                     type="date"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                     value={filtrosHistorial.desde}
                     onChange={(e) =>
                       setFiltrosHistorial((prev) => ({
@@ -2679,7 +2679,7 @@ export default function Cotizaciones() {
                   </label>
                   <input
                     type="date"
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                     value={filtrosHistorial.hasta}
                     onChange={(e) =>
                       setFiltrosHistorial((prev) => ({
@@ -2694,21 +2694,21 @@ export default function Cotizaciones() {
 
             <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
               {historialError ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {historialError}
                 </div>
               ) : null}
 
               {historialCargando ? (
                 <div className="flex min-h-[240px] items-center justify-center">
-                  <div className="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm font-medium text-gray-600 shadow-sm">
+                  <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 text-sm font-medium text-gray-600 shadow-sm">
                     Cargando historial...
                   </div>
                 </div>
               ) : historialCotizaciones.length === 0 ? (
                 <div className="flex min-h-[240px] items-center justify-center">
-                  <div className="max-w-md rounded-3xl border border-dashed border-gray-300 px-6 py-10 text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-2xl">
+                  <div className="max-w-md rounded-xl border border-dashed border-gray-300 px-6 py-10 text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-violet-100 text-2xl">
                       🗂️
                     </div>
                     <h4 className="mt-4 text-lg font-bold text-gray-900">
@@ -2730,7 +2730,7 @@ export default function Cotizaciones() {
                     return (
                       <div
                         key={cotizacion._id}
-                        className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
+                        className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                       >
                         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                           <div className="min-w-0 flex-1">
@@ -2763,35 +2763,35 @@ export default function Cotizaciones() {
                             </div>
 
                             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                              <div className="rounded-xl bg-gray-50 px-4 py-3">
                                 <p className="text-xs text-gray-500">Cliente</p>
                                 <p className="mt-1 text-sm font-semibold text-gray-900">
                                   {cotizacion.cliente || 'Sin especificar'}
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                              <div className="rounded-xl bg-gray-50 px-4 py-3">
                                 <p className="text-xs text-gray-500">Fecha</p>
                                 <p className="mt-1 text-sm font-semibold text-gray-900">
                                   {formatearFecha(cotizacion.fechaCotizacion)}
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                              <div className="rounded-xl bg-gray-50 px-4 py-3">
                                 <p className="text-xs text-gray-500">Vigencia</p>
                                 <p className="mt-1 text-sm font-semibold text-gray-900">
                                   {cotizacion.vigencia || 'Sin especificar'}
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                              <div className="rounded-xl bg-gray-50 px-4 py-3">
                                 <p className="text-xs text-gray-500">Productos</p>
                                 <p className="mt-1 text-sm font-semibold text-gray-900">
                                   {totalProductosHistorial}
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-emerald-50 px-4 py-3">
+                              <div className="rounded-xl bg-emerald-50 px-4 py-3">
                                 <p className="text-xs text-emerald-700">Total</p>
                                 <p className="mt-1 text-sm font-semibold text-emerald-700">
                                   {formatearMoneda(cotizacion.total || 0)}
@@ -2800,7 +2800,7 @@ export default function Cotizaciones() {
                             </div>
 
                             {cotizacion.notas ? (
-                              <div className="mt-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                              <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
                                 <p className="text-xs font-medium text-gray-500">Notas</p>
                                 <p className="mt-1 text-sm text-gray-700">{cotizacion.notas}</p>
                               </div>
@@ -2811,7 +2811,7 @@ export default function Cotizaciones() {
                             <button
                               type="button"
                               onClick={() => cargarCotizacionDesdeHistorial(cotizacion)}
-                              className="rounded-2xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800"
+                              className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                             >
                               Cargar
                             </button>
@@ -2820,7 +2820,7 @@ export default function Cotizaciones() {
                               type="button"
                               onClick={() => abrirModalEliminarCotizacion(cotizacion)}
                               disabled={eliminandoCotizacionId === cotizacion._id}
-                              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:opacity-60"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 disabled:opacity-60"
                             >
                               <Trash2 size={16} />
                               {eliminandoCotizacionId === cotizacion._id
@@ -2845,12 +2845,12 @@ export default function Cotizaciones() {
           onClick={cerrarModalEliminarCotizacion}
         >
           <div
-            className="mx-auto mt-10 max-w-lg overflow-hidden rounded-[28px] bg-white shadow-2xl"
+            className="mx-auto mt-10 max-w-lg overflow-hidden rounded-xl bg-white shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-b border-gray-100 px-5 py-5 sm:px-6">
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
                   <Trash2 size={22} />
                 </div>
 
@@ -2866,7 +2866,7 @@ export default function Cotizaciones() {
             </div>
 
             <div className="px-5 py-5 sm:px-6">
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <p className="text-xs font-medium text-gray-500">Folio</p>
@@ -2907,7 +2907,7 @@ export default function Cotizaciones() {
                   type="button"
                   onClick={cerrarModalEliminarCotizacion}
                   disabled={Boolean(eliminandoCotizacionId)}
-                  className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                  className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
                 >
                   Cancelar
                 </button>
@@ -2916,7 +2916,7 @@ export default function Cotizaciones() {
                   type="button"
                   onClick={confirmarEliminarCotizacion}
                   disabled={Boolean(eliminandoCotizacionId)}
-                  className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60"
+                  className="rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-60"
                 >
                   {eliminandoCotizacionId ? 'Eliminando...' : 'Sí, eliminar'}
                 </button>

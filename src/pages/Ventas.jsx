@@ -584,7 +584,7 @@ export default function Ventas() {
       <Header title="Ventas" />
 
       <div className="space-y-5 sm:space-y-6">
-        <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">Historial de ventas</h3>
@@ -599,7 +599,7 @@ export default function Ventas() {
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <input
-                className="h-11 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                 placeholder="Buscar por ticket, usuario o cliente"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
@@ -609,8 +609,8 @@ export default function Ventas() {
         </div>
 
         {soloVentasHoy ? (
-          <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-emerald-800">
                   Filtro activo: ventas de hoy
@@ -632,11 +632,11 @@ export default function Ventas() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm sm:p-10">
+          <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm sm:p-10">
             <Loader />
           </div>
         ) : ventasAgrupadas.length === 0 ? (
-          <div className="rounded-3xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-10">
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-10">
             <p className="text-lg font-semibold text-gray-700">No se encontraron ventas</p>
             <p className="mt-2 text-sm text-gray-500">
               Intenta con otra búsqueda o registra nuevas ventas
@@ -647,7 +647,7 @@ export default function Ventas() {
             {ventasAgrupadas.map(([fecha, items]) => (
               <div
                 key={fecha}
-                className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
+                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6"
               >
                 <div className="mb-5 flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
@@ -669,7 +669,7 @@ export default function Ventas() {
                     return (
                       <div
                         key={venta._id}
-                        className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-indigo-300 hover:shadow-md"
+                        className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-indigo-300 "
                       >
                         <div
                           className="cursor-pointer"
@@ -749,7 +749,7 @@ export default function Ventas() {
                           <button
                             type="button"
                             onClick={() => setTicketSeleccionado(venta)}
-                            className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
                           >
                             <Receipt size={16} />
                             Ver ticket
@@ -773,7 +773,7 @@ export default function Ventas() {
               onClick={() => setVentaSeleccionada(null)}
             />
 
-            <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-2xl sm:h-[94vh] sm:max-w-7xl sm:rounded-[32px] sm:border sm:border-white/20">
+            <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-lg sm:h-[94vh] sm:max-w-7xl sm:rounded-xl sm:border sm:border-white/20">
               <div className="sticky top-0 z-20 border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
@@ -802,7 +802,7 @@ export default function Ventas() {
                     <button
                       type="button"
                       onClick={() => setTicketSeleccionado(ventaSeleccionada)}
-                      className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 md:flex-none"
+                      className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 md:flex-none"
                     >
                       <Receipt size={16} />
                       Ver ticket
@@ -811,7 +811,7 @@ export default function Ventas() {
                     <button
                       type="button"
                       onClick={() => setVentaSeleccionada(null)}
-                      className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
                     >
                       <X size={18} />
                     </button>
@@ -826,7 +826,7 @@ export default function Ventas() {
 
                   return (
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Método de pago</p>
                         <div className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-800">
                           <MetodoIcon size={16} />
@@ -834,21 +834,21 @@ export default function Ventas() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Usuario</p>
                         <p className="mt-2 text-sm font-semibold text-gray-800">
                           {ventaSeleccionada.usuario?.nombre || '—'}
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Productos</p>
                         <p className="mt-2 text-sm font-semibold text-gray-800">
                           {(ventaSeleccionada.productos || []).length}
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
                         <p className="text-xs text-gray-500">Piezas</p>
                         <p className="mt-2 text-sm font-semibold text-gray-800">
                           {(ventaSeleccionada.productos || []).reduce(
@@ -858,7 +858,7 @@ export default function Ventas() {
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 shadow-sm">
+                      <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 shadow-sm">
                         <p className="text-xs text-indigo-700">Total final</p>
                         <p className="mt-2 text-lg font-bold text-indigo-700">
                           {formatearMoneda(ventaSeleccionada.total || 0)}
@@ -872,9 +872,9 @@ export default function Ventas() {
               <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[320px_1fr] lg:overflow-hidden xl:grid-cols-[360px_1fr]">
                 <aside className="border-b border-gray-100 bg-white p-4 sm:p-5 lg:border-b-0 lg:border-r lg:overflow-y-auto">
                   <div className="space-y-4">
-                    <div className="rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 p-4 text-white shadow-lg">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-white shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-white">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white">
                           <BadgeDollarSign size={18} />
                         </div>
                         <div>
@@ -888,21 +888,21 @@ export default function Ventas() {
                       </div>
 
                       <div className="mt-4 space-y-3">
-                        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                        <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
                           <span className="text-sm text-slate-300">Subtotal</span>
                           <span className="text-base font-semibold text-white">
                             {formatearMoneda(ventaSeleccionada.subtotal || 0)}
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between rounded-2xl border border-amber-300/15 bg-amber-400/10 px-4 py-3">
+                        <div className="flex items-center justify-between rounded-xl border border-amber-300/15 bg-amber-400/10 px-4 py-3">
                           <span className="text-sm text-amber-100">Descuento total</span>
                           <span className="text-base font-semibold text-amber-200">
                             {formatearMoneda(ventaSeleccionada.descuentoTotal || 0)}
                           </span>
                         </div>
 
-                        <div className="rounded-2xl bg-white px-4 py-4 text-slate-900 shadow-sm">
+                        <div className="rounded-xl bg-white px-4 py-4 text-slate-900 shadow-sm">
                           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
                             Total cobrado
                           </p>
@@ -914,9 +914,9 @@ export default function Ventas() {
                     </div>
 
                     {ventaSeleccionada.origenCotizacion ? (
-                      <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm">
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
+                          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                             <FileText size={18} />
                           </div>
                           <div>
@@ -930,7 +930,7 @@ export default function Ventas() {
                         </div>
 
                         <div className="mt-4 space-y-3">
-                          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
                             <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
                               Cliente
                             </p>
@@ -939,7 +939,7 @@ export default function Ventas() {
                             </p>
                           </div>
 
-                          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
                             <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
                               Fecha cotización
                             </p>
@@ -948,7 +948,7 @@ export default function Ventas() {
                             </p>
                           </div>
 
-                          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
                             <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
                               Vigencia
                             </p>
@@ -957,7 +957,7 @@ export default function Ventas() {
                             </p>
                           </div>
 
-                          <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                          <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
                             <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
                               Total cotización
                             </p>
@@ -967,7 +967,7 @@ export default function Ventas() {
                           </div>
 
                           {ventaSeleccionada.cotizacion?.notas ? (
-                            <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                            <div className="rounded-xl border border-emerald-100 bg-white px-4 py-3 shadow-sm">
                               <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
                                 Notas
                               </p>
@@ -985,7 +985,7 @@ export default function Ventas() {
                 <section className="flex min-h-0 flex-col bg-gray-50/60 lg:overflow-hidden">
                   <div className="border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-700">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700">
                         <Package size={18} />
                       </div>
                       <div>
@@ -1004,7 +1004,7 @@ export default function Ventas() {
                       {(ventaSeleccionada.productos || []).map((item, index) => (
                         <div
                           key={`${item.producto}-${index}`}
-                          className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
+                          className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                         >
                           <div className="flex flex-col gap-4">
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -1037,7 +1037,7 @@ export default function Ventas() {
                                 </div>
                               </div>
 
-                              <div className="rounded-2xl bg-slate-900 px-4 py-3 text-right">
+                              <div className="rounded-xl bg-slate-900 px-4 py-3 text-right">
                                 <p className="text-xs text-slate-300">Total</p>
                                 <p className="mt-1 text-sm font-bold text-white">
                                   ${obtenerSubtotalItem(item).toFixed(2)}
@@ -1046,35 +1046,35 @@ export default function Ventas() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                              <div className="rounded-xl bg-gray-50 px-4 py-3">
                                 <p className="text-[11px] text-gray-500">Cantidad</p>
                                 <p className="mt-1 text-sm font-semibold text-gray-800">
                                   {item.cantidad}
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                              <div className="rounded-xl bg-gray-50 px-4 py-3">
                                 <p className="text-[11px] text-gray-500">P. unitario</p>
                                 <p className="mt-1 text-sm font-semibold text-gray-800">
                                   ${Number(item.precioUnitario || 0).toFixed(2)}
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-gray-50 px-4 py-3">
+                              <div className="rounded-xl bg-gray-50 px-4 py-3">
                                 <p className="text-[11px] text-gray-500">Subtotal bruto</p>
                                 <p className="mt-1 text-sm font-semibold text-gray-800">
                                   ${Number(item.subtotalBruto || 0).toFixed(2)}
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-amber-50 px-4 py-3">
+                              <div className="rounded-xl bg-amber-50 px-4 py-3">
                                 <p className="text-[11px] text-amber-700">Desc. %</p>
                                 <p className="mt-1 text-sm font-semibold text-amber-700">
                                   {Number(item.descuentoPorcentaje || 0).toFixed(2)}%
                                 </p>
                               </div>
 
-                              <div className="rounded-2xl bg-emerald-50 px-4 py-3">
+                              <div className="rounded-xl bg-emerald-50 px-4 py-3">
                                 <p className="text-[11px] text-emerald-700">Descuento</p>
                                 <p className="mt-1 text-sm font-semibold text-emerald-700">
                                   ${Number(item.descuentoMonto || 0).toFixed(2)}
@@ -1096,10 +1096,10 @@ export default function Ventas() {
       {ticketSeleccionado && ticketActual ? (
         <div className="fixed inset-0 z-[60] bg-black/50 p-2 backdrop-blur-sm sm:px-4 sm:py-6">
           <div className="mx-auto flex h-full max-w-5xl items-center justify-center">
-            <div className="max-h-full w-full overflow-y-auto rounded-[28px] bg-white shadow-2xl">
+            <div className="max-h-full w-full overflow-y-auto rounded-xl bg-white shadow-lg">
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 sm:h-11 sm:w-11">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 sm:h-11 sm:w-11">
                     <Receipt size={20} />
                   </div>
                   <div>
@@ -1121,7 +1121,7 @@ export default function Ventas() {
 
               <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr]">
                 <div className="border-b border-gray-100 bg-gray-50 p-4 sm:p-6 lg:border-b-0 lg:border-r">
-                  <div className="mx-auto w-full max-w-[300px] rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <div className="mx-auto w-full max-w-[300px] rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                     <img
                       src="/logo.png"
                       alt="Logo Hilos en Nogada"
@@ -1229,10 +1229,10 @@ export default function Ventas() {
                     <button
                       type="button"
                       onClick={imprimirTicket80mm}
-                      className="rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-left transition hover:bg-indigo-100"
+                      className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-left transition hover:bg-indigo-100"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white">
                           <Printer size={18} />
                         </div>
                         <div>
@@ -1247,10 +1247,10 @@ export default function Ventas() {
                     <button
                       type="button"
                       onClick={descargarTicketPDF}
-                      className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left transition hover:bg-emerald-100"
+                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left transition hover:bg-emerald-100"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
                           <FileText size={18} />
                         </div>
                         <div>
@@ -1263,7 +1263,7 @@ export default function Ventas() {
                     </button>
                   </div>
 
-                  <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                  <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5">
                     <p className="text-sm font-medium text-gray-700">Resumen rápido</p>
 
                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -1292,7 +1292,7 @@ export default function Ventas() {
                     <button
                       type="button"
                       onClick={() => setTicketSeleccionado(null)}
-                      className="mt-5 w-full rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 sm:w-auto"
+                      className="mt-5 w-full rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 sm:w-auto"
                     >
                       Cerrar ticket
                     </button>

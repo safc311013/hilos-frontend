@@ -101,7 +101,7 @@ export default function Usuarios() {
     return (
       <Layout>
         <Header title="Usuarios" />
-        <div className="rounded-3xl border border-amber-200 bg-amber-50 px-6 py-5 text-amber-800 shadow-sm">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-6 py-5 text-amber-800 shadow-sm">
           <p className="text-lg font-semibold">Acceso restringido</p>
           <p className="mt-1 text-sm text-amber-700">
             No tienes permiso para gestionar usuarios.
@@ -274,7 +274,7 @@ export default function Usuarios() {
           Nombre completo
         </label>
         <input
-          className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-100"
           name="nombre"
           placeholder="Ej. Juan Pérez"
           value={form.nombre}
@@ -288,7 +288,7 @@ export default function Usuarios() {
           Correo electrónico
         </label>
         <input
-          className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-100"
           name="email"
           type="email"
           placeholder="usuario@correo.com"
@@ -304,7 +304,7 @@ export default function Usuarios() {
             Contraseña
           </label>
           <input
-            className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-100"
             name="password"
             type="password"
             placeholder="Escribe una contraseña"
@@ -323,7 +323,7 @@ export default function Usuarios() {
           Rol del usuario
         </label>
         <select
-          className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100"
+          className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-100"
           name="rol"
           value={form.rol}
           onChange={handleChange}
@@ -334,7 +334,7 @@ export default function Usuarios() {
         </select>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
         <label className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-gray-800">Usuario activo</p>
@@ -354,14 +354,14 @@ export default function Usuarios() {
 
       <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
         <button
-          className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95"
+          className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95"
           type="submit"
         >
           {editandoId ? 'Guardar cambios' : 'Crear usuario'}
         </button>
 
         <button
-          className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+          className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
           type="button"
           onClick={() => {
             resetForm();
@@ -382,25 +382,25 @@ export default function Usuarios() {
 
       <div className="space-y-5 sm:space-y-6">
         {errorAccion ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorAccion}
           </div>
         ) : null}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-gray-500">Total usuarios</p>
             <p className="mt-2 text-3xl font-bold text-gray-900">{usuarios.length}</p>
           </div>
 
-          <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-gray-500">Activos</p>
             <p className="mt-2 text-3xl font-bold text-emerald-600">
               {usuarios.filter((u) => u.activo).length}
             </p>
           </div>
 
-          <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-2 xl:col-span-1">
             <p className="text-sm text-gray-500">Inactivos</p>
             <p className="mt-2 text-3xl font-bold text-rose-600">
               {usuarios.filter((u) => !u.activo).length}
@@ -412,7 +412,7 @@ export default function Usuarios() {
           <button
             type="button"
             onClick={abrirModalFormularioNuevo}
-            className="w-full rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95"
+            className="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95"
           >
             Agregar usuario
           </button>
@@ -420,7 +420,7 @@ export default function Usuarios() {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           <div className="hidden xl:col-span-4 lg:block">
-            <div className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="mb-6">
                 <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
                   {editandoId ? 'Modo edición' : 'Nuevo registro'}
@@ -453,14 +453,14 @@ export default function Usuarios() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="inline-flex items-center rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600">
+                    <div className="inline-flex items-center rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600">
                       {usuarios.length} usuarios en total
                     </div>
 
                     <button
                       type="button"
                       onClick={abrirModalFormularioNuevo}
-                      className="hidden rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 lg:inline-flex xl:hidden"
+                      className="hidden rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:opacity-95 lg:inline-flex xl:hidden"
                     >
                       Agregar
                     </button>
@@ -474,10 +474,10 @@ export default function Usuarios() {
                     {usuarios.map((item) => (
                       <div
                         key={item._id}
-                        className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
+                        className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                       >
                         <div className="flex items-start gap-4">
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-sky-500 text-sm font-bold text-white shadow-sm">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white shadow-sm">
                             {item.nombre?.charAt(0)?.toUpperCase() || 'U'}
                           </div>
 
@@ -516,7 +516,7 @@ export default function Usuarios() {
                         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                           <button
                             type="button"
-                            className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                            className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                             onClick={() => abrirModalFormularioEditar(item)}
                           >
                             Editar
@@ -524,7 +524,7 @@ export default function Usuarios() {
 
                           <button
                             type="button"
-                            className="rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100"
+                            className="rounded-xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100"
                             onClick={() => abrirModalEliminar(item)}
                           >
                             Eliminar
@@ -532,7 +532,7 @@ export default function Usuarios() {
 
                           <button
                             type="button"
-                            className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-100 sm:col-span-2"
+                            className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 ring-1 ring-amber-200 transition hover:bg-amber-100 sm:col-span-2"
                             onClick={() => abrirModalRestablecer(item)}
                           >
                             Restablecer acceso
@@ -558,7 +558,7 @@ export default function Usuarios() {
                           <tr key={item._id} className="transition hover:bg-slate-50/70">
                             <td className="px-6 py-5">
                               <div className="flex items-center gap-4">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-sky-500 text-sm font-bold text-white shadow-sm">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white shadow-sm">
                                   {item.nombre?.charAt(0)?.toUpperCase() || 'U'}
                                 </div>
 
@@ -632,7 +632,7 @@ export default function Usuarios() {
               ) : (
                 <div className="px-6 py-16 text-center">
                   <div className="mx-auto max-w-md">
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-violet-100 to-sky-100 text-3xl">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-xl bg-slate-100 text-3xl">
                       👥
                     </div>
                     <h4 className="mt-5 text-xl font-bold text-gray-900">
@@ -646,7 +646,7 @@ export default function Usuarios() {
                     <button
                       type="button"
                       onClick={abrirModalFormularioNuevo}
-                      className="mt-6 inline-flex rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 lg:hidden"
+                      className="mt-6 inline-flex rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95 lg:hidden"
                     >
                       Agregar usuario
                     </button>
@@ -666,7 +666,7 @@ export default function Usuarios() {
           onClick={cerrarModalFormulario}
         >
           <div
-            className="w-full max-w-lg rounded-[28px] border border-gray-200 bg-white p-5 shadow-2xl sm:p-6"
+            className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-6">
@@ -696,10 +696,10 @@ export default function Usuarios() {
           onClick={cerrarModalRestablecer}
         >
           <div
-            className="w-full max-w-md rounded-[28px] border border-gray-200 bg-white p-5 shadow-2xl sm:p-6"
+            className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-amber-100 text-2xl">
               !
             </div>
 
@@ -721,7 +721,7 @@ export default function Usuarios() {
                 Nueva contraseña temporal
               </label>
               <input
-                className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 outline-none transition focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-100"
                 type="password"
                 value={passwordTemporalReset}
                 onChange={(e) => setPasswordTemporalReset(e.target.value)}
@@ -734,7 +734,7 @@ export default function Usuarios() {
               <button
                 type="button"
                 onClick={cerrarModalRestablecer}
-                className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
               >
                 Cancelar
               </button>
@@ -742,7 +742,7 @@ export default function Usuarios() {
               <button
                 type="button"
                 onClick={confirmarRestablecer}
-                className="rounded-2xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700"
+                className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700"
               >
                 Restablecer
               </button>
@@ -757,10 +757,10 @@ export default function Usuarios() {
           onClick={cerrarModalEliminar}
         >
           <div
-            className="w-full max-w-md rounded-[28px] border border-gray-200 bg-white p-5 shadow-2xl sm:p-6"
+            className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-100 text-2xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-rose-100 text-2xl">
               🗑️
             </div>
 
@@ -779,7 +779,7 @@ export default function Usuarios() {
               <button
                 type="button"
                 onClick={cerrarModalEliminar}
-                className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
               >
                 Cancelar
               </button>
@@ -787,7 +787,7 @@ export default function Usuarios() {
               <button
                 type="button"
                 onClick={confirmarEliminacion}
-                className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700"
+                className="rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-700"
               >
                 Sí, eliminar
               </button>

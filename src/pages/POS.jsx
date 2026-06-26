@@ -504,14 +504,14 @@ const agregarProductoDesdeModalScanner = () => {
           loading="lazy"
           decoding="async"
           fetchPriority="low"
-          className={`${className} rounded-2xl border border-gray-200 bg-white object-cover`}
+          className={`${className} rounded-xl border border-gray-200 bg-white object-cover`}
         />
       );
     }
 
     return (
       <div
-        className={`${className} flex items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-gray-50 text-gray-400`}
+        className={`${className} flex items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-gray-400`}
       >
         <ImageIcon size={iconSize} />
       </div>
@@ -1743,7 +1743,7 @@ const agregarProductoDesdeModalScanner = () => {
       <Header title="Punto de Venta" />
 
       <div className="space-y-6">
-        <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_auto] xl:items-center">
             <div>
               <div className="flex flex-wrap items-center gap-3">
@@ -1778,7 +1778,7 @@ const agregarProductoDesdeModalScanner = () => {
                   />
                   <input
                     ref={inputBusquedaRef}
-                    className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                    className="h-12 w-full rounded-xl border border-gray-200 bg-white pl-11 pr-4 text-sm text-gray-700 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                     placeholder={
                       mostrarCatalogo ? 'Escribe código HEN0000 o nombre' : 'Escribe código HEN0000'
                     }
@@ -1793,7 +1793,7 @@ const agregarProductoDesdeModalScanner = () => {
                   <button
                     type="submit"
                     disabled={!busqueda.trim() || buscandoProducto}
-                    className="h-12 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-12 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {buscandoProducto ? 'Buscando...' : 'Agregar producto'}
                   </button>
@@ -1813,7 +1813,7 @@ const agregarProductoDesdeModalScanner = () => {
               <button
                 type="button"
                 onClick={abrirScanner}
-                className="rounded-2xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
+                className="rounded-xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
               >
                 Escanear código
               </button>
@@ -1824,7 +1824,7 @@ const agregarProductoDesdeModalScanner = () => {
                 <button
                   type="button"
                   onClick={volverAModoVenta}
-                  className="rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                  className="rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                 >
                   Volver a ventas
                 </button>
@@ -1832,7 +1832,7 @@ const agregarProductoDesdeModalScanner = () => {
                 <button
                   type="button"
                   onClick={nuevaCotizacion}
-                  className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                  className="rounded-xl border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
                 >
                   Nueva cotización
                 </button>
@@ -1841,7 +1841,7 @@ const agregarProductoDesdeModalScanner = () => {
                   type="button"
                   onClick={guardarCotizacionEnHistorial}
                   disabled={guardandoCotizacion}
-                  className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:opacity-60"
+                  className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                 >
                   {guardandoCotizacion ? 'Guardando...' : 'Guardar en historial'}
                 </button>
@@ -1849,7 +1849,7 @@ const agregarProductoDesdeModalScanner = () => {
                 <button
                   type="button"
                   onClick={exportarCotizacionPDF}
-                  className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                  className="rounded-xl border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
                 >
                   Exportar cotización PDF
                 </button>
@@ -1857,7 +1857,7 @@ const agregarProductoDesdeModalScanner = () => {
                 <button
                   type="button"
                   onClick={mandarCotizacionAVentas}
-                  className="rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95"
+                  className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:opacity-95"
                 >
                   Mandar cotización a ventas
                 </button>
@@ -1866,7 +1866,7 @@ const agregarProductoDesdeModalScanner = () => {
               <button
                 type="button"
                 onClick={abrirModoCotizacion}
-                className="rounded-2xl bg-violet-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-800"
+                className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 Realizar cotización
               </button>
@@ -1874,14 +1874,14 @@ const agregarProductoDesdeModalScanner = () => {
           </div>
 
           {mensajeExito ? (
-            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
               {mensajeExito}
             </div>
           ) : null}
 
           {esModoCotizacion ? (
             <>
-              <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-4">
+              <div className="mt-5 rounded-xl border border-violet-200 bg-violet-50 px-4 py-4">
                 <div className="grid grid-cols-1 gap-2 text-sm text-violet-700 md:grid-cols-3">
                   <p>
                     <strong>Folio:</strong> {folioCotizacion}
@@ -1895,7 +1895,7 @@ const agregarProductoDesdeModalScanner = () => {
                 </div>
               </div>
 
-              <div className="mt-5 rounded-3xl border border-gray-200 bg-gray-50/60 p-4 sm:p-5">
+              <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50/60 p-4 sm:p-5">
                 <div className="mb-4">
                   <h4 className="text-base font-bold text-gray-900 sm:text-lg">
                     Datos de la cotización
@@ -1912,7 +1912,7 @@ const agregarProductoDesdeModalScanner = () => {
                     </label>
                     <input
                       type="text"
-                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                       placeholder="Nombre del cliente"
                       value={nombreClienteCotizacion}
                       onChange={(e) => setNombreClienteCotizacion(e.target.value)}
@@ -1925,7 +1925,7 @@ const agregarProductoDesdeModalScanner = () => {
                     </label>
                     <input
                       type="date"
-                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                       value={fechaCotizacion}
                       onChange={(e) => setFechaCotizacion(e.target.value)}
                     />
@@ -1937,7 +1937,7 @@ const agregarProductoDesdeModalScanner = () => {
                     </label>
                     <input
                       type="text"
-                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                       placeholder="Ej. 7 días"
                       value={vigenciaCotizacion}
                       onChange={(e) => setVigenciaCotizacion(e.target.value)}
@@ -1949,7 +1949,7 @@ const agregarProductoDesdeModalScanner = () => {
           ) : null}
 
           {cotizacionActiva && !esModoCotizacion ? (
-            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+            <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
               <p className="text-sm font-semibold text-emerald-800">
                 Cotización cargada en punto de venta
               </p>
@@ -1969,7 +1969,7 @@ const agregarProductoDesdeModalScanner = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.02fr_1.18fr] xl:items-start">
-          <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-6">
+          <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div
@@ -1993,14 +1993,14 @@ const agregarProductoDesdeModalScanner = () => {
             </div>
 
             {error ? (
-              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
               </div>
             ) : null}
 
             <div className="max-h-[360px] space-y-3 overflow-auto pr-1 sm:max-h-[430px]">
               {resumenCarrito.detalle.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-gray-300 py-12 text-center">
+                <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center">
                   <p className="text-base font-medium text-gray-700">
                     {esModoCotizacion ? 'La cotización está vacía' : 'El carrito está vacío'}
                   </p>
@@ -2014,7 +2014,7 @@ const agregarProductoDesdeModalScanner = () => {
                 resumenCarrito.detalle.map((item) => (
                   <div
                     key={`${item.producto}-${item.inventarioOrigen || 'tienda'}`}
-                    className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                    className="rounded-xl border border-gray-200 bg-gray-50 p-4"
                   >
                     <div className="flex items-start gap-3">
                       {renderImagenProducto(
@@ -2170,7 +2170,7 @@ const agregarProductoDesdeModalScanner = () => {
                       <div
                         className={`rounded-xl px-3 py-3 ${
                           esModoCotizacion
-                            ? 'bg-violet-700 text-white'
+                            ? 'bg-slate-900 text-white'
                             : 'bg-slate-900 text-white'
                         }`}
                       >
@@ -2214,14 +2214,14 @@ const agregarProductoDesdeModalScanner = () => {
                   </div>
                 </div>
 
-                <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-5">
+                <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
                   <p className="text-sm text-gray-500">Total de la venta</p>
                   <h4 className="mt-2 break-words text-3xl font-bold text-gray-900 sm:text-4xl">
                     ${resumenCarrito.total.toFixed(2)}
                   </h4>
 
                   <button
-                    className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={finalizarVenta}
                     disabled={procesandoVenta}
                   >
@@ -2230,7 +2230,7 @@ const agregarProductoDesdeModalScanner = () => {
 
                   <button
                     type="button"
-                    className="mt-3 w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-3 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={reimprimirUltimoTicket}
                     disabled={!ultimoTicketVenta || procesandoVenta}
                   >
@@ -2239,7 +2239,7 @@ const agregarProductoDesdeModalScanner = () => {
                 </div>
               </>
             ) : (
-              <div className="mt-6 rounded-2xl border border-violet-200 bg-violet-50 p-5">
+              <div className="mt-6 rounded-xl border border-violet-200 bg-violet-50 p-5">
                 <p className="text-sm text-violet-700">Total de la cotización</p>
                 <h4 className="mt-2 break-words text-3xl font-bold text-violet-900 sm:text-4xl">
                   ${resumenCarrito.total.toFixed(2)}
@@ -2249,7 +2249,7 @@ const agregarProductoDesdeModalScanner = () => {
                   <button
                     type="button"
                     onClick={nuevaCotizacion}
-                    className="rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                    className="rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
                   >
                     Nueva
                   </button>
@@ -2258,7 +2258,7 @@ const agregarProductoDesdeModalScanner = () => {
                     type="button"
                     onClick={guardarCotizacionEnHistorial}
                     disabled={guardandoCotizacion}
-                    className="rounded-2xl bg-violet-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:opacity-60"
+                    className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
                   >
                     {guardandoCotizacion ? 'Guardando...' : 'Guardar historial'}
                   </button>
@@ -2266,7 +2266,7 @@ const agregarProductoDesdeModalScanner = () => {
                   <button
                     type="button"
                     onClick={exportarCotizacionPDF}
-                    className="rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                    className="rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
                   >
                     Exportar PDF
                   </button>
@@ -2274,7 +2274,7 @@ const agregarProductoDesdeModalScanner = () => {
                   <button
                     type="button"
                     onClick={mandarCotizacionAVentas}
-                    className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95"
+                    className="rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-95"
                   >
                     Mandar a ventas
                   </button>
@@ -2284,7 +2284,7 @@ const agregarProductoDesdeModalScanner = () => {
           </section>
 
           {mostrarCatalogo ? (
-            <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h3 className="text-lg font-bold text-gray-800 sm:text-xl">
@@ -2314,7 +2314,7 @@ const agregarProductoDesdeModalScanner = () => {
             </div>
 
             {errorCarga ? (
-              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {errorCarga}
               </div>
             ) : null}
@@ -2322,7 +2322,7 @@ const agregarProductoDesdeModalScanner = () => {
             {cargandoCatalogo ? (
               <Loader />
             ) : productos.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-gray-300 py-16 text-center">
+              <div className="rounded-xl border border-dashed border-gray-300 py-16 text-center">
                 <p className="text-lg font-semibold text-gray-700">No hay productos disponibles</p>
                 <p className="mt-2 text-sm text-gray-500">
                   Intenta con otra búsqueda o revisa el inventario
@@ -2336,7 +2336,7 @@ const agregarProductoDesdeModalScanner = () => {
                       key={producto._id}
                       type="button"
                       onClick={() => agregarProducto(producto)}
-                      className="rounded-3xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-400 hover:shadow-md sm:p-5"
+                      className="rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-slate-400 sm:p-5"
                     >
                       <div className="flex items-start justify-between gap-3">
                         {renderImagenProducto(
@@ -2389,7 +2389,7 @@ const agregarProductoDesdeModalScanner = () => {
                     type="button"
                     onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
                     disabled={paginaActual === 1 || cargandoCatalogo}
-                    className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Anterior
                   </button>
@@ -2405,7 +2405,7 @@ const agregarProductoDesdeModalScanner = () => {
                     type="button"
                     onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
                     disabled={paginaActual === totalPaginas || cargandoCatalogo}
-                    className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Siguiente
                   </button>
@@ -2420,10 +2420,10 @@ const agregarProductoDesdeModalScanner = () => {
       {ticketVenta ? (
         <div className="fixed inset-0 z-50 bg-black/50 p-2 backdrop-blur-sm sm:p-4">
           <div className="mx-auto flex h-full max-w-6xl items-center justify-center">
-            <div className="max-h-full w-full overflow-y-auto rounded-[28px] bg-white shadow-2xl">
+            <div className="max-h-full w-full overflow-y-auto rounded-xl bg-white shadow-lg">
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 sm:h-11 sm:w-11">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 sm:h-11 sm:w-11">
                     <Receipt size={20} />
                   </div>
                   <div>
@@ -2448,7 +2448,7 @@ const agregarProductoDesdeModalScanner = () => {
 
               <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[360px_1fr]">
                 <div className="border-b border-gray-100 bg-gray-50 p-4 sm:p-6 lg:border-b-0 lg:border-r">
-                  <div className="mx-auto w-full max-w-[300px] rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <div className="mx-auto w-full max-w-[300px] rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                     <img
                       src="/logo.png"
                       alt="Logo Hilos en Nogada"
@@ -2533,10 +2533,10 @@ const agregarProductoDesdeModalScanner = () => {
                     <button
                       type="button"
                       onClick={imprimirTicket80mm}
-                      className="rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-left transition hover:bg-indigo-100"
+                      className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-left transition hover:bg-indigo-100"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white">
                           <Printer size={18} />
                         </div>
                         <div>
@@ -2551,10 +2551,10 @@ const agregarProductoDesdeModalScanner = () => {
                     <button
                       type="button"
                       onClick={descargarTicketPDF}
-                      className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left transition hover:bg-emerald-100"
+                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left transition hover:bg-emerald-100"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
                           <FileText size={18} />
                         </div>
                         <div>
@@ -2567,11 +2567,11 @@ const agregarProductoDesdeModalScanner = () => {
                     </button>
                   </div>
 
-                  <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                  <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5">
                     <p className="text-sm font-medium text-gray-700">Resumen rápido</p>
 
                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <div className="rounded-2xl bg-white px-4 py-4">
+                      <div className="rounded-xl bg-white px-4 py-4">
                         <p className="text-xs text-gray-500">Productos vendidos</p>
                         <p className="mt-1 text-2xl font-bold text-gray-900">
                           {ticketVenta.productos.reduce(
@@ -2581,7 +2581,7 @@ const agregarProductoDesdeModalScanner = () => {
                         </p>
                       </div>
 
-                      <div className="rounded-2xl bg-white px-4 py-4">
+                      <div className="rounded-xl bg-white px-4 py-4">
                         <p className="text-xs text-gray-500">Descuento aplicado</p>
                         <p className="mt-1 text-2xl font-bold text-amber-700">
                           {formatearMoneda(
@@ -2593,7 +2593,7 @@ const agregarProductoDesdeModalScanner = () => {
                         </p>
                       </div>
 
-                      <div className="rounded-2xl bg-slate-900 px-4 py-4 text-white">
+                      <div className="rounded-xl bg-slate-900 px-4 py-4 text-white">
                         <p className="text-xs text-slate-300">Total cobrado</p>
                         <p className="mt-1 text-2xl font-bold">{formatearMoneda(ticketVenta.total)}</p>
                       </div>
@@ -2607,7 +2607,7 @@ const agregarProductoDesdeModalScanner = () => {
                         setTicketVenta(null);
                         enfocarBusqueda();
                       }}
-                      className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                      className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                     >
                       Cerrar
                     </button>
@@ -2618,7 +2618,7 @@ const agregarProductoDesdeModalScanner = () => {
                         setTicketVenta(null);
                         enfocarBusqueda();
                       }}
-                      className="inline-flex h-11 items-center justify-center rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                      className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
                       Seguir vendiendo
                     </button>
@@ -2634,7 +2634,7 @@ const agregarProductoDesdeModalScanner = () => {
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarScanner} />
 
-          <div className="relative w-full max-w-xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6">
+          <div className="relative w-full max-w-xl rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">
@@ -2655,12 +2655,12 @@ const agregarProductoDesdeModalScanner = () => {
             </div>
 
             {errorScanner ? (
-              <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {errorScanner}
               </div>
             ) : null}
 
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-black">
               <Suspense fallback={<div className="p-6 text-center text-sm text-white">Cargando escáner…</div>}>
                 <QrScanner
                   onScan={(detectedCodes) => {
@@ -2721,7 +2721,7 @@ const agregarProductoDesdeModalScanner = () => {
   <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-3 sm:p-4">
     <div className="absolute inset-0" onClick={cerrarModalConsulta} />
 
-    <div className="relative w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl sm:p-6 md:p-7">
+    <div className="relative w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6 md:p-7">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
@@ -2781,14 +2781,14 @@ const agregarProductoDesdeModalScanner = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl bg-gray-50 px-4 py-3">
+            <div className="rounded-xl bg-gray-50 px-4 py-3">
               <p className="text-xs text-gray-500">Precio de venta</p>
               <p className="mt-1 text-lg font-bold text-indigo-700">
                 {formatearMoneda(productoConsultado.precio || 0)}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-gray-50 px-4 py-3">
+            <div className="rounded-xl bg-gray-50 px-4 py-3">
               <p className="text-xs text-gray-500">Stock disponible</p>
               <p className="mt-1 text-lg font-semibold text-gray-900">
                 {Number(productoConsultado.stock || productoConsultado.stockDisponible || 0)}
@@ -2796,7 +2796,7 @@ const agregarProductoDesdeModalScanner = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
             Si lo añades al carrito, aparecerá en el formulario de venta normal para que captures la cantidad y el descuento.
           </div>
 
@@ -2804,7 +2804,7 @@ const agregarProductoDesdeModalScanner = () => {
             <button
               type="button"
               onClick={agregarProductoDesdeModalScanner}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-4 text-sm font-semibold text-white transition hover:bg-indigo-700"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               <ShoppingCart size={18} />
               Añadir al carrito
@@ -2813,7 +2813,7 @@ const agregarProductoDesdeModalScanner = () => {
             <button
               type="button"
               onClick={cerrarModalConsulta}
-              className="inline-flex h-11 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
             >
               Solo consultar
             </button>

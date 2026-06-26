@@ -88,7 +88,7 @@ export default function Login() {
   return (
     <div className="h-screen h-[100dvh] overflow-hidden bg-gray-100">
       <div className="flex h-full items-center justify-center px-4 py-4 sm:px-6">
-        <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
+        <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
           <main className="px-5 py-6 sm:px-10 sm:py-8">
             <div className="mx-auto w-full max-w-md">
               <div className="mb-7 text-center sm:mb-8">
@@ -112,7 +112,7 @@ export default function Login() {
               {!modoCambioPassword ? (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {avisoSesion ? (
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
                       <div className="flex items-start justify-between gap-3">
                         <p>{avisoSesion}</p>
                         <button
@@ -173,7 +173,7 @@ export default function Login() {
                   </div>
 
                   {error ? (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                       {error}
                     </div>
                   ) : null}
@@ -189,7 +189,7 @@ export default function Login() {
                 </form>
               ) : (
                 <form onSubmit={handleCambiarPassword} className="space-y-4">
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     Es tu primer acceso o tu usuario fue restablecido. Define una nueva contraseña para continuar.
                   </div>
 
@@ -256,7 +256,7 @@ export default function Login() {
                   </div>
 
                   {error ? (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                       {error}
                     </div>
                   ) : null}

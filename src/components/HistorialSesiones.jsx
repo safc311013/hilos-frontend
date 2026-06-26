@@ -151,28 +151,28 @@ export default function HistorialSesiones({ usuarios }) {
       <div className="border-b border-gray-100 px-5 py-5 sm:px-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-slate-900 p-3 text-white"><History size={21} /></div>
+            <div className="rounded-xl bg-slate-900 p-3 text-white"><History size={21} /></div>
             <div>
               <p className="text-sm font-medium text-gray-500">Auditoría de acceso, horarios y dispositivos</p>
               <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">Historial de sesiones</h3>
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <button type="button" onClick={exportarExcel} disabled={sesiones.length === 0} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="button" onClick={exportarExcel} disabled={sesiones.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60">
               <Download size={16} /> Exportar Excel
             </button>
-            <button type="button" onClick={cargar} disabled={cargando} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60">
+            <button type="button" onClick={cargar} disabled={cargando} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60">
               <RefreshCw size={16} className={cargando ? 'animate-spin' : ''} /> Actualizar
             </button>
           </div>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-          <select value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 lg:col-span-2">
+          <select value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 lg:col-span-2">
             <option value="">Todos los usuarios</option>
             {usuarios.map((item) => <option key={item._id} value={item._id}>{item.nombre}</option>)}
           </select>
-          <select value={motivo} onChange={(e) => setMotivo(e.target.value)} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 lg:col-span-2">
+          <select value={motivo} onChange={(e) => setMotivo(e.target.value)} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 lg:col-span-2">
             <option value="todas">Todos los estados</option>
             <option value="activa">Sesiones activas</option>
             <option value="salida_voluntaria">Salidas voluntarias</option>
@@ -180,31 +180,31 @@ export default function HistorialSesiones({ usuarios }) {
             <option value="usuario_inactivo">Cuentas desactivadas</option>
             <option value="error_autenticacion">Errores de autenticación</option>
           </select>
-          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" aria-label="Fecha desde" />
-          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" aria-label="Fecha hasta" />
+          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" aria-label="Fecha desde" />
+          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" aria-label="Fecha hasta" />
         </div>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+          <div className="rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
             <b className="block text-lg text-gray-900">{resumen.accesos}</b>
             sesiones encontradas
           </div>
-          <div className="rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+          <div className="rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
             <b className="block text-lg text-gray-900">{totalHoras} h {totalMinutos} min</b>
             tiempo total del filtro
           </div>
-          <div className="rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
+          <div className="rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
             <b className="block text-lg text-gray-900">{resumen.voluntarias} / {resumen.expulsiones}</b>
             voluntarias / expulsiones
           </div>
-          <div className="rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-700">
+          <div className="rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-700">
             <b className="block text-lg text-amber-900">{resumen.dispositivosNuevos} / {resumen.ipsNuevas}</b>
             dispositivos nuevos / IPs nuevas
           </div>
         </div>
       </div>
 
-      {error ? <div className="m-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
+      {error ? <div className="m-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
       {!error && sesiones.length === 0 ? <div className="p-10 text-center text-sm text-gray-500">Aún no hay sesiones que coincidan con los filtros.</div> : null}
       {sesiones.length > 0 ? (
         <div className="overflow-x-auto">
