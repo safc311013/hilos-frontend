@@ -91,7 +91,7 @@ export default function Header({ title }) {
           </p>
 
           {actualizacionDescargada && (
-            <div className="mt-3 flex max-w-xl flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-3 flex max-w-xl flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-semibold">Actualización lista para instalar</p>
                 <p className="text-emerald-700">
@@ -103,7 +103,7 @@ export default function Header({ title }) {
               <button
                 type="button"
                 onClick={instalarActualizacion}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800"
               >
                 <Download size={17} />
                 Instalar
@@ -117,7 +117,7 @@ export default function Header({ title }) {
             <button
               type="button"
               onClick={() => setMostrarAcercaDe(true)}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:w-auto"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:w-auto"
             >
               <Info size={18} />
               Acerca de
@@ -127,7 +127,7 @@ export default function Header({ title }) {
           <button
             type="button"
             onClick={logout}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-700 sm:w-auto sm:px-5"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto sm:px-5"
           >
             <LogOut size={18} />
             Cerrar sesión
@@ -137,7 +137,7 @@ export default function Header({ title }) {
 
       {mostrarAcercaDe && desktopInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white shadow-2xl">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-lg">
             <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Hilos en Nogada</h3>
@@ -146,7 +146,7 @@ export default function Header({ title }) {
               <button
                 type="button"
                 onClick={() => setMostrarAcercaDe(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
                 aria-label="Cerrar"
               >
                 <X size={19} />
@@ -154,7 +154,7 @@ export default function Header({ title }) {
             </div>
 
             <div className="space-y-4 px-5 py-5">
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <p className="text-xs font-semibold uppercase text-gray-500">
                   Versión actual
                 </p>
@@ -163,7 +163,7 @@ export default function Header({ title }) {
                 </p>
               </div>
 
-              <div className="rounded-lg border border-gray-200 p-4">
+              <div className="rounded-xl border border-gray-200 p-4">
                 <p className="text-sm font-semibold text-gray-800">
                   Estado de actualizaciones
                 </p>
@@ -175,7 +175,7 @@ export default function Header({ title }) {
                   type="button"
                   onClick={buscarActualizacion}
                   disabled={buscandoActualizacion}
-                  className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   <RefreshCw
                     size={18}
@@ -188,7 +188,7 @@ export default function Header({ title }) {
                   <button
                     type="button"
                     onClick={instalarActualizacion}
-                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                    className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800"
                   >
                     <Download size={18} />
                     Instalar ahora

@@ -88,7 +88,7 @@ export default function Login() {
   return (
     <div className="h-screen h-[100dvh] overflow-hidden bg-gray-100">
       <div className="flex h-full items-center justify-center px-4 py-4 sm:px-6">
-        <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-xl">
+        <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
           <main className="px-5 py-6 sm:px-10 sm:py-8">
             <div className="mx-auto w-full max-w-md">
               <div className="mb-7 text-center sm:mb-8">
@@ -140,7 +140,7 @@ export default function Login() {
                       autoComplete="email"
                       inputMode="email"
                       required
-                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                     />
                   </div>
 
@@ -158,13 +158,13 @@ export default function Login() {
                         placeholder="Ingresa tu contraseña"
                         autoComplete="current-password"
                         required
-                        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 pr-12 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-12 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                       />
 
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
                         aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -181,7 +181,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     <LogIn size={18} />
                     {loading ? 'Ingresando...' : 'Entrar al sistema'}
@@ -206,7 +206,7 @@ export default function Login() {
                         placeholder="Ingresa la contraseña temporal"
                         autoComplete="current-password"
                         required
-                        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                       />
                     </div>
                   ) : null}
@@ -225,13 +225,13 @@ export default function Login() {
                         placeholder="Mínimo 6 caracteres"
                         autoComplete="new-password"
                         required
-                        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 pr-12 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-12 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                       />
 
                       <button
                         type="button"
                         onClick={() => setShowNuevaPassword(!showNuevaPassword)}
-                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
                         aria-label={showNuevaPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
                         {showNuevaPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -251,7 +251,7 @@ export default function Login() {
                       placeholder="Repite la nueva contraseña"
                       autoComplete="new-password"
                       required
-                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
                     />
                   </div>
 
@@ -264,7 +264,7 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     <KeyRound size={18} />
                     {loading ? 'Actualizando...' : 'Guardar nueva contraseña'}

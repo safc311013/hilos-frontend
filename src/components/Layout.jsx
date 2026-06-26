@@ -12,7 +12,7 @@ export default function Layout({ children }) {
     <div className="min-h-screen bg-gray-100">
       <Sidebar open={sidebarOpen} onClose={cerrarSidebar} />
 
-      <div className="lg:hidden sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur">
+      <div className="sticky top-0 z-30 border-b border-gray-200 bg-white lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
@@ -24,7 +24,7 @@ export default function Layout({ children }) {
           <button
             type="button"
             onClick={sidebarOpen ? cerrarSidebar : abrirSidebar}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-700 transition hover:bg-gray-50"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 transition hover:bg-gray-50"
             aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
           >
             {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
