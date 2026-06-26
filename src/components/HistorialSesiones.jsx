@@ -69,6 +69,8 @@ export default function HistorialSesiones({ usuarios }) {
     voluntarias: sesiones.filter((s) => s.motivoCierre === 'salida_voluntaria').length,
     expulsiones: sesiones.filter((s) => ['token_expirado', 'usuario_inactivo', 'error_autenticacion'].includes(s.motivoCierre)).length,
     minutos: sesiones.reduce((total, sesion) => total + minutosSesion(sesion.inicioAt, sesion.finAt), 0),
+    dispositivosNuevos: sesiones.filter((s) => s.esDispositivoNuevo).length,
+    ipsNuevas: sesiones.filter((s) => s.esNuevaIpPublica).length,
   }), [sesiones]);
 
   const totalHoras = Math.floor(resumen.minutos / 60);
@@ -93,27 +95,26 @@ export default function HistorialSesiones({ usuarios }) {
         Horas: Number((minutos / 60).toFixed(2)),
         Resultado: estado,
         Plataforma: sesion.plataforma,
+        Dispositivo: sesion.dispositivoNombre || 'No disponible',
+        Navegador: sesion.navegador || '',
+        'Sistema operativo': sesion.sistemaOperativo || '',
+        'Dispositivo nuevo': sesion.esDispositivoNuevo ? 'Sí' : 'No',
+        'IP pública nueva': sesion.esNuevaIpPublica ? 'Sí' : 'No',
         'IP pública': sesion.ipPublicaCliente || sesion.ip || 'No disponible',
         'IP vista por servidor': sesion.ipServidor || sesion.ip || 'No disponible',
+        Idioma: sesion.idioma || '',
+        'Zona horaria': sesion.zonaHoraria || '',
+        Pantalla: sesion.pantalla || '',
         Detalle: sesion.detalleCierre || '',
       };
     });
 
     const hoja = XLSX.utils.json_to_sheet(filas);
     hoja['!cols'] = [
-      { wch: 24 },
-      { wch: 30 },
-      { wch: 14 },
-      { wch: 22 },
-      { wch: 22 },
-      { wch: 16 },
-      { wch: 10 },
-      { wch: 10 },
-      { wch: 20 },
-      { wch: 14 },
-      { wch: 18 },
-      { wch: 22 },
-      { wch: 50 },
+      { wch: 24 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 22 },
+      { wch: 16 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 14 },
+      { wch: 30 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 18 },
+      { wch: 18 }, { wch: 22 }, { wch: 12 }, { wch: 22 }, { wch: 14 }, { wch: 50 },
     ];
 
     const libro = XLSX.utils.book_new();
@@ -132,7 +133,7 @@ export default function HistorialSesiones({ usuarios }) {
           <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-slate-900 p-3 text-white"><History size={21} /></div>
             <div>
-              <p className="text-sm font-medium text-gray-500">Auditoría de acceso y horarios</p>
+              <p className="text-sm font-medium text-gray-500">Auditoría de acceso, horarios y dispositivos</p>
               <h3 className="text-xl font-bold text-gray-900 sm:text-2xl">Historial de sesiones</h3>
             </div>
           </div>
@@ -163,7 +164,7 @@ export default function HistorialSesiones({ usuarios }) {
           <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" aria-label="Fecha hasta" />
         </div>
 
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <div className="mt-3 grid gap-3 sm:grid-cols-4">
           <div className="rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
             <b className="block text-lg text-gray-900">{resumen.accesos}</b>
             sesiones encontradas
@@ -175,6 +176,10 @@ export default function HistorialSesiones({ usuarios }) {
           <div className="rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-600">
             <b className="block text-lg text-gray-900">{resumen.voluntarias} / {resumen.expulsiones}</b>
             voluntarias / expulsiones
+          </div>
+          <div className="rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-700">
+            <b className="block text-lg text-amber-900">{resumen.dispositivosNuevos} / {resumen.ipsNuevas}</b>
+            dispositivos nuevos / IPs nuevas
           </div>
         </div>
       </div>
@@ -196,9 +201,15 @@ export default function HistorialSesiones({ usuarios }) {
                     <td className="px-6 py-4"><p className="font-semibold text-gray-900">{sesion.nombreUsuario}</p><p className="text-xs text-gray-500">{sesion.emailUsuario}</p></td>
                     <td className="whitespace-nowrap px-6 py-4 text-gray-700">{formatearFecha(sesion.inicioAt)}</td>
                     <td className="whitespace-nowrap px-6 py-4"><p className="text-gray-700">{formatearFecha(sesion.finAt)}</p><p className="text-xs text-gray-500">{duracion(sesion.inicioAt, sesion.finAt)}</p></td>
-                    <td className="px-6 py-4"><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${estado.clase}`}>{estado.texto}</span>{sesion.detalleCierre ? <p className="mt-2 max-w-xs text-xs text-gray-500">{sesion.detalleCierre}</p> : null}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${estado.clase}`}>{estado.texto}</span>
+                      {sesion.esDispositivoNuevo ? <span className="ml-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Dispositivo nuevo</span> : null}
+                      {sesion.esNuevaIpPublica ? <span className="ml-2 mt-2 inline-flex rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">IP nueva</span> : null}
+                      {sesion.detalleCierre ? <p className="mt-2 max-w-xs text-xs text-gray-500">{sesion.detalleCierre}</p> : null}
+                    </td>
                     <td className="px-6 py-4">
                       <p className="capitalize text-gray-700">{sesion.plataforma}</p>
+                      <p className="text-xs text-gray-600">{sesion.dispositivoNombre || 'Dispositivo no identificado'}</p>
                       <p className="text-xs text-gray-500">IP pública: {sesion.ipPublicaCliente || sesion.ip || 'No disponible'}</p>
                       <p className="text-xs text-gray-400">Servidor: {sesion.ipServidor || sesion.ip || 'No disponible'}</p>
                     </td>

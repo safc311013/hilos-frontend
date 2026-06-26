@@ -80,13 +80,13 @@ export default function ConfiguracionImpresora() {
   const guardar = () => {
     const configGuardada = guardarConfiguracionImpresora(configuracion);
     setConfiguracion(configGuardada);
-    setMensaje('Configuracion guardada en este dispositivo.');
+    setMensaje('Configuración guardada en este dispositivo.');
   };
 
   const restaurar = () => {
     const configGuardada = guardarConfiguracionImpresora(CONFIG_IMPRESORA_DEFAULT);
     setConfiguracion(configGuardada);
-    setMensaje('Configuracion restaurada.');
+    setMensaje('Configuración restaurada.');
   };
 
   const imprimirPrueba = async () => {
@@ -120,9 +120,9 @@ export default function ConfiguracionImpresora() {
   const copiarDireccionMovil = async () => {
     try {
       await navigator.clipboard.writeText(direccionMovil);
-      setMensaje('Direccion para telefono copiada.');
+      setMensaje('Dirección para teléfono copiada.');
     } catch {
-      setMensaje('No se pudo copiar. Selecciona la direccion manualmente.');
+      setMensaje('No se pudo copiar. Selecciona la dirección manualmente.');
     }
   };
 
@@ -137,7 +137,7 @@ export default function ConfiguracionImpresora() {
               <Printer size={22} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Configuracion local</h3>
+              <h3 className="text-lg font-bold text-gray-900">Configuración local</h3>
               <p className="mt-1 text-sm text-gray-500">
                 Estos ajustes se guardan solo en este celular o computadora.
               </p>
@@ -153,7 +153,7 @@ export default function ConfiguracionImpresora() {
 
           <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div className="space-y-2 lg:col-span-2">
-              <label className="text-sm font-semibold text-gray-700">Tipo de conexion</label>
+              <label className="text-sm font-semibold text-gray-700">Tipo de conexión</label>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
@@ -167,7 +167,7 @@ export default function ConfiguracionImpresora() {
                   <Printer size={20} />
                   <span>
                     <span className="block text-sm font-semibold">Impresora del sistema</span>
-                    <span className="block text-xs font-normal text-gray-500">USB o dialogo de impresion</span>
+                    <span className="block text-xs font-normal text-gray-500">USB o diálogo de impresión</span>
                   </span>
                 </button>
                 <button
@@ -181,7 +181,7 @@ export default function ConfiguracionImpresora() {
                 >
                   <Wifi size={20} />
                   <span>
-                    <span className="block text-sm font-semibold">Direccion IP</span>
+                    <span className="block text-sm font-semibold">Dirección IP</span>
                     <span className="block text-xs font-normal text-gray-500">Impresora conectada a la red</span>
                   </span>
                 </button>
@@ -192,7 +192,7 @@ export default function ConfiguracionImpresora() {
               <div className="grid grid-cols-1 gap-4 rounded-lg border border-indigo-200 bg-indigo-50/50 p-4 sm:grid-cols-[minmax(0,1fr)_140px_auto] lg:col-span-2">
                 <div className="space-y-2">
                   <label htmlFor="direccionIp" className="text-sm font-semibold text-gray-700">
-                    Direccion IP
+                    Dirección IP
                   </label>
                   <input
                     id="direccionIp"
@@ -228,7 +228,7 @@ export default function ConfiguracionImpresora() {
                   {probandoConexion ? 'Probando...' : 'Probar'}
                 </button>
                 <p className="text-xs text-gray-500 sm:col-span-3">
-                  El puerto habitual de impresoras termicas de red es 9100. La computadora y la impresora deben estar en la misma red.
+                  El puerto habitual de impresoras térmicas de red es 9100. La computadora y la impresora deben estar en la misma red.
                 </p>
               </div>
             ) : null}
@@ -350,7 +350,7 @@ export default function ConfiguracionImpresora() {
                   className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
                 <span className="text-sm font-medium text-gray-700">
-                  Abrir dialogo de impresion automaticamente
+                  Abrir diálogo de impresión automáticamente
                 </span>
               </label>
             </div>
@@ -393,7 +393,7 @@ export default function ConfiguracionImpresora() {
               onClick={guardar}
               className="inline-flex h-11 items-center justify-center rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
             >
-              Guardar configuracion
+              Guardar configuración
             </button>
           </div>
         </section>
@@ -403,7 +403,7 @@ export default function ConfiguracionImpresora() {
 
           <div className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between gap-3 border-b border-gray-100 pb-2">
-              <span className="text-gray-500">Conexion</span>
+              <span className="text-gray-500">Conexión</span>
               <span className="font-semibold text-gray-900">
                 {configNormalizada.tipoConexion === 'ip'
                   ? `${configNormalizada.direccionIp || 'Sin IP'}:${configNormalizada.puerto}`
@@ -427,23 +427,23 @@ export default function ConfiguracionImpresora() {
             <div className="flex justify-between gap-3 border-b border-gray-100 pb-2">
               <span className="text-gray-500">Logo</span>
               <span className="font-semibold text-gray-900">
-                {configNormalizada.mostrarLogo ? 'Si' : 'No'}
+                {configNormalizada.mostrarLogo ? 'Sí' : 'No'}
               </span>
             </div>
           </div>
 
           <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <p className="font-semibold">Imprimir desde un telefono</p>
+            <p className="font-semibold">Imprimir desde un teléfono</p>
             {appMovilNativa ? (
               <p className="mt-2">
-                Esta app imprime directamente a la TSP143IIILAN. Solo conecta el telefono y la
-                impresora a la red de la sede, guarda su IP y usa el boton Probar. No necesita
+                Esta app imprime directamente a la TSP143IIILAN. Solo conecta el teléfono y la
+                impresora a la red de la sede, guarda su IP y usa el botón Probar. No necesita
                 una computadora encendida.
               </p>
             ) : direccionMovil ? (
               <>
                 <p className="mt-2">
-                  Deja abierta la aplicacion de escritorio y abre esta direccion en el telefono,
+                  Deja abierta la aplicación de escritorio y abre esta dirección en el teléfono,
                   conectado a la misma red Wi-Fi:
                 </p>
                 <div className="mt-3 flex items-center gap-2 rounded-md border border-amber-300 bg-white px-3 py-2">
@@ -454,20 +454,20 @@ export default function ConfiguracionImpresora() {
                     type="button"
                     onClick={copiarDireccionMovil}
                     className="rounded p-1.5 text-amber-800 hover:bg-amber-100"
-                    title="Copiar direccion"
+                    title="Copiar dirección"
                   >
                     <Copy size={17} />
                   </button>
                 </div>
                 <p className="mt-2 text-xs">
-                  Al entrar desde esa direccion, el telefono enviara los tickets a esta
-                  computadora y ella los mandara a la impresora por IP.
+                  Al entrar desde esa dirección, el teléfono enviará los tickets a esta
+                  computadora y ella los mandará a la impresora por IP.
                 </p>
               </>
             ) : (
               <p className="mt-2">
-                Abre esta pantalla desde la aplicacion de escritorio para obtener la direccion
-                local que debes usar en el telefono.
+                Abre esta pantalla desde la aplicación de escritorio para obtener la dirección
+                local que debes usar en el teléfono.
               </p>
             )}
           </div>

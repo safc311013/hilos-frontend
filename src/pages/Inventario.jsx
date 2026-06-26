@@ -545,16 +545,16 @@ const extraerProductosDesdePdf = async (file, categoriasConocidas = []) => {
 const construirMensajeFormatoPdf = ({ invalidas = [], archivo = '' } = {}) => {
   const ejemplos = invalidas.slice(0, 3);
   const detalleLineas = ejemplos.length
-    ? ` Lineas detectadas pero no validas: ${ejemplos.join(' | ')}${
+    ? ` Líneas detectadas pero no válidas: ${ejemplos.join(' | ')}${
         invalidas.length > 3 ? ' | ...' : ''
       }`
     : '';
 
   return [
-    `No se encontraron productos validos en ${archivo || 'el PDF'}.`,
+    `No se encontraron productos válidos en ${archivo || 'el PDF'}.`,
     'Verifica que el archivo tenga texto seleccionable, no solo una imagen escaneada.',
-    'Usa exactamente estas columnas: Codigo, Categoria, Nombre, Costo artesano, Precio venta y Stock.',
-    'Cada fila debe terminar con Costo artesano, Precio venta y Stock numerico.',
+    'Usa exactamente estas columnas: Código, Categoría, Nombre, Costo artesano, Precio venta y Stock.',
+    'Cada fila debe terminar con Costo artesano, Precio venta y Stock numérico.',
     detalleLineas,
   ]
     .filter(Boolean)
@@ -1888,15 +1888,15 @@ export default function Inventario() {
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
 
       const columnas = [
-        'Codigo',
-        'Categoria',
+        'Código',
+        'Categoría',
         'Nombre',
         'Costo artesano',
         'Precio venta',
         'Stock',
       ];
       const filasEjemplo = [
-        ['HL-001', 'Hilos', 'Hilo algodon rojo 100 g', 45, 79, 12],
+        ['HL-001', 'Hilos', 'Hilo algodón rojo 100 g', 45, 79, 12],
         ['LN-002', 'Lana', 'Lana merino azul 50 g', 62.5, 115, 8],
         ['AC-003', 'Accesorios', 'Aguja circular 4 mm', 30, 55, 5],
       ];
@@ -1908,7 +1908,7 @@ export default function Inventario() {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.text(
-        'Usa exactamente estos encabezados y una fila por producto. El sistema leera Codigo, Categoria, Nombre, Costo artesano, Precio venta y Stock.',
+        'Usa exactamente estos encabezados y una fila por producto. El sistema leerá Código, Categoría, Nombre, Costo artesano, Precio venta y Stock.',
         14,
         26
       );
@@ -1950,7 +1950,7 @@ export default function Inventario() {
       doc.setFontSize(8);
       doc.setTextColor(75, 85, 99);
       doc.text(
-        'Reglas: Codigo no debe repetirse en distintas filas. Stock debe ser numero entero. Costos y precios aceptan punto decimal.',
+        'Reglas: Código no debe repetirse en distintas filas. Stock debe ser número entero. Costos y precios aceptan punto decimal.',
         14,
         finalY + 10
       );
@@ -1958,7 +1958,7 @@ export default function Inventario() {
       doc.save('plantilla_importacion_inventario.pdf');
       setMensajeAccion('Plantilla descargada. Llena el PDF con ese formato antes de importarlo.');
     } catch (error) {
-      setErrorAccion(error.message || 'No se pudo descargar la plantilla de importacion');
+      setErrorAccion(error.message || 'No se pudo descargar la plantilla de importación');
     }
   };
 
@@ -1984,18 +1984,18 @@ export default function Inventario() {
 
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
-      doc.text('Actualizacion de costos de artesano', 14, 18);
+      doc.text('Actualización de costos de artesano', 14, 18);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.text(
-        'Modifica solamente la columna Costo artesano. No cambies los codigos ni los encabezados.',
+        'Modifica solamente la columna Costo artesano. No cambies los códigos ni los encabezados.',
         14,
         26
       );
 
       autoTable(doc, {
         startY: 34,
-        head: [['Codigo', 'Costo artesano']],
+        head: [['Código', 'Costo artesano']],
         body: productosActuales
           .sort((a, b) => String(a.codigo).localeCompare(String(b.codigo)))
           .map((producto) => [producto.codigo, Number(producto.costoArtesano || 0)]),
@@ -3609,8 +3609,8 @@ export default function Inventario() {
             <div className="overflow-x-auto rounded-2xl border border-gray-200">
               <div className="min-w-[720px]">
               <div className="grid grid-cols-[1.1fr_1.2fr_2fr_1fr_1fr_0.8fr] bg-gray-900 text-xs font-semibold uppercase text-white">
-                <div className="px-3 py-3">Codigo</div>
-                <div className="px-3 py-3">Categoria</div>
+                <div className="px-3 py-3">Código</div>
+                <div className="px-3 py-3">Categoría</div>
                 <div className="px-3 py-3">Nombre</div>
                 <div className="px-3 py-3 text-right">Costo artesano</div>
                 <div className="px-3 py-3 text-right">Precio venta</div>
@@ -3638,22 +3638,22 @@ export default function Inventario() {
 
             <div className="mt-5 grid grid-cols-1 gap-3 text-sm text-gray-600 sm:grid-cols-3">
               <div className="rounded-2xl bg-gray-50 px-4 py-3">
-                <p className="font-semibold text-gray-900">Codigo</p>
-                <p className="mt-1">Debe ser unico para identificar el producto.</p>
+                <p className="font-semibold text-gray-900">Código</p>
+                <p className="mt-1">Debe ser único para identificar el producto.</p>
               </div>
               <div className="rounded-2xl bg-gray-50 px-4 py-3">
                 <p className="font-semibold text-gray-900">Precios</p>
-                <p className="mt-1">Aceptan punto decimal. Evita texto dentro del numero.</p>
+                <p className="mt-1">Aceptan punto decimal. Evita texto dentro del número.</p>
               </div>
               <div className="rounded-2xl bg-gray-50 px-4 py-3">
                 <p className="font-semibold text-gray-900">Stock</p>
-                <p className="mt-1">Usa numeros enteros. Ese stock se sumara al inventario elegido.</p>
+                <p className="mt-1">Usa números enteros. Ese stock se sumará al inventario elegido.</p>
               </div>
             </div>
 
             <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-4">
               <label className="mb-2 block text-sm font-semibold text-red-900">
-                A que inventario quieres cargar este PDF
+                A qué inventario quieres cargar este PDF
               </label>
               <select
                 className="h-11 w-full rounded-2xl border border-red-200 bg-white px-4 text-sm font-semibold text-gray-800 shadow-sm outline-none transition focus:border-red-500 focus:ring-4 focus:ring-red-100"
@@ -3668,7 +3668,7 @@ export default function Inventario() {
                 <option value={INVENTARIOS.TAXCO}>Inventario de Taxco</option>
               </select>
               <p className="mt-2 text-xs text-red-700">
-                Si el producto ya existe, el stock del PDF se sumara solo al inventario seleccionado.
+                Si el producto ya existe, el stock del PDF se sumará solo al inventario seleccionado.
               </p>
             </div>
 
@@ -4094,13 +4094,13 @@ export default function Inventario() {
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700">
                     <ClipboardCheck size={14} />
-                    Conteo fisico
+                    Conteo físico
                   </div>
                   <h3 className="mt-3 text-xl font-bold text-gray-900 sm:text-2xl">
-                    Comparar conteo fisico contra sistema
+                    Comparar conteo físico contra sistema
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Escanea o captura codigos para contar piezas y ver diferencias.
+                    Escanea o captura códigos para contar piezas y ver diferencias.
                   </p>
                 </div>
 
@@ -4144,14 +4144,14 @@ export default function Inventario() {
                 <div className="space-y-4">
                   <form onSubmit={registrarConteoManual} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
                     <label className="mb-2 block text-sm font-semibold text-gray-700">
-                      Codigo del producto
+                      Código del producto
                     </label>
                     <div className="flex gap-2">
                       <input
                         className="h-11 min-w-0 flex-1 rounded-2xl border border-gray-200 bg-white px-4 text-sm text-gray-700 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
                         value={codigoManualConteo}
                         onChange={(e) => setCodigoManualConteo(e.target.value)}
-                        placeholder="Escanea o escribe codigo"
+                        placeholder="Escanea o escribe código"
                         disabled={consultandoConteo}
                       />
                       <button
@@ -4170,12 +4170,12 @@ export default function Inventario() {
                     className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-violet-200 bg-violet-50 px-4 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
                   >
                     <Search size={17} />
-                    {mostrarCamaraConteo ? 'Ocultar camara' : 'Usar camara'}
+                    {mostrarCamaraConteo ? 'Ocultar cámara' : 'Usar cámara'}
                   </button>
 
                   {mostrarCamaraConteo ? (
                     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-black">
-                      <Suspense fallback={<div className="p-6 text-center text-sm text-white">Cargando escaner...</div>}>
+                      <Suspense fallback={<div className="p-6 text-center text-sm text-white">Cargando escáner...</div>}>
                         <QrScanner
                           onScan={(detectedCodes) => {
                             const code = detectedCodes?.[0]?.rawValue;
@@ -4185,7 +4185,7 @@ export default function Inventario() {
                           }}
                           onError={(scannerError) => {
                             setErrorConteo(
-                              scannerError?.message || 'No se pudo acceder a la camara'
+                              scannerError?.message || 'No se pudo acceder a la cámara'
                             );
                           }}
                           formats={BARCODE_FORMATS}
@@ -4235,7 +4235,7 @@ export default function Inventario() {
                       <table className="min-w-[780px] w-full text-left">
                         <thead className="sticky top-0 z-10 bg-white shadow-sm">
                           <tr className="text-sm text-gray-500">
-                            <th className="px-4 py-3">Codigo</th>
+                            <th className="px-4 py-3">Código</th>
                             <th className="px-4 py-3">Producto</th>
                             <th className="px-4 py-3 text-right">Sistema</th>
                             <th className="px-4 py-3 text-right">Contado</th>
@@ -4300,10 +4300,10 @@ export default function Inventario() {
                     <div className="px-6 py-16 text-center">
                       <ClipboardCheck className="mx-auto text-gray-300" size={42} />
                       <p className="mt-3 text-sm font-semibold text-gray-700">
-                        Aun no hay productos contados
+                        Aún no hay productos contados
                       </p>
                       <p className="mt-1 text-sm text-gray-500">
-                        Escanea o escribe codigos para empezar el conteo.
+                        Escanea o escribe códigos para empezar el conteo.
                       </p>
                     </div>
                   )}
@@ -4435,13 +4435,13 @@ export default function Inventario() {
                   Registrar producto
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  No existe un producto con este codigo de barras. Puedes darlo de alta ahora en inventario.
+                  No existe un producto con este código de barras. Puedes darlo de alta ahora en inventario.
                 </p>
               </div>
             </div>
 
             <div className="mt-5 rounded-2xl bg-gray-50 p-4">
-              <p className="text-xs text-gray-500">Codigo escaneado</p>
+              <p className="text-xs text-gray-500">Código escaneado</p>
               <p className="mt-1 break-all font-semibold text-gray-800">
                 {codigoPendienteRegistro}
               </p>
@@ -4462,7 +4462,7 @@ export default function Inventario() {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-5 text-sm font-semibold text-white transition hover:bg-indigo-700"
               >
                 <Plus size={16} />
-                Si, registrarlo
+                Sí, registrarlo
               </button>
             </div>
           </div>

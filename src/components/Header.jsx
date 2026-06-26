@@ -3,7 +3,7 @@ import { Download, Info, LogOut, RefreshCw, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../config/api';
 
-const MENSAJE_INICIAL = 'Sin busquedas recientes.';
+const MENSAJE_INICIAL = 'Sin búsquedas recientes.';
 
 export default function Header({ title }) {
   const { usuario, logout } = useAuth();
@@ -51,7 +51,7 @@ export default function Header({ title }) {
 
     try {
       const { data } = await api.post('/desktop/check-updates');
-      setMensajeManual(data?.mensaje || 'Busqueda de actualizaciones iniciada.');
+      setMensajeManual(data?.mensaje || 'Búsqueda de actualizaciones iniciada.');
 
       if (data?.update) {
         setDesktopInfo((actual) => ({
@@ -71,12 +71,12 @@ export default function Header({ title }) {
 
   const instalarActualizacion = async () => {
     try {
-      setMensajeManual('Reiniciando para instalar la actualizacion...');
+      setMensajeManual('Reiniciando para instalar la actualización...');
       await api.post('/desktop/install-update');
     } catch (error) {
       setMensajeManual(
         error.response?.data?.mensaje ||
-          'No se pudo iniciar la instalacion de la actualizacion.'
+          'No se pudo iniciar la instalación de la actualización.'
       );
     }
   };
@@ -93,11 +93,11 @@ export default function Header({ title }) {
           {actualizacionDescargada && (
             <div className="mt-3 flex max-w-xl flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 shadow-sm sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-semibold">Actualizacion lista para instalar</p>
+                <p className="font-semibold">Actualización lista para instalar</p>
                 <p className="text-emerald-700">
                   {updateInfo.versionDisponible
-                    ? `Version ${updateInfo.versionDisponible} descargada.`
-                    : 'La nueva version ya se descargo.'}
+                    ? `Versión ${updateInfo.versionDisponible} descargada.`
+                    : 'La nueva versión ya se descargó.'}
                 </p>
               </div>
               <button
@@ -130,7 +130,7 @@ export default function Header({ title }) {
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-700 sm:w-auto sm:px-5"
           >
             <LogOut size={18} />
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       </header>
@@ -141,7 +141,7 @@ export default function Header({ title }) {
             <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Hilos en Nogada</h3>
-                <p className="text-sm text-gray-500">Acerca de la aplicacion</p>
+                <p className="text-sm text-gray-500">Acerca de la aplicación</p>
               </div>
               <button
                 type="button"
@@ -156,7 +156,7 @@ export default function Header({ title }) {
             <div className="space-y-4 px-5 py-5">
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <p className="text-xs font-semibold uppercase text-gray-500">
-                  Version actual
+                  Versión actual
                 </p>
                 <p className="mt-1 text-2xl font-bold text-gray-900">
                   {desktopInfo.version || 'No disponible'}
@@ -181,7 +181,7 @@ export default function Header({ title }) {
                     size={18}
                     className={buscandoActualizacion ? 'animate-spin' : ''}
                   />
-                  {buscandoActualizacion ? 'Buscando...' : 'Buscar actualizacion'}
+                  {buscandoActualizacion ? 'Buscando...' : 'Buscar actualización'}
                 </button>
 
                 {actualizacionDescargada && (

@@ -381,7 +381,7 @@ export const imprimirTicketConfigurado = async ({
   const ventana = window.open('', '_blank', 'width=420,height=720');
 
   if (!ventana) {
-    const mensaje = 'No se pudo abrir la ventana de impresion. Revisa el bloqueador de ventanas.';
+    const mensaje = 'No se pudo abrir la ventana de impresión. Revisa el bloqueador de ventanas.';
     if (onError) {
       onError(mensaje);
       return null;
@@ -398,5 +398,5 @@ export const imprimirTicketConfigurado = async ({
     })
   );
   ventana.document.close();
-  return { mensaje: 'Ventana de impresion abierta.' };
+  return { mensaje: 'Ventana de impresión abierta.' };
 };
