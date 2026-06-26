@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, KeyRound, LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -85,122 +86,116 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-screen min-h-[100dvh] overflow-hidden bg-slate-950">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.22),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(168,85,247,0.18),_transparent_30%)]" />
-      <div className="absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-indigo-500/20 blur-3xl sm:h-80 sm:w-80" />
-      <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-3xl sm:h-96 sm:w-96" />
-      <div className="absolute left-0 top-1/3 h-56 w-56 rounded-full bg-cyan-400/10 blur-3xl sm:h-72 sm:w-72" />
-
-      <div className="relative z-10 flex min-h-screen min-h-[100dvh] items-center justify-center px-4 py-6 sm:px-6 sm:py-8">
-        <div className="w-full max-w-md">
-          <div className="rounded-[28px] border border-white/10 bg-white/10 p-1 shadow-2xl backdrop-blur-2xl sm:rounded-[32px]">
-            <div className="rounded-[24px] border border-white/10 bg-slate-950/80 px-5 py-6 text-white sm:rounded-[28px] sm:px-8 sm:py-8">
-              <div className="mb-6 text-center">
-                <div className="mx-auto mb-3 flex items-center justify-center">
+    <div className="h-screen h-[100dvh] overflow-hidden bg-gray-100">
+      <div className="flex h-full items-center justify-center px-4 py-4 sm:px-6">
+        <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-xl">
+          <main className="px-5 py-6 sm:px-10 sm:py-8">
+            <div className="mx-auto w-full max-w-md">
+              <div className="mb-7 text-center sm:mb-8">
+                <div className="mx-auto mb-8 flex items-center justify-center">
                   <img
                     src="/logo.png"
                     alt="Logo Hilos"
-                    className="h-32 w-32 object-contain sm:h-[180px] sm:w-[180px] md:h-[200px] md:w-[200px]"
+                    className="h-44 w-44 object-contain sm:h-56 sm:w-56"
                   />
                 </div>
 
-                <span className="inline-flex rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-200">
-                  Acceso seguro
-                </span>
-
-                <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
                   Bienvenido a Hilos
                 </h1>
 
-                <p className="mt-1 text-sm leading-relaxed text-slate-300">
+                <p className="mt-2 text-sm leading-relaxed text-gray-500">
                   Inicia sesión para acceder a tu panel de gestión
                 </p>
               </div>
 
               {!modoCambioPassword ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {avisoSesion ? (
-                  <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100" role="alert">
-                    <div className="flex items-start justify-between gap-3">
-                      <p>{avisoSesion}</p>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {avisoSesion ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+                      <div className="flex items-start justify-between gap-3">
+                        <p>{avisoSesion}</p>
+                        <button
+                          type="button"
+                          onClick={limpiarAvisoSesion}
+                          className="shrink-0 font-semibold text-amber-700 transition hover:text-amber-900"
+                          aria-label="Cerrar aviso"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Correo electrónico
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="Ingresa tu correo"
+                      autoComplete="email"
+                      inputMode="email"
+                      required
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Contraseña
+                    </label>
+
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        value={form.password}
+                        onChange={handleChange}
+                        placeholder="Ingresa tu contraseña"
+                        autoComplete="current-password"
+                        required
+                        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 pr-12 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
+                      />
+
                       <button
                         type="button"
-                        onClick={limpiarAvisoSesion}
-                        className="shrink-0 font-semibold text-amber-200 hover:text-white"
-                        aria-label="Cerrar aviso"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                        aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
-                        ×
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
-                ) : null}
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-200">
-                    Correo electrónico
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="Ingresa tu correo"
-                    autoComplete="email"
-                    inputMode="email"
-                    required
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
-                  />
-                </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-200">
-                    Contraseña
-                  </label>
+                  {error ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {error}
+                    </div>
+                  ) : null}
 
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      name="password"
-                      value={form.password}
-                      onChange={handleChange}
-                      placeholder="Ingresa tu contraseña"
-                      autoComplete="current-password"
-                      required
-                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pr-24 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-medium text-indigo-300 transition hover:bg-white/10 hover:text-white"
-                    >
-                      {showPassword ? 'Ocultar' : 'Mostrar'}
-                    </button>
-                  </div>
-                </div>
-
-                {error ? (
-                  <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                    {error}
-                  </div>
-                ) : null}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-2xl bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-4 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:scale-[1.01] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {loading ? 'Ingresando...' : 'Entrar al sistema'}
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <LogIn size={18} />
+                    {loading ? 'Ingresando...' : 'Entrar al sistema'}
+                  </button>
+                </form>
               ) : (
                 <form onSubmit={handleCambiarPassword} className="space-y-4">
-                  <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                     Es tu primer acceso o tu usuario fue restablecido. Define una nueva contraseña para continuar.
                   </div>
 
                   {!passwordTemporal && !form.password ? (
                     <div>
-                      <label className="mb-1.5 block text-sm font-medium text-slate-200">
+                      <label className="mb-1.5 block text-sm font-medium text-gray-700">
                         Contraseña temporal
                       </label>
                       <input
@@ -211,13 +206,13 @@ export default function Login() {
                         placeholder="Ingresa la contraseña temporal"
                         autoComplete="current-password"
                         required
-                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
+                        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                       />
                     </div>
                   ) : null}
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-200">
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
                       Nueva contraseña
                     </label>
 
@@ -230,21 +225,22 @@ export default function Login() {
                         placeholder="Mínimo 6 caracteres"
                         autoComplete="new-password"
                         required
-                        className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 pr-24 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
+                        className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 pr-12 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                       />
 
                       <button
                         type="button"
                         onClick={() => setShowNuevaPassword(!showNuevaPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-medium text-indigo-300 transition hover:bg-white/10 hover:text-white"
+                        className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-xl text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+                        aria-label={showNuevaPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                       >
-                        {showNuevaPassword ? 'Ocultar' : 'Mostrar'}
+                        {showNuevaPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
 
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-200">
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
                       Confirmar contraseña
                     </label>
                     <input
@@ -255,12 +251,12 @@ export default function Login() {
                       placeholder="Repite la nueva contraseña"
                       autoComplete="new-password"
                       required
-                      className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white/10 focus:ring-4 focus:ring-indigo-500/20"
+                      className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100"
                     />
                   </div>
 
                   {error ? (
-                    <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                       {error}
                     </div>
                   ) : null}
@@ -268,20 +264,16 @@ export default function Login() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full rounded-2xl bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 px-4 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:scale-[1.01] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
                   >
+                    <KeyRound size={18} />
                     {loading ? 'Actualizando...' : 'Guardar nueva contraseña'}
                   </button>
                 </form>
               )}
 
-              <div className="mt-5 text-center">
-                <p className="text-xs leading-relaxed text-slate-400">
-                  Plataforma interna para usuarios autorizados
-                </p>
-              </div>
             </div>
-          </div>
+          </main>
         </div>
       </div>
     </div>
