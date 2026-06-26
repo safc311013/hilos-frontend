@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { api } from '../config/api';
+import { AVISO_SESION_KEY, api } from '../config/api';
 
 const AuthContext = createContext();
 
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
   const [usuario, setUsuario] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
-  const [avisoSesion, setAvisoSesion] = useState('');
+  const [avisoSesion, setAvisoSesion] = useState(() => sessionStorage.getItem(AVISO_SESION_KEY) || '');
 
   useEffect(() => {
     const usuarioGuardado = localStorage.getItem('usuario');
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
         } else {
           setUsuario(usuarioNormalizado);
         }
-      } catch (error) {
+      } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('usuario');
         setToken(null);
@@ -81,6 +81,8 @@ export const AuthProvider = ({ children }) => {
 
     localStorage.setItem('token', data.token);
     localStorage.setItem('usuario', JSON.stringify(usuarioNormalizado));
+    sessionStorage.removeItem(AVISO_SESION_KEY);
+    window.__hilosRedirigiendoPorSesion = false;
 
     setToken(data.token);
     setUsuario(usuarioNormalizado);
@@ -121,6 +123,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     setAvisoSesion('');
+    sessionStorage.removeItem(AVISO_SESION_KEY);
+    window.__hilosRedirigiendoPorSesion = false;
+
     try {
       await api.post('/auth/logout');
     } catch (error) {
@@ -132,11 +137,12 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const expulsar = (event) => {
-      setAvisoSesion(
-        event.detail?.mensaje || 'Tu sesión venció. Inicia sesión nuevamente para continuar.'
-      );
+      const mensaje = event.detail?.mensaje || 'Tu sesión venció. Inicia sesión nuevamente para continuar.';
+      sessionStorage.setItem(AVISO_SESION_KEY, mensaje);
+      setAvisoSesion(mensaje);
       limpiarSesionLocal();
     };
+
     window.addEventListener('auth:expulsado', expulsar);
     return () => window.removeEventListener('auth:expulsado', expulsar);
   }, []);
@@ -151,7 +157,10 @@ export const AuthProvider = ({ children }) => {
       cambiarPassword,
       logout,
       avisoSesion,
-      limpiarAvisoSesion: () => setAvisoSesion(''),
+      limpiarAvisoSesion: () => {
+        sessionStorage.removeItem(AVISO_SESION_KEY);
+        setAvisoSesion('');
+      },
     }),
     [usuario, token, loading, avisoSesion]
   );
