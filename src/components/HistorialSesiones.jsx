@@ -11,6 +11,26 @@ const MOTIVOS = {
   activa: { texto: 'Sesión activa', clase: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
 };
 
+const REEMPLAZOS_MOJIBAKE = [
+  ['\u00c3\u00a1', 'á'], ['\u00c3\u00a9', 'é'], ['\u00c3\u00ad', 'í'], ['\u00c3\u00b3', 'ó'], ['\u00c3\u00ba', 'ú'],
+  ['\u00c3\u0081', 'Á'], ['\u00c3\u0089', 'É'], ['\u00c3\u008d', 'Í'], ['\u00c3\u0093', 'Ó'], ['\u00c3\u009a', 'Ú'],
+  ['\u00c3\u00b1', 'ñ'], ['\u00c3\u0091', 'Ñ'], ['\u00c3\u00bc', 'ü'], ['\u00c3\u009c', 'Ü'],
+  ['\u00c2\u00bf', '¿'], ['\u00c2\u00a1', '¡'], ['\u00c2\u00b0', '°'], ['\u00c2\u00b7', '·'],
+  ['\u00e2\u20ac\u201d', '—'], ['\u00e2\u20ac\u201c', '–'], ['\u00e2\u20ac\u00a6', '…'],
+  ['\u00e2\u20ac\u0153', '“'], ['\u00e2\u20ac\u009d', '”'], ['\u00e2\u20ac\u02dc', '‘'], ['\u00e2\u20ac\u2122', '’'],
+  ['\u00c2', ''],
+];
+
+const limpiarTexto = (valor) => {
+  if (valor === null || valor === undefined) return '';
+  if (typeof valor !== 'string') return valor;
+
+  return REEMPLAZOS_MOJIBAKE.reduce(
+    (texto, [incorrecto, correcto]) => texto.replaceAll(incorrecto, correcto),
+    valor,
+  );
+};
+
 const formatearFecha = (fecha) =>
   fecha
     ? new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(fecha))
@@ -85,27 +105,27 @@ export default function HistorialSesiones({ usuarios }) {
       const minutos = minutosSesion(sesion.inicioAt, sesion.finAt);
 
       return {
-        Usuario: sesion.nombreUsuario,
-        Correo: sesion.emailUsuario,
-        Rol: sesion.rolUsuario,
+        Usuario: limpiarTexto(sesion.nombreUsuario),
+        Correo: limpiarTexto(sesion.emailUsuario),
+        Rol: limpiarTexto(sesion.rolUsuario),
         Inicio: fechaParaExcel(sesion.inicioAt),
         Cierre: fechaParaExcel(sesion.finAt),
         Duración: duracion(sesion.inicioAt, sesion.finAt),
         Minutos: minutos,
         Horas: Number((minutos / 60).toFixed(2)),
         Resultado: estado,
-        Plataforma: sesion.plataforma,
-        Dispositivo: sesion.dispositivoNombre || 'No disponible',
-        Navegador: sesion.navegador || '',
-        'Sistema operativo': sesion.sistemaOperativo || '',
+        Plataforma: limpiarTexto(sesion.plataforma),
+        Dispositivo: limpiarTexto(sesion.dispositivoNombre) || 'No disponible',
+        Navegador: limpiarTexto(sesion.navegador),
+        'Sistema operativo': limpiarTexto(sesion.sistemaOperativo),
         'Dispositivo nuevo': sesion.esDispositivoNuevo ? 'Sí' : 'No',
         'IP pública nueva': sesion.esNuevaIpPublica ? 'Sí' : 'No',
-        'IP pública': sesion.ipPublicaCliente || sesion.ip || 'No disponible',
-        'IP vista por servidor': sesion.ipServidor || sesion.ip || 'No disponible',
-        Idioma: sesion.idioma || '',
-        'Zona horaria': sesion.zonaHoraria || '',
-        Pantalla: sesion.pantalla || '',
-        Detalle: sesion.detalleCierre || '',
+        'IP pública': limpiarTexto(sesion.ipPublicaCliente || sesion.ip) || 'No disponible',
+        'IP vista por servidor': limpiarTexto(sesion.ipServidor || sesion.ip) || 'No disponible',
+        Idioma: limpiarTexto(sesion.idioma),
+        'Zona horaria': limpiarTexto(sesion.zonaHoraria),
+        Pantalla: limpiarTexto(sesion.pantalla),
+        Detalle: limpiarTexto(sesion.detalleCierre),
       };
     });
 
@@ -121,7 +141,7 @@ export default function HistorialSesiones({ usuarios }) {
     XLSX.utils.book_append_sheet(libro, hoja, 'Historial sesiones');
 
     const usuario = usuarios.find((item) => item._id === usuarioId);
-    const nombreUsuario = usuario ? usuario.nombre.replace(/[^\w-]+/g, '_') : 'todos';
+    const nombreUsuario = usuario ? limpiarTexto(usuario.nombre).replace(/[^\w-]+/g, '_') : 'todos';
     const rango = `${desde || 'inicio'}_${hasta || 'hoy'}`;
     XLSX.writeFile(libro, `historial_sesiones_${nombreUsuario}_${rango}.xlsx`);
   };
@@ -198,20 +218,20 @@ export default function HistorialSesiones({ usuarios }) {
                 const estado = MOTIVOS[clave] || { texto: 'Cerrada', clase: 'border-gray-200 bg-gray-50 text-gray-700' };
                 return (
                   <tr key={sesion._id} className="align-top">
-                    <td className="px-6 py-4"><p className="font-semibold text-gray-900">{sesion.nombreUsuario}</p><p className="text-xs text-gray-500">{sesion.emailUsuario}</p></td>
+                    <td className="px-6 py-4"><p className="font-semibold text-gray-900">{limpiarTexto(sesion.nombreUsuario)}</p><p className="text-xs text-gray-500">{limpiarTexto(sesion.emailUsuario)}</p></td>
                     <td className="whitespace-nowrap px-6 py-4 text-gray-700">{formatearFecha(sesion.inicioAt)}</td>
                     <td className="whitespace-nowrap px-6 py-4"><p className="text-gray-700">{formatearFecha(sesion.finAt)}</p><p className="text-xs text-gray-500">{duracion(sesion.inicioAt, sesion.finAt)}</p></td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${estado.clase}`}>{estado.texto}</span>
                       {sesion.esDispositivoNuevo ? <span className="ml-2 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Dispositivo nuevo</span> : null}
                       {sesion.esNuevaIpPublica ? <span className="ml-2 mt-2 inline-flex rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700">IP nueva</span> : null}
-                      {sesion.detalleCierre ? <p className="mt-2 max-w-xs text-xs text-gray-500">{sesion.detalleCierre}</p> : null}
+                      {sesion.detalleCierre ? <p className="mt-2 max-w-xs text-xs text-gray-500">{limpiarTexto(sesion.detalleCierre)}</p> : null}
                     </td>
                     <td className="px-6 py-4">
-                      <p className="capitalize text-gray-700">{sesion.plataforma}</p>
-                      <p className="text-xs text-gray-600">{sesion.dispositivoNombre || 'Dispositivo no identificado'}</p>
-                      <p className="text-xs text-gray-500">IP pública: {sesion.ipPublicaCliente || sesion.ip || 'No disponible'}</p>
-                      <p className="text-xs text-gray-400">Servidor: {sesion.ipServidor || sesion.ip || 'No disponible'}</p>
+                      <p className="capitalize text-gray-700">{limpiarTexto(sesion.plataforma)}</p>
+                      <p className="text-xs text-gray-600">{limpiarTexto(sesion.dispositivoNombre) || 'Dispositivo no identificado'}</p>
+                      <p className="text-xs text-gray-500">IP pública: {limpiarTexto(sesion.ipPublicaCliente || sesion.ip) || 'No disponible'}</p>
+                      <p className="text-xs text-gray-400">Servidor: {limpiarTexto(sesion.ipServidor || sesion.ip) || 'No disponible'}</p>
                     </td>
                   </tr>
                 );
