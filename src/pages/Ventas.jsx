@@ -1216,87 +1216,59 @@ export default function Ventas() {
                 </div>
 
                 <div className="p-4 sm:p-6">
-                  <div className="mb-5">
-                    <h4 className="text-lg font-bold text-gray-900 sm:text-2xl">
-                      Acciones del ticket
-                    </h4>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Puedes imprimir el ticket en formato térmico de 80mm o descargarlo en PDF.
-                    </p>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Acciones</p>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={imprimirTicket80mm}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
+                      >
+                        <Printer size={18} />
+                        Imprimir 80mm
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={descargarTicketPDF}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
+                      >
+                        <FileText size={18} />
+                        Descargar PDF
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <button
-                      type="button"
-                      onClick={imprimirTicket80mm}
-                      className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-left transition hover:bg-indigo-100"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white">
-                          <Printer size={18} />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-indigo-900">Imprimir ticket 80mm</p>
-                          <p className="text-sm text-indigo-700">
-                            Abrir ticket listo para impresora térmica
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={descargarTicketPDF}
-                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left transition hover:bg-emerald-100"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
-                          <FileText size={18} />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-emerald-900">Descargar PDF</p>
-                          <p className="text-sm text-emerald-700">
-                            Guardar una copia del ticket en PDF
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-
-                  <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5">
-                    <p className="text-sm font-medium text-gray-700">Resumen rápido</p>
-
-                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <div className="rounded-xl bg-white px-4 py-3">
-                        <p className="text-xs text-gray-500">Ticket</p>
-                        <p className="mt-1 font-bold text-gray-900">
-                          {ticketActual.numeroTicket}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl bg-white px-4 py-3">
-                        <p className="text-xs text-gray-500">Método de pago</p>
-                        <p className="mt-1 font-bold text-gray-900">
-                          {ticketActual.metodoPago}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl bg-white px-4 py-3">
-                        <p className="text-xs text-gray-500">Total</p>
-                        <p className="mt-1 font-bold text-gray-900">
-                          {formatearMoneda(ticketActual.total)}
-                        </p>
-                      </div>
+                  <div className="mt-5 rounded-xl border border-gray-200 bg-white">
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                      <span className="text-sm text-gray-500">Ticket</span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {ticketActual.numeroTicket}
+                      </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setTicketSeleccionado(null)}
-                      className="mt-5 w-full rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 sm:w-auto"
-                    >
-                      Cerrar ticket
-                    </button>
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                      <span className="text-sm text-gray-500">Método de pago</span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {ticketActual.metodoPago}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <span className="text-sm font-semibold text-gray-900">Total</span>
+                      <span className="text-base font-bold text-gray-900">
+                        {formatearMoneda(ticketActual.total)}
+                      </span>
+                    </div>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setTicketSeleccionado(null)}
+                    className="mt-5 w-full rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 sm:w-auto"
+                  >
+                    Cerrar ticket
+                  </button>
                 </div>
               </div>
             </div>

@@ -2528,79 +2528,62 @@ const agregarProductoDesdeModalScanner = () => {
                   </div>
                 </div>
 
-                <div className="p-4 sm:p-6 lg:p-8">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="p-4 sm:p-5 lg:p-6">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Acciones</p>
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={imprimirTicket80mm}
-                      className="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-left transition hover:bg-indigo-100"
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white">
-                          <Printer size={18} />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-indigo-900">Imprimir ticket 80mm</p>
-                          <p className="text-sm text-indigo-700">
-                            Abrir ticket listo para impresora térmica
-                          </p>
-                        </div>
-                      </div>
+                      <Printer size={18} />
+                      Imprimir 80mm
                     </button>
 
                     <button
                       type="button"
                       onClick={descargarTicketPDF}
-                      className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-left transition hover:bg-emerald-100"
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white">
-                          <FileText size={18} />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-emerald-900">Descargar PDF</p>
-                          <p className="text-sm text-emerald-700">
-                            Guardar una copia del ticket en PDF
-                          </p>
-                        </div>
-                      </div>
+                      <FileText size={18} />
+                      Descargar PDF
                     </button>
-                  </div>
-
-                  <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-5">
-                    <p className="text-sm font-medium text-gray-700">Resumen rápido</p>
-
-                    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <div className="rounded-xl bg-white px-4 py-4">
-                        <p className="text-xs text-gray-500">Productos vendidos</p>
-                        <p className="mt-1 text-xl font-bold text-gray-900">
-                          {ticketVenta.productos.reduce(
-                            (acc, item) => acc + Number(item.cantidad || 0),
-                            0
-                          )}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl bg-white px-4 py-4">
-                        <p className="text-xs text-gray-500">Descuento aplicado</p>
-                        <p className="mt-1 text-xl font-bold text-amber-700">
-                          {formatearMoneda(
-                            ticketVenta.productos.reduce(
-                              (acc, item) => acc + Number(item.montoDescuento || 0),
-                              0
-                            )
-                          )}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl bg-slate-900 px-4 py-4 text-white">
-                        <p className="text-xs text-slate-300">Total cobrado</p>
-                        <p className="mt-1 text-xl font-bold">{formatearMoneda(ticketVenta.total)}</p>
-                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <div className="mt-5 rounded-xl border border-gray-200 bg-white">
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                      <span className="text-sm text-gray-500">Productos vendidos</span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {ticketVenta.productos.reduce(
+                          (acc, item) => acc + Number(item.cantidad || 0),
+                          0
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                      <span className="text-sm text-gray-500">Descuento</span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        {formatearMoneda(
+                          ticketVenta.productos.reduce(
+                            (acc, item) => acc + Number(item.montoDescuento || 0),
+                            0
+                          )
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <span className="text-sm font-semibold text-gray-900">Total cobrado</span>
+                      <span className="text-base font-bold text-gray-900">
+                        {formatearMoneda(ticketVenta.total)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <button
                       type="button"
                       onClick={() => {
