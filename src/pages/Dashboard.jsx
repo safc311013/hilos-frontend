@@ -172,7 +172,7 @@ export default function Dashboard() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <p className="text-sm text-gray-500">{item.title}</p>
-                      <h3 className="mt-1.5 break-words text-2xl font-bold text-gray-900 sm:text-[28px]">
+                      <h3 className="mt-1.5 break-words text-xl font-bold text-gray-900 sm:text-[28px]">
                         {item.value}
                       </h3>
                       <p className="mt-1.5 text-sm text-gray-500">{item.helper}</p>
@@ -201,7 +201,7 @@ export default function Dashboard() {
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                   <p className="text-sm text-gray-500">Productos registrados</p>
-                  <p className="mt-2 text-2xl font-bold text-gray-900">
+                  <p className="mt-2 text-xl font-bold text-gray-900">
                     {resumen.totalProductos}
                   </p>
                 </div>
@@ -212,7 +212,7 @@ export default function Dashboard() {
                   className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-left transition hover:border-amber-300 hover:bg-amber-100"
                 >
                   <p className="text-sm text-amber-700">Stock bajo</p>
-                  <p className="mt-2 text-2xl font-bold text-amber-700">
+                  <p className="mt-2 text-xl font-bold text-amber-700">
                     {resumen.stockBajo}
                   </p>
                   <p className="mt-2 text-xs text-amber-700/80">
@@ -233,7 +233,7 @@ export default function Dashboard() {
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                   <p className="text-sm text-gray-600">Ingreso hoy</p>
-                  <p className="mt-2 break-words text-2xl font-bold text-gray-900">
+                  <p className="mt-2 break-words text-xl font-bold text-gray-900">
                     ${Number(resumen.totalVentasHoy || 0).toFixed(2)}
                   </p>
                 </div>
@@ -244,7 +244,7 @@ export default function Dashboard() {
                   className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-100"
                 >
                   <p className="text-sm text-emerald-700">Ventas hoy</p>
-                  <p className="mt-2 text-2xl font-bold text-emerald-700">
+                  <p className="mt-2 text-xl font-bold text-emerald-700">
                     {resumen.ventasHoy}
                   </p>
                   <p className="mt-2 text-xs text-emerald-700/80">
@@ -254,14 +254,14 @@ export default function Dashboard() {
 
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm text-slate-700">Ingreso histórico</p>
-                  <p className="mt-2 break-words text-2xl font-bold text-slate-800">
+                  <p className="mt-2 break-words text-xl font-bold text-slate-800">
                     ${Number(resumen.totalHistorico || 0).toFixed(2)}
                   </p>
                 </div>
 
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-sm text-slate-700">Ventas históricas</p>
-                  <p className="mt-2 text-2xl font-bold text-slate-800">
+                  <p className="mt-2 text-xl font-bold text-slate-800">
                     {resumen.cantidadVentasHistoricas}
                   </p>
                 </div>

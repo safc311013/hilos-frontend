@@ -237,7 +237,7 @@ export default function CopiasSeguridad() {
                     <Icon size={18} />
                     <span className="text-sm font-medium">{label}</span>
                   </div>
-                  <p className="mt-2 text-2xl font-bold text-gray-900">
+                  <p className="mt-2 text-xl font-bold text-gray-900">
                     {cargandoResumen ? '…' : Number(valor || 0).toLocaleString('es-MX')}
                   </p>
                 </div>

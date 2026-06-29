@@ -2458,7 +2458,7 @@ export default function Cotizaciones() {
                       <p className="text-sm text-emerald-700">
                         Total actual de la cotización
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-emerald-700">
+                      <p className="mt-1 text-xl font-bold text-emerald-700">
                         ${total.toFixed(2)}
                       </p>
                     </div>
@@ -2467,14 +2467,14 @@ export default function Cotizaciones() {
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <div className="rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 text-right">
                       <p className="text-sm text-sky-700">Ganancia total cliente</p>
-                      <p className="mt-1 text-2xl font-bold text-sky-700">
+                      <p className="mt-1 text-xl font-bold text-sky-700">
                         ${totalGananciaCliente.toFixed(2)}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-right">
                       <p className="text-sm text-rose-700">Ganancia total Hilos</p>
-                      <p className="mt-1 text-2xl font-bold text-rose-700">
+                      <p className="mt-1 text-xl font-bold text-rose-700">
                         ${totalGananciaHilos.toFixed(2)}
                       </p>
                     </div>
@@ -2483,7 +2483,7 @@ export default function Cotizaciones() {
                       <p className="text-sm text-emerald-700">
                         Total actual de la cotización
                       </p>
-                      <p className="mt-1 text-2xl font-bold text-emerald-700">
+                      <p className="mt-1 text-xl font-bold text-emerald-700">
                         ${total.toFixed(2)}
                       </p>
                     </div>
@@ -2526,11 +2526,11 @@ export default function Cotizaciones() {
 
       {modalFormulario && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 lg:hidden"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 lg:hidden"
           onClick={cerrarModalFormulario}
         >
           <div
-            className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-gray-200 bg-white shadow-lg sm:my-4 sm:max-h-[90vh] sm:max-w-lg sm:rounded-xl"
+            className="flex max-h-[88vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-gray-200 bg-white shadow-md sm:my-4 sm:max-h-[90vh] sm:max-w-lg sm:rounded-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-center border-b border-gray-100 px-4 py-3 sm:hidden">
@@ -2546,11 +2546,11 @@ export default function Cotizaciones() {
 
       {historialModalAbierto && (
         <div
-          className="fixed inset-0 z-[60] bg-black/50 p-3 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-[60] bg-black/45 p-3 sm:p-6"
           onClick={() => setHistorialModalAbierto(false)}
         >
           <div
-            className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-lg"
+            className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-md"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6">
@@ -2559,7 +2559,7 @@ export default function Cotizaciones() {
                   <History size={20} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
+                  <h3 className="text-lg font-bold text-gray-900 sm:text-2xl">
                     Historial de cotizaciones
                   </h3>
                   <p className="text-sm text-gray-500">
@@ -2708,7 +2708,7 @@ export default function Cotizaciones() {
               ) : historialCotizaciones.length === 0 ? (
                 <div className="flex min-h-[240px] items-center justify-center">
                   <div className="max-w-md rounded-xl border border-dashed border-gray-300 px-6 py-10 text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-violet-100 text-2xl">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-violet-100 text-xl">
                       🗂️
                     </div>
                     <h4 className="mt-4 text-lg font-bold text-gray-900">
@@ -2841,11 +2841,11 @@ export default function Cotizaciones() {
 
       {cotizacionAEliminar && (
         <div
-          className="fixed inset-0 z-[70] bg-black/50 p-3 backdrop-blur-sm sm:p-6"
+          className="fixed inset-0 z-[70] bg-black/45 p-3 sm:p-6"
           onClick={cerrarModalEliminarCotizacion}
         >
           <div
-            className="mx-auto mt-10 max-w-lg overflow-hidden rounded-xl bg-white shadow-lg"
+            className="mx-auto mt-10 max-w-lg overflow-hidden rounded-xl bg-white shadow-md"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="border-b border-gray-100 px-5 py-5 sm:px-6">
@@ -2855,7 +2855,7 @@ export default function Cotizaciones() {
                 </div>
 
                 <div className="min-w-0">
-                  <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
+                  <h3 className="text-lg font-bold text-gray-900 sm:text-2xl">
                     Eliminar cotización
                   </h3>
                   <p className="mt-1 text-sm text-gray-500">

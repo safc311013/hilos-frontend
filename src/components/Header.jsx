@@ -136,8 +136,8 @@ export default function Header({ title }) {
       </header>
 
       {mostrarAcercaDe && desktopInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-md">
             <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Hilos en Nogada</h3>
@@ -158,7 +158,7 @@ export default function Header({ title }) {
                 <p className="text-xs font-semibold uppercase text-gray-500">
                   Versión actual
                 </p>
-                <p className="mt-1 text-2xl font-bold text-gray-900">
+                <p className="mt-1 text-xl font-bold text-gray-900">
                   {desktopInfo.version || 'No disponible'}
                 </p>
               </div>

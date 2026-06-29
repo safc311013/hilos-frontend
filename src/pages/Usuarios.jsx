@@ -662,11 +662,11 @@ export default function Usuarios() {
 
       {modalFormulario && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:px-4 lg:hidden"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:px-4 lg:hidden"
           onClick={cerrarModalFormulario}
         >
           <div
-            className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6"
+            className="w-full max-w-lg rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-6">
@@ -692,14 +692,14 @@ export default function Usuarios() {
 
       {modalRestablecer.abierto && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:px-4"
           onClick={cerrarModalRestablecer}
         >
           <div
-            className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6"
+            className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-amber-100 text-2xl">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-xl">
               !
             </div>
 
@@ -753,14 +753,14 @@ export default function Usuarios() {
 
       {modalEliminar.abierto && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-3 sm:px-4"
           onClick={cerrarModalEliminar}
         >
           <div
-            className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6"
+            className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-rose-100 text-2xl">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-rose-100 text-xl">
               🗑️
             </div>
 

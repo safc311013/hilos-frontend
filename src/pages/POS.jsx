@@ -1982,7 +1982,7 @@ const agregarProductoDesdeModalScanner = () => {
                   <ShoppingCart size={18} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800 sm:text-xl">
+                  <h3 className="text-lg font-semibold text-gray-800 sm:text-2xl">
                     {esModoCotizacion ? 'Cotización' : 'Carrito'}
                   </h3>
                   <p className="text-sm text-gray-500">
@@ -2287,7 +2287,7 @@ const agregarProductoDesdeModalScanner = () => {
             <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-lg font-bold text-gray-800 sm:text-xl">
+                <h3 className="text-lg font-bold text-gray-800 sm:text-2xl">
                   {esModoCotizacion ? 'Catálogo para cotización' : 'Catálogo'}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
@@ -2418,16 +2418,16 @@ const agregarProductoDesdeModalScanner = () => {
       </div>
 
       {ticketVenta ? (
-        <div className="fixed inset-0 z-50 bg-black/50 p-2 backdrop-blur-sm sm:p-4">
+        <div className="fixed inset-0 z-50 bg-black/45 p-2 sm:p-4">
           <div className="mx-auto flex h-full max-w-6xl items-center justify-center">
-            <div className="max-h-full w-full overflow-y-auto rounded-xl bg-white shadow-lg">
+            <div className="max-h-full w-full overflow-y-auto rounded-xl bg-white shadow-md">
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 sm:h-11 sm:w-11">
                     <Receipt size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 sm:text-xl">Ticket generado</h3>
+                    <h3 className="text-lg font-bold text-gray-900 sm:text-2xl">Ticket generado</h3>
                     <p className="text-sm text-gray-500">
                       La venta se registró correctamente
                     </p>
@@ -2573,7 +2573,7 @@ const agregarProductoDesdeModalScanner = () => {
                     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <div className="rounded-xl bg-white px-4 py-4">
                         <p className="text-xs text-gray-500">Productos vendidos</p>
-                        <p className="mt-1 text-2xl font-bold text-gray-900">
+                        <p className="mt-1 text-xl font-bold text-gray-900">
                           {ticketVenta.productos.reduce(
                             (acc, item) => acc + Number(item.cantidad || 0),
                             0
@@ -2583,7 +2583,7 @@ const agregarProductoDesdeModalScanner = () => {
 
                       <div className="rounded-xl bg-white px-4 py-4">
                         <p className="text-xs text-gray-500">Descuento aplicado</p>
-                        <p className="mt-1 text-2xl font-bold text-amber-700">
+                        <p className="mt-1 text-xl font-bold text-amber-700">
                           {formatearMoneda(
                             ticketVenta.productos.reduce(
                               (acc, item) => acc + Number(item.montoDescuento || 0),
@@ -2595,7 +2595,7 @@ const agregarProductoDesdeModalScanner = () => {
 
                       <div className="rounded-xl bg-slate-900 px-4 py-4 text-white">
                         <p className="text-xs text-slate-300">Total cobrado</p>
-                        <p className="mt-1 text-2xl font-bold">{formatearMoneda(ticketVenta.total)}</p>
+                        <p className="mt-1 text-xl font-bold">{formatearMoneda(ticketVenta.total)}</p>
                       </div>
                     </div>
                   </div>
@@ -2631,10 +2631,10 @@ const agregarProductoDesdeModalScanner = () => {
       ) : null}
 
       {mostrarScanner ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarScanner} />
 
-          <div className="relative w-full max-w-xl rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
+          <div className="relative w-full max-w-xl rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">
@@ -2718,10 +2718,10 @@ const agregarProductoDesdeModalScanner = () => {
       ) : null}
 
       {productoConsultado ? (
-  <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+  <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/45 p-3 sm:p-4">
     <div className="absolute inset-0" onClick={cerrarModalConsulta} />
 
-    <div className="relative w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6 md:p-7">
+    <div className="relative w-full max-w-lg rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5 md:p-7">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
@@ -2757,7 +2757,7 @@ const agregarProductoDesdeModalScanner = () => {
               {productoConsultado.codigo || 'Sin código'}
             </span>
 
-            <h4 className="mt-3 text-2xl font-bold text-gray-900">
+            <h4 className="mt-3 text-xl font-bold text-gray-900">
               {productoConsultado.nombre}
             </h4>
           </div>

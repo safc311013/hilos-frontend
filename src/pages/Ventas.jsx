@@ -654,7 +654,7 @@ export default function Ventas() {
                     <CalendarDays size={18} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold capitalize text-gray-800 sm:text-xl">
+                    <h3 className="text-lg font-semibold capitalize text-gray-800 sm:text-2xl">
                       {fecha}
                     </h3>
                     <p className="text-sm text-gray-500">{items.length} venta(s)</p>
@@ -766,14 +766,14 @@ export default function Ventas() {
       </div>
 
       {ventaSeleccionada ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45">
           <div className="flex min-h-full items-end justify-center sm:items-center">
             <div
               className="absolute inset-0"
               onClick={() => setVentaSeleccionada(null)}
             />
 
-            <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-lg sm:h-[94vh] sm:max-w-7xl sm:rounded-xl sm:border sm:border-white/20">
+            <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-md sm:h-[94vh] sm:max-w-7xl sm:rounded-xl sm:border sm:border-white/20">
               <div className="sticky top-0 z-20 border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
@@ -906,7 +906,7 @@ export default function Ventas() {
                           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
                             Total cobrado
                           </p>
-                          <p className="mt-2 text-2xl font-extrabold">
+                          <p className="mt-2 text-xl font-extrabold">
                             {formatearMoneda(ventaSeleccionada.total || 0)}
                           </p>
                         </div>
@@ -1094,16 +1094,16 @@ export default function Ventas() {
       ) : null}
 
       {ticketSeleccionado && ticketActual ? (
-        <div className="fixed inset-0 z-[60] bg-black/50 p-2 backdrop-blur-sm sm:px-4 sm:py-6">
+        <div className="fixed inset-0 z-[60] bg-black/45 p-2 sm:px-4 sm:py-6">
           <div className="mx-auto flex h-full max-w-5xl items-center justify-center">
-            <div className="max-h-full w-full overflow-y-auto rounded-xl bg-white shadow-lg">
+            <div className="max-h-full w-full overflow-y-auto rounded-xl bg-white shadow-md">
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 sm:h-11 sm:w-11">
                     <Receipt size={20} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 sm:text-xl">
+                    <h3 className="text-lg font-bold text-gray-900 sm:text-2xl">
                       Ticket de la venta
                     </h3>
                     <p className="text-sm text-gray-500">{ticketActual.numeroTicket}</p>
@@ -1217,7 +1217,7 @@ export default function Ventas() {
 
                 <div className="p-4 sm:p-6">
                   <div className="mb-5">
-                    <h4 className="text-lg font-bold text-gray-900 sm:text-xl">
+                    <h4 className="text-lg font-bold text-gray-900 sm:text-2xl">
                       Acciones del ticket
                     </h4>
                     <p className="mt-1 text-sm text-gray-500">

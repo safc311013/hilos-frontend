@@ -87,8 +87,8 @@ export default function Login() {
 
   return (
     <div className="h-screen h-[100dvh] overflow-hidden bg-gray-100">
-      <div className="flex h-full items-center justify-center px-4 py-4 sm:px-6">
-        <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+      <div className="flex h-full items-center justify-center px-0 py-4 sm:px-6">
+        <div className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-2xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
           <main className="px-5 py-6 sm:px-10 sm:py-8">
             <div className="mx-auto w-full max-w-md">
               <div className="mb-7 text-center sm:mb-8">

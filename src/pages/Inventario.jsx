@@ -3193,7 +3193,7 @@ export default function Inventario() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarFormulario} />
 
-          <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6 md:p-8">
+          <div className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5 md:p-8">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800 sm:text-2xl">
@@ -3409,9 +3409,9 @@ export default function Inventario() {
       ) : null}
 
       {importandoPdf && !mostrarPreviewImportacion ? (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 text-center shadow-lg">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-red-50 text-red-700">
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 text-center shadow-md">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-700">
               <RefreshCcw size={24} className="animate-spin" />
             </div>
             <h3 className="mt-4 text-xl font-bold text-gray-900">
@@ -3428,9 +3428,9 @@ export default function Inventario() {
       ) : null}
 
       {usuario?.rol === 'admin' && mostrarGuiaCostos ? (
-        <div className="fixed inset-0 z-[76] flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[76] flex items-center justify-center bg-black/45 p-4">
           <div className="absolute inset-0" onClick={() => !procesandoCostos && setMostrarGuiaCostos(false)} />
-          <div className="relative w-full max-w-xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+          <div className="relative w-full max-w-xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
             <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase text-amber-700">Solo administradores</p>
@@ -3482,9 +3482,9 @@ export default function Inventario() {
       ) : null}
 
       {usuario?.rol === 'admin' && mostrarPreviewCostos ? (
-        <div className="fixed inset-0 z-[77] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[77] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarPreviewCostos} />
-          <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+          <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
             <div className="flex items-start justify-between border-b border-gray-200 px-5 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase text-amber-700">Vista previa de costos</p>
@@ -3574,13 +3574,13 @@ export default function Inventario() {
       ) : null}
 
       {mostrarGuiaImportacion ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div
             className="absolute inset-0"
             onClick={() => !importandoPdf && setMostrarGuiaImportacion(false)}
           />
 
-          <div className="relative w-full max-w-3xl rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
+          <div className="relative w-full max-w-3xl rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
@@ -3709,10 +3709,10 @@ export default function Inventario() {
       ) : null}
 
       {mostrarPreviewImportacion ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarPreviewImportacion} />
 
-          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
             <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -3775,7 +3775,7 @@ export default function Inventario() {
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                     Detectados
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-slate-800">
+                  <p className="mt-2 text-xl font-bold text-slate-800">
                     {resumenImportacion.totalDetectados}
                   </p>
                 </div>
@@ -3784,7 +3784,7 @@ export default function Inventario() {
                   <p className="text-xs font-medium uppercase tracking-wide text-emerald-600">
                     Nuevos
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-emerald-700">
+                  <p className="mt-2 text-xl font-bold text-emerald-700">
                     {resumenImportacion.nuevos}
                   </p>
                 </div>
@@ -3793,7 +3793,7 @@ export default function Inventario() {
                   <p className="text-xs font-medium uppercase tracking-wide text-amber-600">
                     Actualizar stock
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-amber-700">
+                  <p className="mt-2 text-xl font-bold text-amber-700">
                     {resumenImportacion.actualizar}
                   </p>
                 </div>
@@ -3802,7 +3802,7 @@ export default function Inventario() {
                   <p className="text-xs font-medium uppercase tracking-wide text-red-600">
                     Errores
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-red-700">
+                  <p className="mt-2 text-xl font-bold text-red-700">
                     {resumenImportacion.errores}
                   </p>
                 </div>
@@ -4015,13 +4015,13 @@ export default function Inventario() {
       ) : null}
 
       {mostrarOpcionesExportacion ? (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div
             className="absolute inset-0"
             onClick={() => !exportandoExcel && setMostrarOpcionesExportacion(false)}
           />
 
-          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
+          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">
@@ -4085,10 +4085,10 @@ export default function Inventario() {
       ) : null}
 
       {mostrarConteoFisico ? (
-        <div className="fixed inset-0 z-[78] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[78] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarConteoFisico} />
 
-          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+          <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
             <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
@@ -4216,13 +4216,13 @@ export default function Inventario() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl bg-violet-50 px-4 py-3">
                       <p className="text-xs text-violet-600">Productos</p>
-                      <p className="mt-1 text-2xl font-bold text-violet-800">
+                      <p className="mt-1 text-xl font-bold text-violet-800">
                         {conteoFisicoResumen.productos}
                       </p>
                     </div>
                     <div className="rounded-xl bg-amber-50 px-4 py-3">
                       <p className="text-xs text-amber-600">Diferencias</p>
-                      <p className="mt-1 text-2xl font-bold text-amber-800">
+                      <p className="mt-1 text-xl font-bold text-amber-800">
                         {conteoFisicoResumen.conDiferencia}
                       </p>
                     </div>
@@ -4336,10 +4336,10 @@ export default function Inventario() {
       ) : null}
 
       {mostrarScanner ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarScanner} />
 
-          <div className="relative w-full max-w-xl rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
+          <div className="relative w-full max-w-xl rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">
@@ -4421,10 +4421,10 @@ export default function Inventario() {
       ) : null}
 
       {codigoPendienteRegistro ? (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarPreguntaRegistroScanner} />
 
-          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
+          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5">
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
                 <Plus size={20} />
@@ -4470,11 +4470,11 @@ export default function Inventario() {
       ) : null}
 
       {productoConsultado ? (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarModalConsulta} />
 
           <div
-  className={`relative w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg ${
+  className={`relative w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-md ${
     modoEdicionScanner
       ? 'max-h-[88vh] max-w-2xl p-4 sm:p-5'
       : 'max-h-[80vh] max-w-xl p-4 sm:p-5'
@@ -4531,7 +4531,7 @@ export default function Inventario() {
                     <p className="text-xs uppercase tracking-wide text-gray-400">
                       Nombre
                     </p>
-                    <h4 className="mt-1 text-2xl font-bold text-gray-900">
+                    <h4 className="mt-1 text-xl font-bold text-gray-900">
                       {productoConsultado.nombre}
                     </h4>
                   </div>
@@ -4728,10 +4728,10 @@ export default function Inventario() {
       ) : null}
 
       {mostrarConfirmacionScanner ? (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarConfirmacionScanner} />
 
-          <div className="relative w-full max-w-lg rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
+          <div className="relative w-full max-w-lg rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5">
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                 <AlertTriangle size={20} />
@@ -4822,12 +4822,12 @@ export default function Inventario() {
       ) : null}
 
       {productoAEliminar ? (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-3 sm:p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-3 sm:p-4">
           <div className="absolute inset-0" onClick={cerrarModalEliminar} />
 
-          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-lg sm:p-6">
+          <div className="relative w-full max-w-md rounded-xl border border-gray-200 bg-white p-4 shadow-md sm:p-5">
             <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600">
                 <AlertTriangle size={26} />
               </div>
 

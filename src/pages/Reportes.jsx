@@ -492,7 +492,7 @@ export default function Reportes() {
               <div className="mb-5 flex flex-col gap-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-800 sm:text-xl">
+                    <h4 className="text-lg font-semibold text-gray-800 sm:text-2xl">
                       Detalle del reporte
                     </h4>
                     <p className="mt-1 text-sm text-gray-500">
@@ -687,14 +687,14 @@ export default function Reportes() {
       </div>
 
       {ventaSeleccionada ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45">
           <div className="flex min-h-full items-end justify-center sm:items-center">
             <div
               className="absolute inset-0"
               onClick={() => setVentaSeleccionada(null)}
             />
 
-            <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-lg sm:h-[94vh] sm:max-w-6xl sm:rounded-xl sm:border sm:border-white/20">
+            <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-md sm:h-[94vh] sm:max-w-6xl sm:rounded-xl sm:border sm:border-white/20">
               <div className="sticky top-0 z-20 border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
@@ -817,7 +817,7 @@ export default function Reportes() {
                           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
                             Total cobrado
                           </p>
-                          <p className="mt-2 text-2xl font-extrabold">
+                          <p className="mt-2 text-xl font-extrabold">
                             {formatearMoneda(ventaSeleccionada.total || 0)}
                           </p>
                         </div>
