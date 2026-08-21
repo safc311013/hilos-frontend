@@ -229,6 +229,46 @@ const prepararCarritoParaCotizacion = (items = []) => {
 };
 
 const FOLIO_PROVISIONAL = 'Se asignará al guardar';
+const POS_DRAFT_STORAGE_KEY = 'borradorPOS';
+
+const obtenerBorradorPOS = () => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = localStorage.getItem(POS_DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+
+    const draft = JSON.parse(raw);
+    if (!draft || typeof draft !== 'object') return null;
+
+    return {
+      carrito: Array.isArray(draft.carrito) ? draft.carrito : [],
+      metodoPago: draft.metodoPago || 'efectivo',
+      cotizacionActiva: draft.cotizacionActiva || null,
+      modoPantalla:
+        draft.modoPantalla === MODOS_PANTALLA.COTIZACION
+          ? MODOS_PANTALLA.COTIZACION
+          : MODOS_PANTALLA.VENTA,
+      nombreClienteCotizacion: draft.nombreClienteCotizacion || '',
+      fechaCotizacion: draft.fechaCotizacion || obtenerFechaHoyISO(),
+      vigenciaCotizacion: draft.vigenciaCotizacion || '',
+      folioCotizacion: draft.folioCotizacion || FOLIO_PROVISIONAL,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const limpiarBorradorPOS = () => {
+  if (typeof window === 'undefined') return;
+
+  try {
+    localStorage.removeItem(POS_DRAFT_STORAGE_KEY);
+  } catch {
+    // No bloquear la venta por errores de almacenamiento local.
+  }
+};
+
 const QrScanner = lazy(() =>
   import('@yudiel/react-qr-scanner').then((module) => ({
     default: module.Scanner,
@@ -245,11 +285,16 @@ export default function POS() {
   const focoInicialAplicadoRef = useRef(false);
   const carritoRef = useRef([]);
   const ultimoCodigoEscaneadoRef = useRef('');
+  const borradorPOSInicialRef = useRef(obtenerBorradorPOS());
 
   const [productos, setProductos] = useState([]);
   const [mostrarCatalogo, setMostrarCatalogo] = useState(consultarVisibilidadCatalogo);
-  const [carrito, setCarrito] = useState([]);
-  const [metodoPago, setMetodoPago] = useState('efectivo');
+  const [carrito, setCarrito] = useState(
+    () => borradorPOSInicialRef.current?.carrito || []
+  );
+  const [metodoPago, setMetodoPago] = useState(
+    () => borradorPOSInicialRef.current?.metodoPago || 'efectivo'
+  );
   const [busqueda, setBusqueda] = useState('');
   const [busquedaAplicada, setBusquedaAplicada] = useState('');
   const [paginaActual, setPaginaActual] = useState(1);
@@ -263,13 +308,25 @@ export default function POS() {
   const [ultimoTicketVenta, setUltimoTicketVenta] = useState(null);
   const [procesandoVenta, setProcesandoVenta] = useState(false);
   const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
-  const [cotizacionActiva, setCotizacionActiva] = useState(null);
-  const [modoPantalla, setModoPantalla] = useState(MODOS_PANTALLA.VENTA);
+  const [cotizacionActiva, setCotizacionActiva] = useState(
+    () => borradorPOSInicialRef.current?.cotizacionActiva || null
+  );
+  const [modoPantalla, setModoPantalla] = useState(
+    () => borradorPOSInicialRef.current?.modoPantalla || MODOS_PANTALLA.VENTA
+  );
 
-  const [nombreClienteCotizacion, setNombreClienteCotizacion] = useState('');
-  const [fechaCotizacion, setFechaCotizacion] = useState(obtenerFechaHoyISO());
-  const [vigenciaCotizacion, setVigenciaCotizacion] = useState('');
-  const [folioCotizacion, setFolioCotizacion] = useState(FOLIO_PROVISIONAL);
+  const [nombreClienteCotizacion, setNombreClienteCotizacion] = useState(
+    () => borradorPOSInicialRef.current?.nombreClienteCotizacion || ''
+  );
+  const [fechaCotizacion, setFechaCotizacion] = useState(
+    () => borradorPOSInicialRef.current?.fechaCotizacion || obtenerFechaHoyISO()
+  );
+  const [vigenciaCotizacion, setVigenciaCotizacion] = useState(
+    () => borradorPOSInicialRef.current?.vigenciaCotizacion || ''
+  );
+  const [folioCotizacion, setFolioCotizacion] = useState(
+    () => borradorPOSInicialRef.current?.folioCotizacion || FOLIO_PROVISIONAL
+  );
 
   const [mostrarScanner, setMostrarScanner] = useState(false);
   const [mostrarModalProductoMovil, setMostrarModalProductoMovil] = useState(false);
@@ -316,6 +373,53 @@ export default function POS() {
   useEffect(() => {
     carritoRef.current = carrito;
   }, [carrito]);
+
+  useEffect(() => {
+    if (!puede(PERMISOS.REGISTRAR_VENTAS)) return;
+    if (typeof window === 'undefined') return;
+
+    const draft = {
+      carrito,
+      metodoPago,
+      cotizacionActiva,
+      modoPantalla,
+      nombreClienteCotizacion,
+      fechaCotizacion,
+      vigenciaCotizacion,
+      folioCotizacion,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const estaVacio =
+      carrito.length === 0 &&
+      !cotizacionActiva &&
+      metodoPago === 'efectivo' &&
+      modoPantalla === MODOS_PANTALLA.VENTA &&
+      !nombreClienteCotizacion &&
+      fechaCotizacion === obtenerFechaHoyISO() &&
+      !vigenciaCotizacion &&
+      folioCotizacion === FOLIO_PROVISIONAL;
+
+    try {
+      if (estaVacio) {
+        localStorage.removeItem(POS_DRAFT_STORAGE_KEY);
+      } else {
+        localStorage.setItem(POS_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+      }
+    } catch {
+      // Si el navegador no permite guardar, el POS sigue funcionando normal.
+    }
+  }, [
+    carrito,
+    metodoPago,
+    cotizacionActiva,
+    modoPantalla,
+    nombreClienteCotizacion,
+    fechaCotizacion,
+    vigenciaCotizacion,
+    folioCotizacion,
+    puede,
+  ]);
 
   useEffect(() => {
     if (!mensajeExito) return;
@@ -681,6 +785,13 @@ const agregarProductoDesdeModalScanner = () => {
       console.error('No se pudo sincronizar el carrito con el inventario actual:', errorSync);
     }
   };
+
+  useEffect(() => {
+    if (!puede(PERMISOS.REGISTRAR_VENTAS)) return;
+    if (!borradorPOSInicialRef.current?.carrito?.length) return;
+
+    sincronizarCarritoConStockActual();
+  }, [puede]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -1900,6 +2011,7 @@ const agregarProductoDesdeModalScanner = () => {
 
       setTicketVenta(ticket);
       guardarUltimoTicket(ticket);
+      limpiarBorradorPOS();
       setCarrito([]);
       carritoRef.current = [];
       setCotizacionActiva(null);
