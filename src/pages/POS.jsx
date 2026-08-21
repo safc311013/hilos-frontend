@@ -27,8 +27,11 @@ import {
 
 const PRODUCTOS_POR_PAGINA = 12;
 const MEDIA_QUERY_CATALOGO = '(min-width: 640px)';
+const MOSTRAR_CATALOGO_POS = false;
 
 const consultarVisibilidadCatalogo = () => {
+  if (!MOSTRAR_CATALOGO_POS) return false;
+
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
     return true;
   }
@@ -346,6 +349,14 @@ export default function POS() {
   const esModoCotizacion = modoPantalla === MODOS_PANTALLA.COTIZACION;
 
   useEffect(() => {
+    if (!MOSTRAR_CATALOGO_POS) {
+      setMostrarCatalogo(false);
+      setProductos([]);
+      setErrorCarga('');
+      setCargandoCatalogo(false);
+      return undefined;
+    }
+
     if (typeof window.matchMedia !== 'function') return undefined;
 
     const mediaQuery = window.matchMedia(MEDIA_QUERY_CATALOGO);
@@ -2088,13 +2099,13 @@ const agregarProductoDesdeModalScanner = () => {
               <button
                 type="button"
                 onClick={abrirModalProductoMovil}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 sm:hidden"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 <Plus size={18} />
                 Agregar producto
               </button>
 
-              <form className="hidden flex-col gap-2 sm:block" onSubmit={handleBusquedaSubmit}>
+              <form className="hidden flex-col gap-2" onSubmit={handleBusquedaSubmit}>
                 <div className="relative flex-1">
                   <Search
                     size={18}
@@ -2124,7 +2135,7 @@ const agregarProductoDesdeModalScanner = () => {
                 ) : null}
               </form>
 
-              <p className="mt-2 hidden text-xs text-gray-500 sm:block">
+              <p className="mt-2 hidden text-xs text-gray-500">
                 {mostrarCatalogo
                   ? 'Escribe el código completo con formato HEN0000 o el nombre del producto y presiona Enter. Si hay varias coincidencias, selecciónalo del catálogo.'
                   : 'Escribe el código completo con formato HEN0000 y presiona Enter, o usa el escáner.'}
@@ -2137,7 +2148,7 @@ const agregarProductoDesdeModalScanner = () => {
               <button
                 type="button"
                 onClick={abrirScanner}
-                className="hidden rounded-xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100 sm:inline-flex"
+                className="hidden rounded-xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
               >
                 Escanear código
               </button>
@@ -2292,8 +2303,8 @@ const agregarProductoDesdeModalScanner = () => {
           ) : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.02fr_1.18fr] xl:items-start">
-          <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-6">
+        <div className="grid grid-cols-1 gap-6">
+          <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div
@@ -2322,7 +2333,7 @@ const agregarProductoDesdeModalScanner = () => {
               </div>
             ) : null}
 
-            <div className="max-h-[360px] overflow-auto sm:hidden">
+            <div className="max-h-[430px] overflow-auto">
               {resumenCarrito.detalle.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-gray-300 py-10 text-center">
                   <p className="text-base font-medium text-gray-700">
@@ -2336,7 +2347,7 @@ const agregarProductoDesdeModalScanner = () => {
                 </div>
               ) : (
                 <div className="overflow-hidden rounded-xl border border-gray-200">
-                  <div className="grid grid-cols-[54px_minmax(0,1fr)_88px_36px] bg-gray-50 px-3 py-2 text-[11px] font-semibold uppercase text-gray-500">
+                  <div className="grid grid-cols-[54px_minmax(0,1fr)_88px_36px] bg-gray-50 px-3 py-2 text-[11px] font-semibold uppercase text-gray-500 sm:grid-cols-[72px_minmax(0,1fr)_120px_40px]">
                     <span>Cant.</span>
                     <span>Producto</span>
                     <span className="text-right">Precio</span>
@@ -2347,7 +2358,7 @@ const agregarProductoDesdeModalScanner = () => {
                     {resumenCarrito.detalle.map((item) => (
                       <div
                         key={`${item.producto}-${item.inventarioOrigen || 'tienda'}`}
-                        className="grid grid-cols-[54px_minmax(0,1fr)_88px_36px] items-center px-3 py-2 text-sm"
+                        className="grid grid-cols-[54px_minmax(0,1fr)_88px_36px] items-center px-3 py-2 text-sm sm:grid-cols-[72px_minmax(0,1fr)_120px_40px] sm:py-3"
                       >
                         <span className="font-semibold text-gray-900">
                           {Number(item.cantidadNumero || 0)}
@@ -2379,7 +2390,7 @@ const agregarProductoDesdeModalScanner = () => {
               )}
             </div>
 
-            <div className="hidden max-h-[430px] space-y-3 overflow-auto pr-1 sm:block">
+            <div className="hidden max-h-[430px] space-y-3 overflow-auto pr-1">
               {resumenCarrito.detalle.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center">
                   <p className="text-base font-medium text-gray-700">
@@ -2664,7 +2675,7 @@ const agregarProductoDesdeModalScanner = () => {
             )}
           </section>
 
-          {mostrarCatalogo ? (
+          {MOSTRAR_CATALOGO_POS && mostrarCatalogo ? (
             <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -2995,10 +3006,10 @@ const agregarProductoDesdeModalScanner = () => {
       ) : null}
 
       {mostrarModalProductoMovil ? (
-        <div className="fixed inset-0 z-[70] flex items-end bg-black/45 p-0 sm:hidden">
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4">
           <div className="absolute inset-0" onClick={cerrarModalProductoMovil} />
 
-          <div className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-gray-200 bg-white p-4 shadow-md">
+          <div className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-gray-200 bg-white p-4 shadow-md sm:max-w-2xl sm:rounded-2xl sm:p-5">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Agregar producto</h3>
