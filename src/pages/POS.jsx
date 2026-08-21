@@ -272,6 +272,15 @@ export default function POS() {
   const [folioCotizacion, setFolioCotizacion] = useState(FOLIO_PROVISIONAL);
 
   const [mostrarScanner, setMostrarScanner] = useState(false);
+  const [mostrarModalProductoMovil, setMostrarModalProductoMovil] = useState(false);
+  const [busquedaProductoMovil, setBusquedaProductoMovil] = useState('');
+  const [productoMovil, setProductoMovil] = useState(null);
+  const [cantidadProductoMovil, setCantidadProductoMovil] = useState('1');
+  const [descuentoProductoMovil, setDescuentoProductoMovil] = useState('');
+  const [inventarioProductoMovil, setInventarioProductoMovil] = useState(
+    INVENTARIOS.TIENDA
+  );
+  const [buscandoProductoMovil, setBuscandoProductoMovil] = useState(false);
   const [productoConsultado, setProductoConsultado] = useState(null);
   const [consultandoCodigo, setConsultandoCodigo] = useState(false);
   const [buscandoProducto, setBuscandoProducto] = useState(false);
@@ -330,7 +339,7 @@ export default function POS() {
   }, []);
 
   useEffect(() => {
-    if (ticketVenta || mostrarScanner || productoConsultado) {
+    if (ticketVenta || mostrarScanner || mostrarModalProductoMovil || productoConsultado) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -339,7 +348,7 @@ export default function POS() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [ticketVenta, mostrarScanner, productoConsultado]);
+  }, [ticketVenta, mostrarScanner, mostrarModalProductoMovil, productoConsultado]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -409,6 +418,38 @@ export default function POS() {
   enfocarBusqueda();
 };
 
+  const limpiarModalProductoMovil = () => {
+    setBusquedaProductoMovil('');
+    setProductoMovil(null);
+    setCantidadProductoMovil('1');
+    setDescuentoProductoMovil('');
+    setInventarioProductoMovil(INVENTARIOS.TIENDA);
+    setBuscandoProductoMovil(false);
+    setErrorScanner('');
+  };
+
+  const abrirModalProductoMovil = () => {
+    setError('');
+    setMensajeExito('');
+    limpiarModalProductoMovil();
+    setMostrarModalProductoMovil(true);
+  };
+
+  const cerrarModalProductoMovil = () => {
+    setMostrarModalProductoMovil(false);
+    limpiarModalProductoMovil();
+    enfocarBusqueda();
+  };
+
+  const seleccionarProductoMovil = (producto) => {
+    const inventarioOrigen = obtenerInventarioDisponible(producto);
+
+    setProductoMovil(producto);
+    setInventarioProductoMovil(inventarioOrigen);
+    setCantidadProductoMovil('1');
+    setDescuentoProductoMovil('');
+  };
+
 const agregarProductoDesdeModalScanner = () => {
   if (!productoConsultado) return;
 
@@ -467,7 +508,11 @@ const agregarProductoDesdeModalScanner = () => {
 
       setMostrarScanner(false);
 
-      if (!mostrarCatalogo) {
+      if (mostrarModalProductoMovil) {
+        seleccionarProductoMovil(data);
+        ultimoCodigoEscaneadoRef.current = '';
+        setMostrarModalProductoMovil(true);
+      } else if (!mostrarCatalogo) {
         agregarProducto(data, '1');
         ultimoCodigoEscaneadoRef.current = '';
         setMensajeExito(`${data.nombre} se agregó al carrito.`);
@@ -780,15 +825,32 @@ const agregarProductoDesdeModalScanner = () => {
     enfocarBusqueda();
   };
 
-  const agregarProducto = (producto, cantidadInicial = '') => {
+  const agregarProductoConOpciones = (
+    producto,
+    {
+      cantidadInicial = '',
+      descuentoInicial = '',
+      inventarioOrigen: inventarioSolicitado,
+    } = {}
+  ) => {
     setError('');
     setMensajeExito('');
 
-    const inventarioOrigen = obtenerInventarioDisponible(producto);
+    const inventarioOrigen = normalizarInventario(
+      inventarioSolicitado || obtenerInventarioDisponible(producto)
+    );
     const stockDisponible = obtenerStockPorInventario(producto, inventarioOrigen);
+    const cantidadSolicitada = Number(cantidadInicial || 0);
 
     if (stockDisponible <= 0) {
       setError(`El producto ${producto.nombre} ya no tiene stock disponible.`);
+      return;
+    }
+
+    if (cantidadSolicitada > stockDisponible) {
+      setError(
+        `No puedes agregar mas de ${stockDisponible} unidades de ${producto.nombre} desde ${INVENTARIO_LABELS[inventarioOrigen]}.`
+      );
       return;
     }
 
@@ -800,9 +862,9 @@ const agregarProductoDesdeModalScanner = () => {
       );
 
       if (existe) {
-        if (
-          Number(existe.cantidad || 0) >= stockDisponible
-        ) {
+        const nuevaCantidad = Number(existe.cantidad || 0) + (cantidadSolicitada || 1);
+
+        if (nuevaCantidad > stockDisponible) {
           setError(
             `No puedes agregar más de ${
               stockDisponible
@@ -814,7 +876,11 @@ const agregarProductoDesdeModalScanner = () => {
         return prev.map((item) =>
           item.producto === producto._id &&
           normalizarInventario(item.inventarioOrigen) === inventarioOrigen
-            ? { ...item, cantidad: String(Number(item.cantidad || 0) + 1) }
+            ? {
+                ...item,
+                cantidad: String(nuevaCantidad),
+                descuento: descuentoInicial !== '' ? String(descuentoInicial) : item.descuento,
+              }
             : item
         );
       }
@@ -832,12 +898,16 @@ const agregarProductoDesdeModalScanner = () => {
           inventarioOrigen,
           stockDisponible,
           cantidad: cantidadInicial,
-          descuento: '',
+          descuento: descuentoInicial,
           pieza: '',
           imagenUrl: producto.imagenUrl || '',
         },
       ];
     });
+  };
+
+  const agregarProducto = (producto, cantidadInicial = '') => {
+    agregarProductoConOpciones(producto, { cantidadInicial });
   };
 
   const buscarYAgregarRapido = async () => {
@@ -1109,6 +1179,139 @@ const agregarProductoDesdeModalScanner = () => {
 
     return { detalle, total, descuentoAcumulado };
   }, [carrito, esModoCotizacion]);
+
+  const resumenProductoMovil = useMemo(() => {
+    const cantidad = Number(cantidadProductoMovil || 0);
+    const descuento = esModoCotizacion ? 0 : Number(descuentoProductoMovil || 0);
+    const precio = Number(productoMovil?.precio || 0);
+    const subtotalBruto = precio * cantidad;
+    const montoDescuento = subtotalBruto * (descuento / 100);
+
+    return {
+      stockDisponible: productoMovil
+        ? obtenerStockPorInventario(productoMovil, inventarioProductoMovil)
+        : 0,
+      subtotalBruto,
+      montoDescuento,
+      subtotalFinal: subtotalBruto - montoDescuento,
+    };
+  }, [
+    cantidadProductoMovil,
+    descuentoProductoMovil,
+    esModoCotizacion,
+    inventarioProductoMovil,
+    productoMovil,
+  ]);
+
+  const buscarProductoModalMovil = async (e) => {
+    e?.preventDefault?.();
+
+    const termino = String(busquedaProductoMovil || '').trim();
+    if (!termino || buscandoProductoMovil) return;
+
+    try {
+      setBuscandoProductoMovil(true);
+      setError('');
+      setErrorScanner('');
+
+      const codigo = termino.toUpperCase();
+
+      try {
+        const { data } = await api.get(
+          `/productos/codigo/${encodeURIComponent(codigo)}`
+        );
+
+        if (data?._id) {
+          seleccionarProductoMovil(data);
+          return;
+        }
+      } catch (errorCodigo) {
+        if (errorCodigo?.response?.status !== 404) throw errorCodigo;
+      }
+
+      const { data } = await api.get('/productos/catalogo', {
+        params: {
+          page: 1,
+          limit: 5,
+          q: termino,
+        },
+      });
+
+      const resultados = data.items || [];
+      const coincidenciaExactaPorNombre = resultados.find((producto) => {
+        const nombre = String(producto.nombre || '').trim().toLowerCase();
+        return nombre === termino.toLowerCase();
+      });
+      const productoEncontrado = coincidenciaExactaPorNombre || resultados[0];
+
+      if (!productoEncontrado) {
+        setError('No se encontro un producto con ese codigo o nombre.');
+        return;
+      }
+
+      seleccionarProductoMovil(productoEncontrado);
+    } catch (errorBusqueda) {
+      setError(
+        errorBusqueda.response?.data?.mensaje ||
+          errorBusqueda.message ||
+          'No se pudo buscar el producto'
+      );
+    } finally {
+      setBuscandoProductoMovil(false);
+    }
+  };
+
+  const confirmarProductoMovil = () => {
+    if (!productoMovil) {
+      setError('Selecciona un producto antes de agregarlo.');
+      return;
+    }
+
+    const cantidad = Number(cantidadProductoMovil || 0);
+    const descuento = Number(descuentoProductoMovil || 0);
+
+    if (!Number.isFinite(cantidad) || cantidad <= 0) {
+      setError('La cantidad debe ser mayor a 0.');
+      return;
+    }
+
+    if (cantidad > resumenProductoMovil.stockDisponible) {
+      setError(
+        `La cantidad maxima para ${productoMovil.nombre} es ${resumenProductoMovil.stockDisponible}.`
+      );
+      return;
+    }
+
+    const itemExistente = carritoRef.current.find(
+      (item) =>
+        item.producto === productoMovil._id &&
+        normalizarInventario(item.inventarioOrigen) ===
+          normalizarInventario(inventarioProductoMovil)
+    );
+
+    if (
+      itemExistente &&
+      Number(itemExistente.cantidad || 0) + cantidad > resumenProductoMovil.stockDisponible
+    ) {
+      setError(
+        `No puedes agregar mas de ${resumenProductoMovil.stockDisponible} unidades de ${productoMovil.nombre}.`
+      );
+      return;
+    }
+
+    if (!esModoCotizacion && (!Number.isFinite(descuento) || descuento < 0 || descuento > 100)) {
+      setError('El descuento debe estar entre 0 y 100.');
+      return;
+    }
+
+    agregarProductoConOpciones(productoMovil, {
+      cantidadInicial: String(cantidad),
+      descuentoInicial: esModoCotizacion ? '' : String(descuentoProductoMovil || ''),
+      inventarioOrigen: inventarioProductoMovil,
+    });
+    setMensajeExito(`${productoMovil.nombre} se agrego a la lista.`);
+    cerrarModalProductoMovil();
+  };
 
   const construirHtmlTicket80mm = (ticket) => {
     const logoUrl = `${window.location.origin}/logo.png`;
@@ -1770,7 +1973,16 @@ const agregarProductoDesdeModalScanner = () => {
             </div>
 
             <div className="w-full xl:w-[380px]">
-              <form className="flex flex-col gap-2 sm:block" onSubmit={handleBusquedaSubmit}>
+              <button
+                type="button"
+                onClick={abrirModalProductoMovil}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 sm:hidden"
+              >
+                <Plus size={18} />
+                Agregar producto
+              </button>
+
+              <form className="hidden flex-col gap-2 sm:block" onSubmit={handleBusquedaSubmit}>
                 <div className="relative flex-1">
                   <Search
                     size={18}
@@ -1800,7 +2012,7 @@ const agregarProductoDesdeModalScanner = () => {
                 ) : null}
               </form>
 
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 hidden text-xs text-gray-500 sm:block">
                 {mostrarCatalogo
                   ? 'Escribe el código completo con formato HEN0000 o el nombre del producto y presiona Enter. Si hay varias coincidencias, selecciónalo del catálogo.'
                   : 'Escribe el código completo con formato HEN0000 y presiona Enter, o usa el escáner.'}
@@ -1813,7 +2025,7 @@ const agregarProductoDesdeModalScanner = () => {
               <button
                 type="button"
                 onClick={abrirScanner}
-                className="rounded-xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
+                className="hidden rounded-xl border border-sky-200 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 transition hover:bg-sky-100 sm:inline-flex"
               >
                 Escanear código
               </button>
@@ -1998,7 +2210,64 @@ const agregarProductoDesdeModalScanner = () => {
               </div>
             ) : null}
 
-            <div className="max-h-[360px] space-y-3 overflow-auto pr-1 sm:max-h-[430px]">
+            <div className="max-h-[360px] overflow-auto sm:hidden">
+              {resumenCarrito.detalle.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gray-300 py-10 text-center">
+                  <p className="text-base font-medium text-gray-700">
+                    {esModoCotizacion ? 'La cotizacion esta vacia' : 'El carrito esta vacio'}
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    {esModoCotizacion
+                      ? 'Agrega productos para comenzar la cotizacion'
+                      : 'Agrega productos para comenzar'}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-xl border border-gray-200">
+                  <div className="grid grid-cols-[54px_minmax(0,1fr)_88px_36px] bg-gray-50 px-3 py-2 text-[11px] font-semibold uppercase text-gray-500">
+                    <span>Cant.</span>
+                    <span>Producto</span>
+                    <span className="text-right">Precio</span>
+                    <span />
+                  </div>
+
+                  <div className="divide-y divide-gray-100">
+                    {resumenCarrito.detalle.map((item) => (
+                      <div
+                        key={`${item.producto}-${item.inventarioOrigen || 'tienda'}`}
+                        className="grid grid-cols-[54px_minmax(0,1fr)_88px_36px] items-center px-3 py-2 text-sm"
+                      >
+                        <span className="font-semibold text-gray-900">
+                          {Number(item.cantidadNumero || 0)}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-gray-800">{item.nombre}</p>
+                          {Number(item.montoDescuento || 0) > 0 ? (
+                            <p className="mt-0.5 text-[11px] text-amber-700">
+                              - {formatearMoneda(item.montoDescuento)}
+                            </p>
+                          ) : null}
+                        </div>
+                        <span className="text-right font-semibold text-gray-900">
+                          {formatearMoneda(
+                            esModoCotizacion ? item.subtotalBruto : item.subtotalFinal
+                          )}
+                        </span>
+                        <button
+                          className="ml-2 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600"
+                          onClick={() => quitarProducto(item.producto)}
+                          type="button"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="hidden max-h-[430px] space-y-3 overflow-auto pr-1 sm:block">
               {resumenCarrito.detalle.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-gray-300 py-12 text-center">
                   <p className="text-base font-medium text-gray-700">
@@ -2609,6 +2878,238 @@ const agregarProductoDesdeModalScanner = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {mostrarModalProductoMovil ? (
+        <div className="fixed inset-0 z-[70] flex items-end bg-black/45 p-0 sm:hidden">
+          <div className="absolute inset-0" onClick={cerrarModalProductoMovil} />
+
+          <div className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-gray-200 bg-white p-4 shadow-md">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Agregar producto</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Escanea o escribe el codigo para confirmar la linea.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={cerrarModalProductoMovil}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+              {!esModoCotizacion ? (
+                <button
+                  type="button"
+                  onClick={abrirScanner}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700"
+                >
+                  <Search size={17} />
+                  Usar escaner
+                </button>
+              ) : null}
+
+              <form className="flex gap-2" onSubmit={buscarProductoModalMovil}>
+                <input
+                  className="input h-11"
+                  placeholder="Codigo o nombre"
+                  value={busquedaProductoMovil}
+                  onChange={(e) => setBusquedaProductoMovil(e.target.value)}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                />
+                <button
+                  type="submit"
+                  disabled={!busquedaProductoMovil.trim() || buscandoProductoMovil}
+                  className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white disabled:opacity-60"
+                >
+                  {buscandoProductoMovil ? '...' : 'Buscar'}
+                </button>
+              </form>
+            </div>
+
+            {error ? (
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
+
+            {productoMovil ? (
+              <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <div className="flex items-start gap-3">
+                  {renderImagenProducto(
+                    productoMovil.imagenUrl,
+                    productoMovil.nombre,
+                    'h-14 w-14 shrink-0',
+                    16
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-gray-900">
+                      {productoMovil.nombre}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {productoMovil.codigo || 'Sin codigo'} -{' '}
+                      {productoMovil.categoria || 'General'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Inventario de salida
+                  </label>
+                  <select
+                    className="input h-11"
+                    value={inventarioProductoMovil}
+                    onChange={(e) => {
+                      const inventario = normalizarInventario(e.target.value);
+                      const stockDisponible = obtenerStockPorInventario(
+                        productoMovil,
+                        inventario
+                      );
+
+                      setInventarioProductoMovil(inventario);
+                      if (Number(cantidadProductoMovil || 0) > stockDisponible) {
+                        setCantidadProductoMovil(stockDisponible > 0 ? String(stockDisponible) : '');
+                      }
+                    }}
+                  >
+                    <option value={INVENTARIOS.TIENDA}>
+                      Tienda ({obtenerStockPorInventario(productoMovil, INVENTARIOS.TIENDA)})
+                    </option>
+                    <option value={INVENTARIOS.TAXCO}>
+                      Taxco ({obtenerStockPorInventario(productoMovil, INVENTARIOS.TAXCO)})
+                    </option>
+                  </select>
+                </div>
+
+                <div
+                  className={`mt-4 grid grid-cols-1 gap-3 ${
+                    esModoCotizacion ? '' : 'grid-cols-2'
+                  }`}
+                >
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Cantidad
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700"
+                        onClick={() =>
+                          setCantidadProductoMovil((prev) =>
+                            Number(prev || 0) <= 1 ? '' : String(Number(prev || 0) - 1)
+                          )
+                        }
+                      >
+                        <Minus size={15} />
+                      </button>
+
+                      <input
+                        className="input h-11 text-center"
+                        type="number"
+                        min="1"
+                        max={resumenProductoMovil.stockDisponible}
+                        placeholder="0"
+                        value={cantidadProductoMovil}
+                        onChange={(e) => setCantidadProductoMovil(e.target.value)}
+                      />
+
+                      <button
+                        type="button"
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700"
+                        onClick={() =>
+                          setCantidadProductoMovil((prev) => {
+                            const siguiente = Number(prev || 0) + 1;
+                            return String(
+                              Math.min(siguiente, resumenProductoMovil.stockDisponible)
+                            );
+                          })
+                        }
+                      >
+                        <Plus size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {!esModoCotizacion ? (
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">
+                        Descuento %
+                      </label>
+                      <div className="relative">
+                        <Percent
+                          size={16}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+                        <input
+                          className="input h-11 pr-9"
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="0"
+                          value={descuentoProductoMovil}
+                          onChange={(e) => setDescuentoProductoMovil(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div
+                  className={`mt-4 grid gap-2 text-sm ${
+                    esModoCotizacion ? 'grid-cols-3' : 'grid-cols-2'
+                  }`}
+                >
+                  <div className="rounded-xl bg-white px-3 py-3">
+                    <p className="text-gray-500">Unitario</p>
+                    <p className="mt-1 font-semibold text-gray-800">
+                      {formatearMoneda(productoMovil.precio || 0)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white px-3 py-3">
+                    <p className="text-gray-500">Subtotal</p>
+                    <p className="mt-1 font-semibold text-gray-800">
+                      {formatearMoneda(resumenProductoMovil.subtotalBruto)}
+                    </p>
+                  </div>
+
+                  {!esModoCotizacion ? (
+                    <div className="rounded-xl bg-white px-3 py-3">
+                      <p className="text-amber-700">Descuento</p>
+                      <p className="mt-1 font-semibold text-amber-700">
+                        - {formatearMoneda(resumenProductoMovil.montoDescuento)}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  <div className="rounded-xl bg-slate-900 px-3 py-3 text-white">
+                    <p className="text-slate-300">Total</p>
+                    <p className="mt-1 font-semibold">
+                      {formatearMoneda(resumenProductoMovil.subtotalFinal)}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={confirmarProductoMovil}
+                  className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white"
+                >
+                  <Plus size={16} />
+                  Agregar producto
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}
