@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import Loader from '../components/Loader';
 import { api } from '../config/api';
 import { useRealtime } from '../context/RealtimeContext';
+import usePermisos from '../hooks/usePermisos';
 import { imprimirTicketConfigurado } from '../utils/impresoraTickets';
 import {
   Search,
@@ -20,6 +21,8 @@ import {
   FileText,
   Tag,
   Printer,
+  Trash2,
+  TriangleAlert,
 } from 'lucide-react';
 
 const formatearMoneda = (valor) => {
@@ -131,13 +134,19 @@ const cargarImagenComoDataURL = async (ruta) => {
 export default function Ventas() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { usuario } = usePermisos();
   const [ventas, setVentas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [ventaSeleccionada, setVentaSeleccionada] = useState(null);
   const [ticketSeleccionado, setTicketSeleccionado] = useState(null);
+  const [ventaAEliminar, setVentaAEliminar] = useState(null);
+  const [passwordAdmin, setPasswordAdmin] = useState('');
+  const [eliminandoVenta, setEliminandoVenta] = useState(false);
+  const [errorEliminarVenta, setErrorEliminarVenta] = useState('');
   const [soloVentasHoy, setSoloVentasHoy] = useState(false);
   const { lastEvent } = useRealtime();
+  const esAdmin = usuario?.rol === 'admin';
 
   const cargarVentas = async () => {
     const { data } = await api.get('/ventas');
@@ -178,7 +187,7 @@ export default function Ventas() {
   }, [lastEvent]);
 
   useEffect(() => {
-    if (ventaSeleccionada || ticketSeleccionado) {
+    if (ventaSeleccionada || ticketSeleccionado || ventaAEliminar) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -187,7 +196,7 @@ export default function Ventas() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [ventaSeleccionada, ticketSeleccionado]);
+  }, [ventaSeleccionada, ticketSeleccionado, ventaAEliminar]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -195,6 +204,11 @@ export default function Ventas() {
 
       if (ticketSeleccionado) {
         setTicketSeleccionado(null);
+        return;
+      }
+
+      if (ventaAEliminar) {
+        cerrarModalEliminarVenta();
         return;
       }
 
@@ -211,11 +225,58 @@ export default function Ventas() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [soloVentasHoy, ventaSeleccionada, ticketSeleccionado, navigate]);
+  }, [soloVentasHoy, ventaSeleccionada, ticketSeleccionado, ventaAEliminar, navigate]);
 
   const limpiarFiltroVentasHoy = () => {
     setSoloVentasHoy(false);
     navigate('/ventas', { replace: true });
+  };
+
+  const abrirModalEliminarVenta = (venta) => {
+    setVentaAEliminar(venta);
+    setPasswordAdmin('');
+    setErrorEliminarVenta('');
+  };
+
+  const cerrarModalEliminarVenta = () => {
+    if (eliminandoVenta) return;
+    setVentaAEliminar(null);
+    setPasswordAdmin('');
+    setErrorEliminarVenta('');
+  };
+
+  const confirmarEliminarVenta = async () => {
+    if (!ventaAEliminar?._id || eliminandoVenta) return;
+
+    try {
+      setEliminandoVenta(true);
+      setErrorEliminarVenta('');
+
+      await api.delete(`/ventas/${ventaAEliminar._id}`, {
+        data: { password: passwordAdmin },
+      });
+
+      setVentas((actuales) =>
+        actuales.filter((venta) => venta._id !== ventaAEliminar._id)
+      );
+
+      if (ventaSeleccionada?._id === ventaAEliminar._id) {
+        setVentaSeleccionada(null);
+      }
+
+      if (ticketSeleccionado?._id === ventaAEliminar._id) {
+        setTicketSeleccionado(null);
+      }
+
+      setVentaAEliminar(null);
+      setPasswordAdmin('');
+    } catch (error) {
+      setErrorEliminarVenta(
+        error.response?.data?.mensaje || 'No se pudo eliminar la venta'
+      );
+    } finally {
+      setEliminandoVenta(false);
+    }
   };
 
   const ventasFiltradas = useMemo(() => {
@@ -745,11 +806,22 @@ export default function Ventas() {
                           </div>
                         </div>
 
-                        <div className="mt-4 flex justify-end">
+                        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                          {esAdmin ? (
+                            <button
+                              type="button"
+                              onClick={() => abrirModalEliminarVenta(venta)}
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                            >
+                              <Trash2 size={16} />
+                              Eliminar venta
+                            </button>
+                          ) : null}
+
                           <button
                             type="button"
                             onClick={() => setTicketSeleccionado(venta)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100"
                           >
                             <Receipt size={16} />
                             Ver ticket
@@ -799,6 +871,17 @@ export default function Ventas() {
                   </div>
 
                   <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
+                    {esAdmin ? (
+                      <button
+                        type="button"
+                        onClick={() => abrirModalEliminarVenta(ventaSeleccionada)}
+                        className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 md:flex-none"
+                      >
+                        <Trash2 size={16} />
+                        Eliminar
+                      </button>
+                    ) : null}
+
                     <button
                       type="button"
                       onClick={() => setTicketSeleccionado(ventaSeleccionada)}
@@ -1089,6 +1172,84 @@ export default function Ventas() {
                 </section>
               </div>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {ventaAEliminar ? (
+        <div className="fixed inset-0 z-[70] overflow-y-auto bg-black/50 p-4">
+          <div className="flex min-h-full items-center justify-center">
+            <div
+              className="absolute inset-0"
+              onClick={cerrarModalEliminarVenta}
+            />
+
+            <form
+              className="relative w-full max-w-md rounded-xl border border-red-100 bg-white p-5 shadow-xl sm:p-6"
+              onSubmit={(event) => {
+                event.preventDefault();
+                confirmarEliminarVenta();
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-700">
+                  <TriangleAlert size={22} />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Eliminar venta
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-gray-600">
+                    Se eliminarÃ¡ el ticket {ventaAEliminar.folio} y las piezas vendidas volverÃ¡n al inventario correspondiente.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                Esta acciÃ³n solo puede confirmarla un administrador con su contraseÃ±a.
+              </div>
+
+              <label className="mt-5 block">
+                <span className="text-sm font-semibold text-gray-800">
+                  ContraseÃ±a del administrador
+                </span>
+                <input
+                  type="password"
+                  value={passwordAdmin}
+                  onChange={(event) => setPasswordAdmin(event.target.value)}
+                  className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-4 text-base text-gray-900 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 sm:text-sm"
+                  autoComplete="current-password"
+                  autoFocus
+                />
+              </label>
+
+              {errorEliminarVenta ? (
+                <p className="mt-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {errorEliminarVenta}
+                </p>
+              ) : null}
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={cerrarModalEliminarVenta}
+                  disabled={eliminandoVenta}
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={eliminandoVenta || !passwordAdmin.trim()}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Trash2 size={16} />
+                  {eliminandoVenta ? 'Eliminando...' : 'Eliminar y restaurar'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}
