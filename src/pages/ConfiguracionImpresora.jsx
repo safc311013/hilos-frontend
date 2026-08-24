@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Copy, Printer, RotateCcw, Smartphone, Monitor, Wifi } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Copy,
+  Info,
+  Printer,
+  RotateCcw,
+  Smartphone,
+  Monitor,
+  Wifi,
+} from 'lucide-react';
 import Layout from '../components/Layout';
 import Header from '../components/Header';
 import { api } from '../config/api';
@@ -54,6 +64,7 @@ export default function ConfiguracionImpresora() {
   const appMovilNativa = esAplicacionMovilNativa();
   const [configuracion, setConfiguracion] = useState(() => cargarConfiguracionImpresora());
   const [mensaje, setMensaje] = useState('');
+  const [tipoMensaje, setTipoMensaje] = useState('info');
   const [probandoConexion, setProbandoConexion] = useState(false);
   const [direccionMovil, setDireccionMovil] = useState('');
 
@@ -75,32 +86,38 @@ export default function ConfiguracionImpresora() {
       [campo]: valor,
     }));
     setMensaje('');
+    setTipoMensaje('info');
+  };
+
+  const mostrarMensaje = (texto, tipo = 'info') => {
+    setMensaje(texto);
+    setTipoMensaje(tipo);
   };
 
   const guardar = () => {
     const configGuardada = guardarConfiguracionImpresora(configuracion);
     setConfiguracion(configGuardada);
-    setMensaje('Configuración guardada en este dispositivo.');
+    mostrarMensaje('Configuración guardada en este dispositivo.');
   };
 
   const restaurar = () => {
     const configGuardada = guardarConfiguracionImpresora(CONFIG_IMPRESORA_DEFAULT);
     setConfiguracion(configGuardada);
-    setMensaje('Configuración restaurada.');
+    mostrarMensaje('Configuración restaurada.');
   };
 
   const imprimirPrueba = async () => {
     const configGuardada = guardarConfiguracionImpresora(configuracion);
     setConfiguracion(configGuardada);
-    setMensaje('Enviando ticket de prueba...');
+    mostrarMensaje('Enviando ticket de prueba...');
     try {
       const resultado = await imprimirTicketConfigurado({
         ticket: ticketPrueba,
         formatearMoneda,
       });
-      if (resultado?.mensaje) setMensaje(resultado.mensaje);
+      if (resultado?.mensaje) mostrarMensaje(resultado.mensaje);
     } catch (error) {
-      setMensaje(error.message);
+      mostrarMensaje(error.message, 'error');
     }
   };
 
@@ -109,9 +126,9 @@ export default function ConfiguracionImpresora() {
     setMensaje('');
     try {
       const resultado = await probarImpresoraIp(configuracion);
-      setMensaje(resultado.mensaje);
+      mostrarMensaje(resultado.mensaje, 'exito');
     } catch (error) {
-      setMensaje(error.message);
+      mostrarMensaje(error.message, 'error');
     } finally {
       setProbandoConexion(false);
     }
@@ -120,15 +137,33 @@ export default function ConfiguracionImpresora() {
   const copiarDireccionMovil = async () => {
     try {
       await navigator.clipboard.writeText(direccionMovil);
-      setMensaje('Dirección para teléfono copiada.');
+      mostrarMensaje('Dirección para teléfono copiada.');
     } catch {
-      setMensaje('No se pudo copiar. Selecciona la dirección manualmente.');
+      mostrarMensaje('No se pudo copiar. Selecciona la dirección manualmente.', 'error');
     }
   };
 
+  const estilosMensaje = {
+    exito: {
+      contenedor: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+      icono: CheckCircle2,
+    },
+    error: {
+      contenedor: 'border-red-200 bg-red-50 text-red-800',
+      icono: AlertCircle,
+    },
+    info: {
+      contenedor: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+      icono: Info,
+    },
+  };
+
+  const mensajeActual = estilosMensaje[tipoMensaje] || estilosMensaje.info;
+  const MensajeIcono = mensajeActual.icono;
+
   return (
     <Layout>
-      <Header title="Impresora de tickets" />
+      <Header title="Configuracion de impresora de tickets" />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
@@ -137,7 +172,7 @@ export default function ConfiguracionImpresora() {
               <Printer size={22} />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">Configuración local</h3>
+              <h3 className="text-lg font-bold text-gray-900">Configuración</h3>
               <p className="mt-1 text-sm text-gray-500">
                 Estos ajustes se guardan solo en este celular o computadora.
               </p>
@@ -145,8 +180,8 @@ export default function ConfiguracionImpresora() {
           </div>
 
           {mensaje ? (
-            <div className="mt-5 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-              <CheckCircle2 size={18} />
+            <div className={`mt-5 flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-medium ${mensajeActual.contenedor}`}>
+              <MensajeIcono size={18} />
               {mensaje}
             </div>
           ) : null}
