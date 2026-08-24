@@ -1201,18 +1201,18 @@ export default function Ventas() {
                     Eliminar venta
                   </h3>
                   <p className="mt-1 text-sm leading-relaxed text-gray-600">
-                    Se eliminarÃ¡ el ticket {ventaAEliminar.folio} y las piezas vendidas volverÃ¡n al inventario correspondiente.
+                    Se eliminará el ticket {ventaAEliminar.folio} y las piezas vendidas volverán al inventario correspondiente.
                   </p>
                 </div>
               </div>
 
               <div className="mt-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-                Esta acciÃ³n solo puede confirmarla un administrador con su contraseÃ±a.
+                Esta acción solo puede confirmarla un administrador con su contraseña.
               </div>
 
               <label className="mt-5 block">
                 <span className="text-sm font-semibold text-gray-800">
-                  ContraseÃ±a del administrador
+                  Contraseña del administrador
                 </span>
                 <input
                   type="password"
