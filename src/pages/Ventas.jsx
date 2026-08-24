@@ -773,7 +773,7 @@ export default function Ventas() {
               onClick={() => setVentaSeleccionada(null)}
             />
 
-            <div className="relative flex h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-white shadow-md sm:h-[94vh] sm:max-w-7xl sm:rounded-xl sm:border sm:border-white/20">
+            <div className="relative flex max-h-[100dvh] w-full flex-col overflow-y-auto rounded-none border-0 bg-white shadow-md sm:h-[94vh] sm:max-w-7xl sm:overflow-hidden sm:rounded-xl sm:border sm:border-white/20">
               <div className="sticky top-0 z-20 border-b border-gray-100 bg-white px-4 py-4 sm:px-5 md:px-6">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
@@ -869,7 +869,7 @@ export default function Ventas() {
                 })()}
               </div>
 
-              <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[320px_1fr] lg:overflow-hidden xl:grid-cols-[360px_1fr]">
+              <div className="grid min-h-0 flex-1 grid-cols-1 overflow-visible lg:grid-cols-[320px_1fr] lg:overflow-hidden xl:grid-cols-[360px_1fr]">
                 <aside className="border-b border-gray-100 bg-white p-4 sm:p-5 lg:border-b-0 lg:border-r lg:overflow-y-auto">
                   <div className="space-y-4">
                     <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-white shadow-sm">
