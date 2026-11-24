@@ -3147,7 +3147,7 @@ const agregarProductoDesdeModalScanner = () => {
                 <button
                   type="button"
                   onClick={abrirScanner}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 lg:hidden"
                 >
                   <Search size={17} />
                   Usar escaner
