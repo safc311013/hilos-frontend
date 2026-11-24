@@ -2677,7 +2677,7 @@ export default function Inventario() {
 
               <button
                 type="button"
-                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-sky-200 bg-sky-50 px-4 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 lg:hidden"
                 onClick={abrirScanner}
                 disabled={loading || importandoPdf || exportandoExcel}
               >

@@ -179,7 +179,12 @@ const construirTicketDesdeVenta = ({
       hour: '2-digit',
       minute: '2-digit',
     }),
-    total: detalle.reduce((acc, item) => acc + Number(item.subtotalFinal || 0), 0),
+    costoEnvio: Number(venta?.costoEnvio || 0),
+    total: Number(
+      venta?.total ??
+        (detalle.reduce((acc, item) => acc + Number(item.subtotalFinal || 0), 0) +
+          Number(venta?.costoEnvio || 0))
+    ),
     productos: detalle.map((item) => ({
       nombre: item.nombre,
       cantidad: Number(item.cantidadNumero || 0),
@@ -247,6 +252,7 @@ const obtenerBorradorPOS = () => {
     return {
       carrito: Array.isArray(draft.carrito) ? draft.carrito : [],
       metodoPago: draft.metodoPago || 'efectivo',
+      costoEnvio: String(draft.costoEnvio ?? ''),
       cotizacionActiva: draft.cotizacionActiva || null,
       modoPantalla:
         draft.modoPantalla === MODOS_PANTALLA.COTIZACION
@@ -297,6 +303,9 @@ export default function POS() {
   );
   const [metodoPago, setMetodoPago] = useState(
     () => borradorPOSInicialRef.current?.metodoPago || 'efectivo'
+  );
+  const [costoEnvio, setCostoEnvio] = useState(
+    () => borradorPOSInicialRef.current?.costoEnvio || ''
   );
   const [busqueda, setBusqueda] = useState('');
   const [busquedaAplicada, setBusquedaAplicada] = useState('');
@@ -392,6 +401,7 @@ export default function POS() {
     const draft = {
       carrito,
       metodoPago,
+      costoEnvio,
       cotizacionActiva,
       modoPantalla,
       nombreClienteCotizacion,
@@ -403,6 +413,7 @@ export default function POS() {
 
     const estaVacio =
       carrito.length === 0 &&
+      !costoEnvio &&
       !cotizacionActiva &&
       metodoPago === 'efectivo' &&
       modoPantalla === MODOS_PANTALLA.VENTA &&
@@ -423,6 +434,7 @@ export default function POS() {
   }, [
     carrito,
     metodoPago,
+    costoEnvio,
     cotizacionActiva,
     modoPantalla,
     nombreClienteCotizacion,
@@ -868,6 +880,7 @@ const agregarProductoDesdeModalScanner = () => {
 
     const carritoInicial = construirCarritoDesdeCotizacion(cotizacionVenta);
     setCarrito(carritoInicial);
+    setCostoEnvio('');
     carritoRef.current = carritoInicial;
 
     setCotizacionActiva({
@@ -901,6 +914,7 @@ const agregarProductoDesdeModalScanner = () => {
   const abrirModoCotizacion = () => {
     const fechaHoy = obtenerFechaHoyISO();
 
+    setCostoEnvio('');
     setError('');
     setMensajeExito('');
     setCotizacionActiva(null);
@@ -915,6 +929,7 @@ const agregarProductoDesdeModalScanner = () => {
   const nuevaCotizacion = () => {
     const fechaHoy = obtenerFechaHoyISO();
 
+    setCostoEnvio('');
     setError('');
     setMensajeExito('');
     setTicketVenta(null);
@@ -1278,6 +1293,17 @@ const agregarProductoDesdeModalScanner = () => {
     setCarrito((prev) => prev.filter((item) => item.producto !== id));
   };
 
+  const costoEnvioValido =
+    Number.isFinite(Number(costoEnvio || 0)) &&
+    Number.isSafeInteger(Math.round(Number(costoEnvio || 0) * 100)) &&
+    Number(costoEnvio || 0) >= 0 &&
+    /^\d*(?:\.\d{0,2})?$/.test(costoEnvio);
+  const errorCostoEnvio = costoEnvioValido
+    ? ''
+    : 'Introduce un monto de envío válido, mayor o igual a 0 y con hasta 2 decimales.';
+  const costoEnvioAplicado =
+    !esModoCotizacion && costoEnvioValido ? Number(costoEnvio || 0) : 0;
+
   const resumenCarrito = useMemo(() => {
     const detalle = carrito.map((item) => {
       const cantidad = Number(item.cantidad || 0);
@@ -1296,11 +1322,12 @@ const agregarProductoDesdeModalScanner = () => {
       };
     });
 
-    const total = detalle.reduce((acc, item) => acc + item.subtotalFinal, 0);
+    const subtotalProductos = detalle.reduce((acc, item) => acc + item.subtotalFinal, 0);
+    const total = subtotalProductos + costoEnvioAplicado;
     const descuentoAcumulado = detalle.reduce((acc, item) => acc + item.montoDescuento, 0);
 
-    return { detalle, total, descuentoAcumulado };
-  }, [carrito, esModoCotizacion]);
+    return { detalle, subtotalProductos, total, descuentoAcumulado };
+  }, [carrito, esModoCotizacion, costoEnvioAplicado]);
 
   const resumenProductoMovil = useMemo(() => {
     const cantidad = Number(cantidadProductoMovil || 0);
@@ -1588,6 +1615,12 @@ const agregarProductoDesdeModalScanner = () => {
 
             <div class="divider"></div>
 
+            ${
+              Number(ticket.costoEnvio || 0) > 0
+                ? `<div class="row"><span>Envío</span><strong>${formatearMoneda(ticket.costoEnvio)}</strong></div>`
+                : ''
+            }
+
             <div class="row total">
               <span>Total</span>
               <span>${formatearMoneda(ticket.total)}</span>
@@ -1653,27 +1686,25 @@ const agregarProductoDesdeModalScanner = () => {
     const width = 80;
     let y = 8;
 
-    const estimarAltura = () => {
-      let altura = 78;
-
-      ticketADescargar.productos.forEach((item) => {
-        const nombreLineas = Math.max(1, Math.ceil(String(item.nombre || '').length / 24));
-        altura += nombreLineas * 4.5 + 7;
-
-        if (Number(item.montoDescuento || 0) > 0) {
-          altura += 4.5;
-        }
-      });
-
-      return Math.max(140, altura);
-    };
-
     const doc = new jsPDF({
       unit: 'mm',
-      format: [width, estimarAltura()],
+      format: [width, 140],
     });
 
     const pageWidth = doc.internal.pageSize.getWidth();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    const alturaProductos = ticketADescargar.productos.reduce((altura, item) => {
+      const nombreLineas = doc.splitTextToSize(item.nombre, pageWidth - 12);
+      return (
+        altura + nombreLineas.length * 4 + 9 +
+        (Number(item.montoDescuento || 0) > 0 ? 4 : 0)
+      );
+    }, 0);
+    const alturaTicket =
+      76 + (logoDataUrl ? 19 : 0) + alturaProductos +
+      (Number(ticketADescargar.costoEnvio || 0) > 0 ? 5 : 0);
+    doc.internal.pageSize.setHeight(Math.max(140, alturaTicket));
 
     if (logoDataUrl) {
       doc.addImage(logoDataUrl, 'PNG', 20, y, 40, 16);
@@ -1713,10 +1744,9 @@ const agregarProductoDesdeModalScanner = () => {
     y += 5;
 
     ticketADescargar.productos.forEach((item) => {
-      const nombreLineas = doc.splitTextToSize(item.nombre, pageWidth - 12);
-
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
+      const nombreLineas = doc.splitTextToSize(item.nombre, pageWidth - 12);
       doc.text(nombreLineas, 6, y);
       y += nombreLineas.length * 4;
 
@@ -1748,6 +1778,12 @@ const agregarProductoDesdeModalScanner = () => {
     doc.setDrawColor(180, 180, 180);
     doc.line(6, y, pageWidth - 6, y);
     y += 6;
+
+    if (Number(ticketADescargar.costoEnvio || 0) > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      imprimirDato('Envío', formatearMoneda(ticketADescargar.costoEnvio));
+    }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -1979,6 +2015,11 @@ const agregarProductoDesdeModalScanner = () => {
       return;
     }
 
+    if (!costoEnvioValido) {
+      setError(errorCostoEnvio);
+      return;
+    }
+
     try {
       setProcesandoVenta(true);
 
@@ -1999,6 +2040,7 @@ const agregarProductoDesdeModalScanner = () => {
         })),
         metodoPago,
         origenCotizacion: Boolean(cotizacionActiva),
+        costoEnvio: costoEnvioAplicado,
         cotizacion: cotizacionActiva
           ? {
               cliente: cotizacionActiva.cliente || '',
@@ -2024,6 +2066,7 @@ const agregarProductoDesdeModalScanner = () => {
       guardarUltimoTicket(ticket);
       limpiarBorradorPOS();
       setCarrito([]);
+      setCostoEnvio('');
       carritoRef.current = [];
       setCotizacionActiva(null);
       setMetodoPago('efectivo');
@@ -2584,6 +2627,44 @@ const agregarProductoDesdeModalScanner = () => {
 
             {!esModoCotizacion ? (
               <>
+                <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <label
+                    htmlFor="costo-envio"
+                    className="mb-2 block text-sm font-medium text-gray-700"
+                  >
+                    Monto introducido (envío)
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                      $
+                    </span>
+                    <input
+                      id="costo-envio"
+                      className="input h-11"
+                      style={{ paddingLeft: '2rem' }}
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={costoEnvio}
+                      onChange={(event) => {
+                        setCostoEnvio(event.target.value);
+                        setError('');
+                      }}
+                      disabled={procesandoVenta}
+                      aria-invalid={Boolean(errorCostoEnvio)}
+                      aria-describedby="costo-envio-ayuda"
+                    />
+                  </div>
+                  <p
+                    id="costo-envio-ayuda"
+                    className={`mt-2 text-sm ${errorCostoEnvio ? 'text-red-700' : 'text-gray-500'}`}
+                  >
+                    {errorCostoEnvio || 'Opcional. Se suma al total de la venta.'}
+                  </p>
+                </div>
+
                 <div className="mt-5">
                   <label className="mb-1 block text-sm font-medium text-gray-700">
                     Método de pago
@@ -2607,6 +2688,22 @@ const agregarProductoDesdeModalScanner = () => {
                 </div>
 
                 <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5">
+                  {costoEnvioAplicado > 0 ? (
+                    <div className="mb-4 space-y-2 border-b border-gray-100 pb-4 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-gray-500">Productos</span>
+                        <span className="font-semibold text-gray-900">
+                          {formatearMoneda(resumenCarrito.subtotalProductos)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-gray-500">Envío</span>
+                        <span className="font-semibold text-gray-900">
+                          {formatearMoneda(costoEnvioAplicado)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
                   <p className="text-sm text-gray-500">Total de la venta</p>
                   <h4 className="mt-2 break-words text-3xl font-bold text-gray-900 sm:text-4xl">
                     ${resumenCarrito.total.toFixed(2)}
@@ -2615,7 +2712,7 @@ const agregarProductoDesdeModalScanner = () => {
                   <button
                     className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     onClick={finalizarVenta}
-                    disabled={procesandoVenta}
+                    disabled={procesandoVenta || !costoEnvioValido}
                   >
                     {procesandoVenta ? 'Procesando venta...' : 'Finalizar venta'}
                   </button>
@@ -2913,6 +3010,15 @@ const agregarProductoDesdeModalScanner = () => {
 
                     <div className="my-4 border-t border-dashed border-gray-300" />
 
+                    {Number(ticketVenta.costoEnvio || 0) > 0 ? (
+                      <div className="mb-3 flex items-center justify-between gap-3 text-sm text-gray-700">
+                        <span>Envío</span>
+                        <span className="font-semibold">
+                          {formatearMoneda(ticketVenta.costoEnvio)}
+                        </span>
+                      </div>
+                    ) : null}
+
                     <div className="flex items-center justify-between gap-3 text-base font-bold text-gray-900">
                       <span>Total</span>
                       <span>{formatearMoneda(ticketVenta.total)}</span>
@@ -2926,7 +3032,7 @@ const agregarProductoDesdeModalScanner = () => {
                     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <button
                       type="button"
-                      onClick={imprimirTicket80mm}
+                      onClick={() => imprimirTicket80mm()}
                       className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-4 text-sm font-semibold text-gray-800 transition hover:bg-gray-50"
                     >
                       <Printer size={18} />
@@ -2935,7 +3041,7 @@ const agregarProductoDesdeModalScanner = () => {
 
                     <button
                       type="button"
-                      onClick={descargarTicketPDF}
+                      onClick={() => descargarTicketPDF()}
                       className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
                       <FileText size={18} />
@@ -2966,6 +3072,15 @@ const agregarProductoDesdeModalScanner = () => {
                         )}
                       </span>
                     </div>
+
+                    {Number(ticketVenta.costoEnvio || 0) > 0 ? (
+                      <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                        <span className="text-sm text-gray-500">Envío</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {formatearMoneda(ticketVenta.costoEnvio)}
+                        </span>
+                      </div>
+                    ) : null}
 
                     <div className="flex items-center justify-between gap-3 px-4 py-3">
                       <span className="text-sm font-semibold text-gray-900">Total cobrado</span>

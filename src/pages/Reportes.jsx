@@ -813,6 +813,15 @@ export default function Reportes() {
                           </span>
                         </div>
 
+                        {Number(ventaSeleccionada.costoEnvio || 0) > 0 ? (
+                          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                            <span className="text-sm text-slate-300">Envío</span>
+                            <span className="text-base font-semibold text-white">
+                              {formatearMoneda(ventaSeleccionada.costoEnvio)}
+                            </span>
+                          </div>
+                        ) : null}
+
                         <div className="rounded-xl bg-white px-4 py-4 text-slate-900 shadow-sm">
                           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
                             Total cobrado

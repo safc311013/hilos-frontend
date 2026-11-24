@@ -109,8 +109,11 @@ export const construirTextoTicket = ({ ticket, formatearMoneda, configuracion })
     }
   });
 
+  lineas.push(separador);
+  if (Number(ticket.costoEnvio || 0) > 0) {
+    lineas.push(ajustarLinea('Envío', formatearMoneda(ticket.costoEnvio), columnas));
+  }
   lineas.push(
-    separador,
     ajustarLinea('TOTAL', formatearMoneda(ticket.total), columnas),
     separador,
     config.pieTicket,
@@ -208,6 +211,12 @@ export const construirHtmlTicket = ({
         .join('')}
 
       <div class="divider"></div>
+
+      ${
+        Number(ticket.costoEnvio || 0) > 0
+          ? `<div class="row"><span>Envío</span><strong>${formatearMoneda(ticket.costoEnvio)}</strong></div>`
+          : ''
+      }
 
       <div class="row total">
         <span>Total</span>

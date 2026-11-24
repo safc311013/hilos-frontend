@@ -97,6 +97,7 @@ const construirTicketDesdeVenta = (venta) => {
       hour: '2-digit',
       minute: '2-digit',
     }),
+    costoEnvio: Number(venta?.costoEnvio || 0),
     total: Number(venta?.total || 0),
     productos: (venta?.productos || []).map((item) => ({
       nombre: item.nombreProducto || 'Producto',
@@ -485,6 +486,12 @@ export default function Ventas() {
 
             <div class="divider"></div>
 
+            ${
+              Number(ticket.costoEnvio || 0) > 0
+                ? `<div class="row"><span>Envío</span><strong>${formatearMoneda(ticket.costoEnvio)}</strong></div>`
+                : ''
+            }
+
             <div class="row total">
               <span>Total</span>
               <span>${formatearMoneda(ticket.total)}</span>
@@ -532,16 +539,21 @@ export default function Ventas() {
     let y = 8;
 
     const estimarAltura = () => {
-      let altura = 78;
+      const medidaDoc = new jsPDF({ unit: 'mm', format: [width, 140] });
+      medidaDoc.setFont('helvetica', 'bold');
+      medidaDoc.setFontSize(9);
+      let altura = logoDataUrl ? 96 : 77;
 
       ticketActual.productos.forEach((item) => {
-        const nombreLineas = Math.max(1, Math.ceil(String(item.nombre || '').length / 24));
-        altura += nombreLineas * 4.5 + 7;
+        const nombreLineas = medidaDoc.splitTextToSize(item.nombre, width - 12);
+        altura += nombreLineas.length * 4 + 9;
 
         if (Number(item.montoDescuento || 0) > 0) {
-          altura += 4.5;
+          altura += 4;
         }
       });
+
+      if (Number(ticketActual.costoEnvio || 0) > 0) altura += 5;
 
       return Math.max(140, altura);
     };
@@ -591,10 +603,9 @@ export default function Ventas() {
     y += 5;
 
     ticketActual.productos.forEach((item) => {
-      const nombreLineas = doc.splitTextToSize(item.nombre, pageWidth - 12);
-
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
+      const nombreLineas = doc.splitTextToSize(item.nombre, pageWidth - 12);
       doc.text(nombreLineas, 6, y);
       y += nombreLineas.length * 4;
 
@@ -626,6 +637,12 @@ export default function Ventas() {
     doc.setDrawColor(180, 180, 180);
     doc.line(6, y, pageWidth - 6, y);
     y += 6;
+
+    if (Number(ticketActual.costoEnvio || 0) > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      imprimirDato('Envío', formatearMoneda(ticketActual.costoEnvio));
+    }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -984,6 +1001,15 @@ export default function Ventas() {
                             {formatearMoneda(ventaSeleccionada.descuentoTotal || 0)}
                           </span>
                         </div>
+
+                        {Number(ventaSeleccionada.costoEnvio || 0) > 0 ? (
+                          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                            <span className="text-sm text-slate-300">Envío</span>
+                            <span className="text-base font-semibold text-white">
+                              {formatearMoneda(ventaSeleccionada.costoEnvio)}
+                            </span>
+                          </div>
+                        ) : null}
 
                         <div className="rounded-xl bg-white px-4 py-4 text-slate-900 shadow-sm">
                           <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
@@ -1367,6 +1393,15 @@ export default function Ventas() {
 
                     <div className="my-4 border-t border-dashed border-gray-300" />
 
+                    {Number(ticketActual.costoEnvio || 0) > 0 ? (
+                      <div className="mb-3 flex items-center justify-between gap-3 text-sm text-gray-600">
+                        <span>Envío</span>
+                        <span className="font-semibold text-gray-900">
+                          {formatearMoneda(ticketActual.costoEnvio)}
+                        </span>
+                      </div>
+                    ) : null}
+
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-lg font-bold text-gray-900">TOTAL</span>
                       <span className="text-xl font-extrabold text-gray-900">
@@ -1414,6 +1449,15 @@ export default function Ventas() {
                         {ticketActual.metodoPago}
                       </span>
                     </div>
+
+                    {Number(ticketActual.costoEnvio || 0) > 0 ? (
+                      <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                        <span className="text-sm text-gray-500">Envío</span>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {formatearMoneda(ticketActual.costoEnvio)}
+                        </span>
+                      </div>
+                    ) : null}
 
                     <div className="flex items-center justify-between gap-3 px-4 py-3">
                       <span className="text-sm font-semibold text-gray-900">Total</span>
